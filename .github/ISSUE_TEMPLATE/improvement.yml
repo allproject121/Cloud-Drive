@@ -1,45 +1,45 @@
-name: "💡 Sujhav / Improvement"
-description: "App me kya behtar ho sakta hai, ya kya theek se nahi chala - yahan likhiye"
-title: "[Sujhav] "
+name: "💡 Suggestion / Improvement"
+description: "Tell us what could be better, or what did not work"
+title: "[Suggestion] "
 body:
   - type: markdown
     attributes:
       value: |
-        Dhanyavaad! Jo man me hai seedhe-seedhe likh dijiye - Hinglish, Hindi ya English, kisi bhi bhasha me.
-        **Dhyan rahe:** password, login token ya apni niji file ka naam yahan mat likhiye - yeh page sab ko dikhta hai.
+        Thank you! Write what is on your mind in plain words - English, Hindi or Hinglish are all fine.
+        **Please note:** do not write passwords, login tokens or the names of private files here - this page is public.
   - type: dropdown
     id: area
     attributes:
-      label: "Kis hisse ke baare me hai?"
+      label: "Which part is this about?"
       options:
         - PC app (Windows)
         - Phone app (Android)
         - Web page (browser)
         - Setup / install
         - Documents (README, SETUP)
-        - Kuch aur
+        - Something else
     validations:
       required: true
   - type: textarea
     id: idea
     attributes:
-      label: "Aapka sujhav"
-      description: "Kya badalna ya jodna chahiye?"
-      placeholder: "Jaise: phone app me folder ko pura download karne ka button hona chahiye..."
+      label: "Your suggestion"
+      description: "What should be changed or added?"
+      placeholder: "Example: the phone app should have a button to download a whole folder..."
     validations:
       required: true
   - type: textarea
     id: why
     attributes:
-      label: "Isse kya fayda hoga? (optional)"
-      placeholder: "Abhi kya dikkat aati hai, aur isse kaise aasan hoga"
+      label: "How would this help? (optional)"
+      placeholder: "What is difficult today, and how this would make it easier"
   - type: textarea
     id: problem
     attributes:
-      label: "Kuch theek se nahi chala? (optional)"
-      description: "Kya kiya, kya hona chahiye tha, aur kya hua. Error ka message ho to wo bhi."
+      label: "Did something not work? (optional)"
+      description: "What you did, what should have happened, and what happened instead. Include the error message if there was one."
   - type: input
     id: device
     attributes:
       label: "PC / phone (optional)"
-      placeholder: "Jaise: Windows 11, 8 GB RAM / Android 14"
+      placeholder: "Example: Windows 11, 8 GB RAM / Android 14"

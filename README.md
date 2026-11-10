@@ -4,72 +4,84 @@
 
 # Cloud Drive (Cloud-SSD)
 
-**Apni Google Drive ko PC ki asli drive bana lo — aur phone se bhi chalao.**
+**Turn your Google Drive into a real drive on your PC — and use it from your phone too.**
 
-Bade games aur files cloud me rakho, PC ki SSD khali rakho, aur `Z:` drive se aise kholo jaise file PC me hi rakhi ho.
+Keep big games and files in the cloud, keep your SSD free, and open everything from `Z:` as if it were stored on the PC.
 
 [![Windows](https://img.shields.io/badge/PC-Windows%2010%20%7C%2011%20x64-0078D6?logo=windows&logoColor=white)](#setup)
 [![Android](https://img.shields.io/badge/Phone-Android%207.0%2B-3DDC84?logo=android&logoColor=white)](#phone)
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](#architecture)
-[![Engine](https://img.shields.io/badge/Engine-rclone%20%2B%20WinFsp-FF6C37)](#kaise)
+[![Engine](https://img.shields.io/badge/Engine-rclone%20%2B%20WinFsp-FF6C37)](#how)
 [![PC app](https://img.shields.io/badge/PC%20app-0.7.0-brightgreen)](#download)
 [![Phone app](https://img.shields.io/badge/Phone%20app-0.8.0-brightgreen)](#download)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/LICENSE)
 
-[Kya hai](#kya) • [Kaise kaam karta hai](#kaise) • [Features](#features) • [Phone & Web](#phone) • [Photo](#photo) • [Download](#download) • [Setup](#setup) • [Architecture](#architecture) • [Folder map](#structure) • [Docs](#docs) • [Sujhav bhejein](#sujhav)
+<br/>
+
+<a href="https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe">
+<img src="https://img.shields.io/badge/Download%20for%20Windows-.exe%20%C2%B7%2069%20MB-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows (.exe)" height="44" />
+</a>
+&nbsp;&nbsp;
+<a href="https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android/Cloud-SSD-Mobile.apk">
+<img src="https://img.shields.io/badge/Download%20for%20Android-.apk%20%C2%B7%201.2%20MB-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download for Android (.apk)" height="44" />
+</a>
+
+<br/><br/>
+
+[What it does](#what) • [How it works](#how) • [Features](#features) • [Phone & Web](#phone) • [Screenshots](#screenshots) • [Download](#download) • [Setup](#setup) • [Architecture](#architecture) • [Folder map](#structure) • [Docs](#docs) • [Send feedback](#feedback)
 
 </div>
 
 ---
 
-<a id="kya"></a>
+<a id="what"></a>
 
-## 🧐 Yeh app kya karta hai
+## 🧐 What it does
 
-Cloud Drive aapke **Google Drive account** ko Windows me ek **asli drive letter** (`Y:` / `Z:`) bana kar jod deta hai. File Explorer, games aur baki apps ko wo ek normal hard disk jaisi dikhti hai.
+Cloud Drive connects your **Google Drive account** to Windows as a **real drive letter** (`Y:` / `Z:`). File Explorer, games and every other app see it as a normal hard disk.
 
-| Aapki dikkat | Cloud Drive kya karta hai |
+| Your problem | What Cloud Drive does |
 |---|---|
-| PC ki SSD bhar gayi hai | Files cloud me rehti hain; PC par sirf wahi hissa aata hai jo abhi chahiye |
-| 100 GB ka game pura download karna padta hai | Game sirf wahi tukde download karta hai jo wo padh raha hai |
-| Ek Google account me jagah kam hai | Kai account jod kar **ek badi drive** ban jaati hai |
-| Phone me storage kam hai | Phone se photo / file seedhe cloud drive me bhej do |
-| PC ki files phone par chahiye | Phone app ya browser se cloud drive kholo, video seedhe chalao |
+| The PC's SSD is full | Files stay in the cloud; only the part you need right now comes to the PC |
+| A 100 GB game must be downloaded completely | The game downloads only the pieces it actually reads |
+| One Google account does not have enough space | Several accounts are joined into **one big drive** |
+| The phone is low on storage | Send photos and files from the phone straight to the cloud drive |
+| You want your PC's files on the phone | Open the cloud drive in the phone app or a browser and play videos directly |
 
-> **Yeh cloud gaming nahi hai.** Game aapke hi PC ke CPU aur GPU par chalta hai. Cloud Drive sirf *storage* ko cloud se jodta hai — video stream nahi karta.
+> **This is not cloud gaming.** The game runs on your own PC's CPU and GPU. Cloud Drive connects *storage* to the cloud — it does not stream video.
 
 ---
 
-<a id="kaise"></a>
+<a id="how"></a>
 
-## ⚙️ Kaise kaam karta hai
+## ⚙️ How it works
 
 ```mermaid
 flowchart LR
-    GD["Google Drive<br/>(1 ya zyada account)"]
-    RC["rclone<br/>cloud se baat karta hai"]
-    CA[("SSD cache<br/>aapki tay ki hui limit")]
+    GD["Google Drive<br/>(one or more accounts)"]
+    RC["rclone<br/>talks to the cloud"]
+    CA[("SSD cache<br/>size limit you choose")]
     WF["WinFsp<br/>drive Y: / Z:"]
     EX["File Explorer,<br/>games, apps"]
     PR["Prediction engine"]
     BR["Phone bridge<br/>port 8090"]
     PH["Phone app / Web"]
 
-    GD <-->|"sirf zaroori hissa"| RC
+    GD <-->|"only the part needed"| RC
     RC <--> CA
     RC <--> WF
     WF <--> EX
-    RC -.->|"kya padha gaya"| PR
-    PR -->|"aage ka data pehle se"| CA
+    RC -.->|"what was read"| PR
+    PR -->|"fetch next data early"| CA
     WF <--> BR
-    BR <-->|"ghar ka Wi-Fi"| PH
+    BR <-->|"home Wi-Fi"| PH
 ```
 
-1. **rclone** Google Drive se baat karta hai. Poori file nahi, sirf maanga hua hissa (byte range) download hota hai.
-2. **WinFsp** us data ko Windows me ek drive letter ki tarah dikhata hai. Koi kernel driver nahi, admin rights sirf WinFsp install ke waqt.
-3. Jo hissa ek baar aa gaya wo **SSD cache** me reh jaata hai, to dobara kholne par turant khulta hai. Cache ki limit aap tay karte ho, aur C: par hamesha kuch jagah bachi rehti hai.
-4. **Prediction engine** dekhta hai ki game kis kram me kya padhta hai, aur agli baar wo data pehle se la kar rakhta hai ("Optimize & Prepare").
-5. **Phone bridge** PC par ek chhota local server hai. Phone app aur web page isi se judte hain — sirf aapke Wi-Fi ke andar, kisi bahar ke server ke bina.
+1. **rclone** talks to Google Drive. It downloads only the requested part of a file (a byte range), never the whole file.
+2. **WinFsp** shows that data to Windows as a drive letter. There is no kernel driver, and administrator rights are needed only once, to install WinFsp.
+3. Every part that has been downloaded stays in the **SSD cache**, so opening it again is instant. You choose the cache limit, and some space on C: is always kept free.
+4. The **prediction engine** learns in which order a game reads its data and fetches that data ahead of time on the next launch ("Optimize & Prepare").
+5. The **phone bridge** is a small local server on the PC. The phone app and the web page connect to it — inside your own Wi-Fi only, with no outside server.
 
 ---
 
@@ -79,90 +91,90 @@ flowchart LR
 
 ### 💻 PC app (Windows)
 
-| Feature | Kya milta hai |
+| Feature | What you get |
 |---|---|
-| **Do cloud drive** | **Each Account** (`Y:`) — har Google account ka alag folder. **All Accounts** (`Z:`) — sab account jud kar ek badi drive |
-| **Kai account** | Jitne Google account chahein jodein; har account apni Gmail aur bachi hui jagah ke saath dikhta hai |
-| **Smart Cache** | Cache ki limit, C: ke liye surakshit jagah, aur sirf padha hua hissa hi disk par (sparse file) |
-| **Game Library** | 3 tareeke: **Cloud Direct** (seedha drive se), **Hybrid** (exe/dll PC par, bada data cloud se), **Full Local** (pura copy) |
-| **Optimize & Prepare** | Game shuru karne se pehle uska startup data pehle hi download kar leta hai |
-| **PC Memory (RAM)** | RAM ka haal dikhata hai; jab 30% se kam RAM bache to idle background apps ki RAM khud khali karta hai |
-| **Storage auto mode** | PC par jagah kam ho to phone se aayi uploads cloud drive me chali jaati hain |
-| **Mobile Hub** | Phone jodne ka code / QR, jude hue phone ki list, kya-kya allow hai uske switch |
-| **Diagnostics** | Zaroori cheezon ka status, logs, aur ek "safe report" jisme login / token nahi hote |
-| **Bhasha** | Hinglish, हिन्दी, English |
-| **`cpx` command** | Bina window ke check aur mount: `cpx deps`, `cpx remotes`, `cpx mounts` |
+| **Two cloud drives** | **Each Account** (`Y:`) — one folder per Google account. **All Accounts** (`Z:`) — all accounts joined into one big drive |
+| **Many accounts** | Connect as many Google accounts as you like; each one is listed with its Gmail address and free space |
+| **Smart Cache** | A cache size limit, protected free space on C:, and only the parts that were read take up disk space (sparse files) |
+| **Game Library** | 3 modes: **Cloud Direct** (run from the drive), **Hybrid** (exe/dll on the PC, big data from the cloud), **Full Local** (copy everything) |
+| **Optimize & Prepare** | Downloads a game's startup data before you press Play |
+| **PC Memory (RAM)** | Shows memory health; when less than 30% RAM is free it trims the memory of idle background apps on its own |
+| **Storage auto mode** | When the PC runs low on space, files uploaded from the phone are moved to the cloud drive |
+| **Mobile Hub** | Pairing code / QR for the phone, the list of connected phones, and switches for what a phone may do |
+| **Diagnostics** | Status of everything the app needs, logs, and a "sanitized report" that contains no logins or tokens |
+| **Languages** | English, Hindi, Hinglish |
+| **`cpx` command** | Checks and mounting without a window: `cpx deps`, `cpx remotes`, `cpx mounts` |
 
-### 🔒 Suraksha
+### 🔒 Security
 
-- Google password app me kabhi nahi likha jaata — sign-in Google ke apne page par hota hai.
-- Saved login PC par encrypt ho kar rehta hai (Windows DPAPI).
-- Phone bridge sirf local Wi-Fi par sunta hai; har request me pairing ka token chahiye.
-- App admin rights ke bina chalta hai aur Windows ki security settings nahi badalta.
+- Your Google password is never typed into the app — sign-in happens on Google's own page.
+- The saved login is stored encrypted on the PC (Windows DPAPI).
+- The phone bridge listens on the local Wi-Fi only, and every request must carry the pairing token.
+- The app runs without administrator rights and does not change Windows security settings.
 
 ---
 
 <a id="phone"></a>
 
-## 📱 Phone app aur 🌐 Web
+## 📱 Phone app and 🌐 Web
 
-Phone ke liye do raste hain, dono ek hi cheez dikhate hain:
+There are two ways to use it on a phone, and both show the same thing:
 
 | | **Android app** | **Web (browser)** |
 |---|---|---|
-| Kaise khulta hai | APK install karke | Browser me `http://<PC-IP>:8090` |
-| Kis par chalta hai | Android 7.0+ | Koi bhi phone, tablet ya dusra laptop — same Wi-Fi par |
-| Home screen icon | Haan | Haan ("Install on Home Screen" — PWA) |
-| Camera ka auto backup | Haan | Nahi |
-| Phone ke Files app me cloud drive | Haan | Nahi |
+| How to open it | Install the APK | Open `http://<PC-IP>:8090` in a browser |
+| Where it runs | Android 7.0+ | Any phone, tablet or second laptop on the same Wi-Fi |
+| Home-screen icon | Yes | Yes ("Install on Home Screen" — PWA) |
+| Automatic camera backup | Yes | No |
+| Cloud drive inside the phone's Files app | Yes | No |
 
-### Phone se kya-kya kar sakte hain
+### What you can do from the phone
 
-| Hissa | Kaam |
+| Section | What it does |
 |---|---|
-| **Cloud SSD** | PC ki cloud drive browse karo, file kholo / download karo, naya folder banao, rename / move / delete |
-| **Send to PC** | Photo ya koi bhi file phone se cloud drive me bhejo; transfer ki list dikhti hai |
-| **Camera backup** | Naye photo / video apne aap `Phone Backup/<phone>/Camera/<saal-mahina>` me chale jaate hain |
-| **Media** | Video aur audio bina pura download kiye seedhe chalte hain |
-| **Gaming companion** | PC ke live number: CPU, GPU, RAM, cloud read MB/s, cache hits, Wi-Fi latency; game save ke backup |
+| **Cloud SSD** | Browse the PC's cloud drive, open / download files, create folders, rename / move / delete |
+| **Send to PC** | Send photos or any file from the phone to the cloud drive; a transfer list shows progress |
+| **Camera backup** | New photos and videos go to `Phone Backup/<phone>/Camera/<year-month>` automatically |
+| **Media** | Videos and audio play directly, without downloading the whole file first |
+| **Gaming companion** | Live numbers from the PC: CPU, GPU, RAM, cloud read MB/s, cache hits, Wi-Fi latency; game save backups |
 | **PC media remote** | Mute, Previous, Play / Pause, Next |
-| **Laptop Space Saver** | Phone se hi PC par jagah khali karwana |
-| **This phone** | Phone ki RAM aur storage, phone ki files category ke hisaab se |
-| **Bhasha** | Hinglish, हिन्दी, English |
+| **Laptop Space Saver** | Free up space on the PC from the phone |
+| **This phone** | The phone's RAM and storage, and the phone's files by category |
+| **Languages** | English, Hindi, Hinglish |
 
-### Phone PC se kaise judta hai
+### How the phone connects to the PC
 
 ```mermaid
 sequenceDiagram
     participant P as Phone app / Web
     participant B as PC app (bridge 8090)
     participant D as Cloud drive (Y: / Z:)
-    P->>B: PC dhoondo (same Wi-Fi)
-    B-->>P: PC ka naam
-    P->>B: 6 ank ka code (PC ki screen se)
+    P->>B: Find the PC (same Wi-Fi)
+    B-->>P: PC name
+    P->>B: 6-digit code (shown on the PC)
     B-->>P: token
-    P->>B: file / upload / live numbers (token ke saath)
-    B->>D: padho / likho
+    P->>B: files / upload / live numbers (with token)
+    B->>D: read / write
     D-->>B: data
     B-->>P: file, video, numbers
 ```
 
-> **Dhyan rahe:** abhi phone **PC ke raste** kaam karta hai. PC app chalu hona chahiye aur phone usi Wi-Fi par hona chahiye. Bina PC ke seedha phone se cloud — yeh agla kaam hai, abhi nahi bana.
+> **Please note:** today the phone works **through the PC**. The PC app must be running and the phone must be on the same Wi-Fi. Reaching the cloud straight from the phone, without the PC, is the next piece of work and is not built yet.
 
 ---
 
-<a id="photo"></a>
+<a id="screenshots"></a>
 
-## 📸 Photo
+## 📸 Screenshots
 
-Phone app ke screenshot (thode purane version ke hain, naye version me layout badla hai):
+Phone app screenshots (from a slightly older version; the layout has changed in the newest build):
 
 <div align="center">
 
 | Gaming HUD | Offline Vault | Settings |
 |:---:|:---:|:---:|
 | <img src="Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/cloudssd_gaming_screen.png" width="230" alt="Phone app - Gaming HUD" /> | <img src="Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/cloudssd_vault_screen.png" width="230" alt="Phone app - Offline Vault" /> | <img src="Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/cloudssd_settings_screen.png" width="230" alt="Phone app - Settings" /> |
-| PC ke live number phone par | Phone me save ki hui files | Pairing, home-screen install, bhasha |
+| Live PC numbers on the phone | Files saved on the phone | Pairing, home-screen install, language |
 
 </div>
 
@@ -172,13 +184,15 @@ Phone app ke screenshot (thode purane version ke hain, naye version me layout ba
 
 ## 📥 Download
 
-| Kis ke liye | File | Size |
-|---|---|---|
-| 💻 **Windows PC** | [`Cloud-SSD-0.7.0-setup.exe`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe) | ~69 MB |
-| 🔒 Setup ka checksum | [`Cloud-SSD-0.7.0-setup.exe.sha256`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe.sha256) | — |
-| 📱 **Android phone** | [`Cloud-SSD-Mobile.apk`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android/Cloud-SSD-Mobile.apk) | ~1 MB |
+| For | File | Size | |
+|---|---|---|---|
+| 💻 **Windows PC** | `Cloud-SSD-0.7.0-setup.exe` | 69 MB | [**⬇ Download .exe**](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe) |
+| 📱 **Android phone** | `Cloud-SSD-Mobile.apk` | 1.2 MB | [**⬇ Download .apk**](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android/Cloud-SSD-Mobile.apk) |
+| 🔒 Checksum for the .exe | `Cloud-SSD-0.7.0-setup.exe.sha256` | — | [View](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe.sha256) |
 
-Phone app PC app ke andar bhi rakha hota hai: PC app chalu ho to phone ke browser me `http://<PC-IP>:8090/cloudssd.apk` kholne se bhi mil jaata hai.
+- **Windows:** run the `.exe`. The app is not code-signed, so Windows SmartScreen may warn the first time — choose *More info → Run anyway*.
+- **Android:** open the `.apk` on the phone and allow "Install unknown apps" when asked.
+- The phone app also ships inside the PC app: while the PC app is running, `http://<PC-IP>:8090/cloudssd.apk` in the phone's browser downloads it too.
 
 ---
 
@@ -186,56 +200,56 @@ Phone app PC app ke andar bhi rakha hota hai: PC app chalu ho to phone ke browse
 
 ## 🛠️ Setup
 
-### Sabse aasan: AI agent se karwao
+### Easiest: let an AI agent do it
 
-Poora setup — PC se phone tak — ek file me step by step likha hai: **[`SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md)**.
-Apne AI agent (Claude Code, Antigravity, Codex…) ko project folder me khol kar yeh likh do:
+The complete setup — from the PC to the phone — is written step by step in one file: **[`SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md)** (written in Hinglish; the commands are the same in any language).
+Open your AI agent (Claude Code, Antigravity, Codex…) in the project folder and tell it:
 
 ```text
-SETUP.md padho aur usme likha pura setup kar do — PC app, cloud drive aur phone app, sab.
-Meri taraf se full permission hai. Jahan mera click chahiye wahan ek line me batao.
+Read SETUP.md and do the whole setup it describes — PC app, cloud drive and phone app.
+You have my full permission. Where my click is needed, tell me in one line what to press.
 ```
 
-### Haath se: 3 + 3 step
+### By hand: 3 + 3 steps
 
-**PC par**
+**On the PC**
 
-1. [`Cloud-SSD-0.7.0-setup.exe`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe) chalao. WinFsp ke liye Windows poochhe to **Yes**.
-2. App kholo → **Cloud Drives** → **Sign in with Google** → browser me account chun kar **Allow**.
-3. File Explorer me `Y:` aur `Z:` drive aa jaayengi. Bas.
+1. Run [`Cloud-SSD-0.7.0-setup.exe`](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe). If Windows asks about WinFsp, choose **Yes**.
+2. Open the app → **Cloud Drives** → **Sign in with Google** → pick your account in the browser and press **Allow**.
+3. Drives `Y:` and `Z:` appear in File Explorer. Done.
 
-**Phone par**
+**On the phone**
 
-1. [APK](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android/Cloud-SSD-Mobile.apk) install karo (ya browser me `http://<PC-IP>:8090` kholo).
-2. Phone aur PC ko **ek hi Wi-Fi** par rakho.
-3. PC app ke **Mobile Hub** page par dikh raha **6 ank ka code** phone me daalo.
+1. Install the [APK](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android/Cloud-SSD-Mobile.apk) (or open `http://<PC-IP>:8090` in a browser).
+2. Put the phone and the PC on **the same Wi-Fi**.
+3. Type the **6-digit code** shown on the PC app's **Mobile Hub** page into the phone.
 
-### Kya chahiye
+### Requirements
 
-| Cheez | Zaroorat |
+| Item | Needed |
 |---|---|
-| PC | Windows 10 (1809+) ya 11, 64-bit, NTFS drive |
-| Google account | Kam se kam ek |
-| Phone | Android 7.0+ (web ke liye koi bhi browser) |
-| Wi-Fi | Phone aur PC ek hi network par |
+| PC | Windows 10 (1809+) or 11, 64-bit, NTFS drive |
+| Google account | At least one |
+| Phone | Android 7.0+ (any browser for the web version) |
+| Wi-Fi | Phone and PC on the same network |
 
-Dikkat aaye to: [`SETUP.md` ka "Dikkat aaye to"](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md#6-dikkat-aaye-to) aur [`docs/TROUBLESHOOTING.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/TROUBLESHOOTING.md). Apni khud ki Google key banani ho to [`docs/GOOGLE_DRIVE_SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/GOOGLE_DRIVE_SETUP.md).
+If something goes wrong: the ["Dikkat aaye to" (troubleshooting) section of `SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md#6-dikkat-aaye-to) and [`docs/TROUBLESHOOTING.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/TROUBLESHOOTING.md). To create your own Google key, see [`docs/GOOGLE_DRIVE_SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/GOOGLE_DRIVE_SETUP.md).
 
 <details>
-<summary><b>Developer: source code se build</b></summary>
+<summary><b>Developers: build from source</b></summary>
 
 <br/>
 
 ```powershell
 cd Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD
-powershell -ExecutionPolicy Bypass -File installer\fetch-rclone.ps1      # rclone laata hai (checksum ke saath)
+powershell -ExecutionPolicy Bypass -File installer\fetch-rclone.ps1      # fetches rclone (checksum-verified)
 dotnet build CloudSSD.slnx -c Release
 dotnet test tests\CloudSSD.Tests -c Release --no-build                   # unit tests
-powershell -ExecutionPolicy Bypass -File installer\build-release.ps1     # dist\ me zip + setup.exe
-powershell -NoProfile -ExecutionPolicy Bypass -File mobile-android\build-apk.ps1   # phone ka APK
+powershell -ExecutionPolicy Bypass -File installer\build-release.ps1     # zip + setup.exe in dist\
+powershell -NoProfile -ExecutionPolicy Bypass -File mobile-android\build-apk.ps1   # phone APK
 ```
 
-Chahiye: .NET SDK 10, WinFsp, (setup.exe ke liye) Inno Setup 6, (APK ke liye) Android SDK + JDK 17. Poori jaankari [`SETUP.md` ke Rasta B](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md#4-rasta-b--source-code-se-build-developer--naya-build) me.
+You need: .NET SDK 10, WinFsp, Inno Setup 6 (for the setup.exe), and the Android SDK + JDK 17 (for the APK). Full details are in ["Rasta B" of `SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md#4-rasta-b--source-code-se-build-developer--naya-build).
 
 </details>
 
@@ -245,16 +259,16 @@ Chahiye: .NET SDK 10, WinFsp, (setup.exe ke liye) Inno Setup 6, (APK ke liye) An
 
 ## 🏗️ Architecture
 
-App **.NET 10 (C#)** me bana hai, UI **WPF + MVVM** hai. Neeche ke do tayyar tools par khada hai — **rclone** (cloud + cache) aur **WinFsp** (Windows drive) — aur unke upar apna dimaag jodta hai: mount sambhalna, cache ki hifazat, prediction, games, phone bridge.
+The app is written in **.NET 10 (C#)** with a **WPF + MVVM** user interface. It stands on two proven tools — **rclone** (cloud + cache) and **WinFsp** (Windows drive) — and adds its own logic on top: managing mounts, protecting the disk, prediction, games and the phone bridge.
 
 ```mermaid
 flowchart TD
-    UI["CloudSSD.Desktop<br/>WPF app ke pages"]
+    UI["CloudSSD.Desktop<br/>WPF app pages"]
     CLI["CloudSSD.Cli<br/>cpx.exe"]
     PH["Phone app / Web<br/>mobile-android, wwwroot/mobile"]
     APP["CloudSSD.App<br/>AppHost, phone bridge, RAM relief, storage offload"]
     MNT["CloudSSD.Mount<br/>rclone + WinFsp mount"]
-    CCH["CloudSSD.Cache<br/>cache ki ginti aur hifazat"]
+    CCH["CloudSSD.Cache<br/>cache accounting and safety"]
     STR["CloudSSD.Streaming<br/>prediction + prefetch"]
     GMS["CloudSSD.Games<br/>library, scan, launch"]
     PRV["CloudSSD.Providers<br/>cloud providers"]
@@ -281,128 +295,128 @@ flowchart TD
     RC --> GD
 ```
 
-| Project | Zimmedari |
+| Project | Responsibility |
 |---|---|
-| [`CloudSSD.Core`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Core) | Settings (JSON), raste, units, models, disk ki jaankari |
-| [`CloudSSD.Mount`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Mount) | rclone dhoondna aur chalana, Google sign-in, drive lagana / hatana, crash par dobara chalana, rclone ka log padhna |
-| [`CloudSSD.Cache`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Cache) | Cache me kya hai, disk kitni bachi, safe safai |
-| [`CloudSSD.Streaming`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Streaming) | Predictors, prefetch queue, network governor, har game ka profile (SQLite) |
+| [`CloudSSD.Core`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Core) | Settings (JSON), paths, units, models, disk information |
+| [`CloudSSD.Mount`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Mount) | Finding and running rclone, Google sign-in, mounting / unmounting drives, restart after a crash, reading rclone's log |
+| [`CloudSSD.Cache`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Cache) | What is in the cache, how much disk is left, safe clean-up |
+| [`CloudSSD.Streaming`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Streaming) | Predictors, prefetch queue, network governor, a profile per game (SQLite) |
 | [`CloudSSD.Games`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Games) | Game library, folder scan, compatibility, launcher, Hybrid / Full Local |
-| [`CloudSSD.Providers`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Providers) | Kaun sa cloud kitna supported hai |
-| [`CloudSSD.Diagnostics`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Diagnostics) | Logs, token chhupana, DPAPI secret store, report zip |
-| [`CloudSSD.App`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.App) | Sab ko jodne wala `AppHost`, phone bridge, RAM relief, storage offload |
-| [`CloudSSD.Desktop`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Desktop) | WPF window, pages, theme, bhasha; phone ka web page bhi yahin se serve hota hai (`wwwroot/mobile`) |
-| [`CloudSSD.Cli`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Cli) | `cpx.exe` command-line tool |
-| [`CloudSSD.SimCloud`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.SimCloud) | Test ke liye nakli "dheema cloud" server |
-| [`mobile-android`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android) | Android app (WebView + native: camera backup, Files app me cloud drive) |
+| [`CloudSSD.Providers`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Providers) | Which cloud providers are supported, and how well |
+| [`CloudSSD.Diagnostics`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Diagnostics) | Logs, token redaction, DPAPI secret store, report zip |
+| [`CloudSSD.App`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.App) | `AppHost` that ties everything together, phone bridge, RAM relief, storage offload |
+| [`CloudSSD.Desktop`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Desktop) | WPF window, pages, theme, languages; the phone's web page is also served from here (`wwwroot/mobile`) |
+| [`CloudSSD.Cli`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Cli) | The `cpx.exe` command-line tool |
+| [`CloudSSD.SimCloud`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.SimCloud) | A fake "slow cloud" server used for tests |
+| [`mobile-android`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android) | Android app (WebView + native parts: camera backup, cloud drive in the Files app) |
 
-Gehri jaankari: [`ARCHITECTURE.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/ARCHITECTURE.md).
+More detail: [`ARCHITECTURE.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/ARCHITECTURE.md).
 
-### 📊 Kitna tez hai (napa hua)
+### 📊 How fast is it (measured)
 
-Test: demo game ka ek level load, "cloud" 70 Mbps par. Poori report: [`BENCHMARKS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/BENCHMARKS.md).
+Test: loading one level of the demo game, with the "cloud" limited to 70 Mbps. Full report: [`BENCHMARKS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/BENCHMARKS.md).
 
-| Halat | Load time |
+| Situation | Load time |
 |---|---|
-| PC ki SSD se (tulna ke liye) | 0.1 s |
-| Seedha rclone mount, pehli baar | 56 – 65 s |
-| **Cloud Drive, pehli baar** | **20 – 21 s** |
-| **Cloud Drive, Prepare ke baad** | **7.7 – 8.2 s** |
-| **Cloud Drive, sab cache me** | **0.15 – 0.27 s** |
+| From the PC's SSD (for comparison) | 0.1 s |
+| Plain rclone mount, first time | 56 – 65 s |
+| **Cloud Drive, first time** | **20 – 21 s** |
+| **Cloud Drive, after Prepare** | **7.7 – 8.2 s** |
+| **Cloud Drive, everything cached** | **0.15 – 0.27 s** |
 
-### ⚠️ Sach-sach: kya nahi kar sakta
+### ⚠️ Honest limits
 
-- Jo data cache me nahi hai wo **internet ki speed** se hi aayega — pehli baar SSD jaisa tez nahi hoga.
-- Abhi tak sirf demo game se test hua hai, **koi bada commercial game test nahi hua**. Steam / Epic / anti-cheat wale games ko aam taur par local install chahiye.
-- Phone abhi **PC ke bina** cloud tak nahi pahunchta.
-- App par code-signing nahi hai, to Windows SmartScreen pehli baar chetavni de sakta hai.
+- Data that is not in the cache arrives at **internet speed** — the first read is never as fast as an SSD.
+- Only the demo game has been tested so far; **no commercial game has been tested**. Steam / Epic / anti-cheat games usually need a local install.
+- The phone cannot reach the cloud **without the PC** yet.
+- The app is not code-signed, so Windows SmartScreen may warn on first start.
 
-Poori list: [`KNOWN_LIMITATIONS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/KNOWN_LIMITATIONS.md).
+Full list: [`KNOWN_LIMITATIONS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/KNOWN_LIMITATIONS.md).
 
 ---
 
 <a id="structure"></a>
 
-## 🗂️ Folder map (click karke seedhe wahan jao)
+## 🗂️ Folder map (click to jump there)
 
 ```text
 Cloud-Drive
-├── README.md                          ← aap yahan ho
+├── README.md                          ← you are here
 ├── Cloud-SSD
-│   ├── Cloud-SSD-0.7.0-source.zip     purana source zip
+│   ├── Cloud-SSD-0.7.0-source.zip     older source zip
 │   └── Cloud-SSD-0.7.0-source
-│       ├── Cloud-SSD                  ★ ASLI PROJECT (code yahan hai)
-│       │   ├── src                    PC app ka code (CloudSSD.* projects)
-│       │   ├── mobile-android         phone app ka code + APK
+│       ├── Cloud-SSD                  ★ THE PROJECT (the code lives here)
+│       │   ├── src                    PC app code (CloudSSD.* projects)
+│       │   ├── mobile-android         phone app code + APK
 │       │   ├── tests                  unit + integration tests
-│       │   ├── benchmarks             speed test
-│       │   ├── installer              setup.exe banane ki scripts
+│       │   ├── benchmarks             speed tests
+│       │   ├── installer              scripts that build the setup.exe
 │       │   ├── tools                  rclone, WinFsp installer, 5TB scripts
 │       │   ├── docs                   guides
-│       │   ├── releases               tayyar setup.exe aur APK
-│       │   └── dist                   build ka output
-│       └── Cloud-SSD-0.7.0-source     purani release files ki copy
-└── Cloud-SSD-5TB                      purani PowerShell scripts (app se pehle wala tareeka)
+│       │   ├── releases               ready-made setup.exe and APK
+│       │   └── dist                   build output
+│       └── Cloud-SSD-0.7.0-source     copy of older release files
+└── Cloud-SSD-5TB                      older PowerShell scripts (the approach used before the app)
 ```
 
-| Jana hai | Link |
+| Go to | Link |
 |---|---|
-| ★ Asli project | [`Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD) |
-| PC app ka code | [`src`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src) |
-| Phone app ka code | [`mobile-android`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android) |
-| Phone ka web page | [`src/CloudSSD.Desktop/wwwroot/mobile`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Desktop/wwwroot/mobile) |
+| ★ The project | [`Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD) |
+| PC app code | [`src`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src) |
+| Phone app code | [`mobile-android`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android) |
+| Phone web page | [`src/CloudSSD.Desktop/wwwroot/mobile`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Desktop/wwwroot/mobile) |
 | Tests | [`tests`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/tests) |
 | Installer scripts | [`installer`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/installer) |
-| Tayyar downloads | [`releases`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases) |
-| Purani 5TB scripts | [`Cloud-SSD-5TB`](Cloud-SSD-5TB) · [uska README](Cloud-SSD-5TB/README.md) |
+| Ready-made downloads | [`releases`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases) |
+| Older 5TB scripts | [`Cloud-SSD-5TB`](Cloud-SSD-5TB) · [its README](Cloud-SSD-5TB/README.md) |
 
 ---
 
 <a id="docs"></a>
 
-## 📚 Sab documents
+## 📚 All documents
 
-| Document | Kis baare me |
+| Document | About |
 |---|---|
-| [`SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md) | **Poora setup, step by step** (AI agent ya haath se) |
-| [`README.md` (project)](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/README.md) | Project ka apna parichay |
-| [`ARCHITECTURE.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/ARCHITECTURE.md) | Andar ka design, data kaise behta hai |
-| [`BENCHMARKS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/BENCHMARKS.md) | Speed ke naap |
-| [`KNOWN_LIMITATIONS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/KNOWN_LIMITATIONS.md) | Kya nahi hota, aur kyun |
-| [`COMPATIBILITY.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/COMPATIBILITY.md) | Kaun se game / cloud chalte hain |
-| [`RAM.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/RAM.md) | RAM aur virtual memory ka guide |
-| [`docs/GOOGLE_DRIVE_SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/GOOGLE_DRIVE_SETUP.md) | Google Drive jodna, apni key banana |
-| [`docs/TROUBLESHOOTING.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/TROUBLESHOOTING.md) | Dikkat aur uska ilaaj |
-| [`docs/GAME_AWARE_PROTOCOL.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/GAME_AWARE_PROTOCOL.md) | Game se seedhe jaankari lene ka protocol |
-| [`SECURITY.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SECURITY.md) | Suraksha ki neeti |
-| [`CONTRIBUTING.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/CONTRIBUTING.md) | Code me haath bantana ho to |
-| [`THIRD_PARTY_NOTICES.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/THIRD_PARTY_NOTICES.md) | rclone, WinFsp wagairah ke license |
+| [`SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md) | **The whole setup, step by step** (for an AI agent or by hand; in Hinglish) |
+| [`README.md` (project)](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/README.md) | The project's own introduction |
+| [`ARCHITECTURE.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/ARCHITECTURE.md) | Internal design and data flows |
+| [`BENCHMARKS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/BENCHMARKS.md) | Speed measurements |
+| [`KNOWN_LIMITATIONS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/KNOWN_LIMITATIONS.md) | What does not work, and why |
+| [`COMPATIBILITY.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/COMPATIBILITY.md) | Which games and clouds work |
+| [`RAM.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/RAM.md) | Guide to RAM and virtual memory |
+| [`docs/GOOGLE_DRIVE_SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/GOOGLE_DRIVE_SETUP.md) | Connecting Google Drive, creating your own key |
+| [`docs/TROUBLESHOOTING.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/TROUBLESHOOTING.md) | Problems and fixes |
+| [`docs/GAME_AWARE_PROTOCOL.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/GAME_AWARE_PROTOCOL.md) | Protocol for getting hints straight from a game |
+| [`SECURITY.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SECURITY.md) | Security policy |
+| [`CONTRIBUTING.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/CONTRIBUTING.md) | How to contribute code |
+| [`THIRD_PARTY_NOTICES.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/THIRD_PARTY_NOTICES.md) | Licenses of rclone, WinFsp and others |
 
 ---
 
-<a id="sujhav"></a>
+<a id="feedback"></a>
 
-## 💬 Sujhav bhejein
+## 💬 Send feedback
 
 <div align="center">
 <table>
 <tr>
 <td align="center" width="640">
 
-<h3>Kuch behtar ho sakta hai? Bata dijiye 🙏</h3>
+<h3>Have an idea to make it better? Tell us 🙏</h3>
 
-Naya feature chahiye, kuch samajh nahi aaya, ya koi cheez theek se nahi chali —<br/>
-neeche ka button dabaiye, ek chhota sa box khulega, usme likh kar bhej dijiye.
+Want a new feature, found something confusing, or something did not work?<br/>
+Press the button below — a small form opens where you can write and send it.
 
 <br/><br/>
 
 <a href="https://github.com/allproject121/Cloud-Drive/issues/new?template=improvement.yml">
-<img src="https://img.shields.io/badge/%E2%9C%8D%EF%B8%8F%20%20Apna%20sujhav%20likhiye-2ea44f?style=for-the-badge" alt="Apna sujhav likhiye" height="42" />
+<img src="https://img.shields.io/badge/%E2%9C%8D%EF%B8%8F%20%20Write%20your%20suggestion-2ea44f?style=for-the-badge" alt="Write your suggestion" height="42" />
 </a>
 
 <br/><br/>
 
-<sub>GitHub account se login hona zaroori hai. Pehle bheje gaye sujhav <a href="https://github.com/allproject121/Cloud-Drive/issues">yahan</a> dikhte hain.</sub>
+<sub>You need to be signed in to GitHub. Suggestions already sent are listed <a href="https://github.com/allproject121/Cloud-Drive/issues">here</a>.</sub>
 
 </td>
 </tr>
