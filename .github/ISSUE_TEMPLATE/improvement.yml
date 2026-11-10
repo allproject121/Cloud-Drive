@@ -1,0 +1,45 @@
+name: "💡 Sujhav / Improvement"
+description: "App me kya behtar ho sakta hai, ya kya theek se nahi chala - yahan likhiye"
+title: "[Sujhav] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dhanyavaad! Jo man me hai seedhe-seedhe likh dijiye - Hinglish, Hindi ya English, kisi bhi bhasha me.
+        **Dhyan rahe:** password, login token ya apni niji file ka naam yahan mat likhiye - yeh page sab ko dikhta hai.
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Kis hisse ke baare me hai?"
+      options:
+        - PC app (Windows)
+        - Phone app (Android)
+        - Web page (browser)
+        - Setup / install
+        - Documents (README, SETUP)
+        - Kuch aur
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: "Aapka sujhav"
+      description: "Kya badalna ya jodna chahiye?"
+      placeholder: "Jaise: phone app me folder ko pura download karne ka button hona chahiye..."
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: "Isse kya fayda hoga? (optional)"
+      placeholder: "Abhi kya dikkat aati hai, aur isse kaise aasan hoga"
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Kuch theek se nahi chala? (optional)"
+      description: "Kya kiya, kya hona chahiye tha, aur kya hua. Error ka message ho to wo bhi."
+  - type: input
+    id: device
+    attributes:
+      label: "PC / phone (optional)"
+      placeholder: "Jaise: Windows 11, 8 GB RAM / Android 14"
