@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "itPxiSN2Jow=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.12\\microsoft.extensions.dependencyinjection.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.12\\microsoft.extensions.logging.abstractions.10.0.12.nupkg.sha512"
+  ],
+  "logs": []
+}

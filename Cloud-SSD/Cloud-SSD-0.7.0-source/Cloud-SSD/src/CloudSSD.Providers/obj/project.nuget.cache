@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "dgSpecHash": "RlU8aPCQjhk=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\10.0.12\\microsoft.extensions.dependencyinjection.10.0.12.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.12\\microsoft.extensions.dependencyinjection.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.logging\\10.0.12\\microsoft.extensions.logging.10.0.12.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.12\\microsoft.extensions.logging.abstractions.10.0.12.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.options\\10.0.12\\microsoft.extensions.options.10.0.12.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.primitives\\10.0.12\\microsoft.extensions.primitives.10.0.12.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\system.security.cryptography.protecteddata\\10.0.12\\system.security.cryptography.protecteddata.10.0.12.nupkg.sha512"
+  ],
+  "logs": []
+}

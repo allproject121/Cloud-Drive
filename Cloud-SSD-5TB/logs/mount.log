@@ -1,0 +1,12 @@
+2026/11/08 22:12:19 NOTICE: Serving remote control on http://127.0.0.1:5572/
+2026/11/08 22:12:19 NOTICE: Drive1{cHldw}: This remote uses rclone's shared Google Drive client_id, which is being retired and will stop working during 2026. Create your own client_id to avoid interruption: https://rclone.org/drive/#making-your-own-client-id
+2026/11/08 22:12:19 NOTICE: Drive3{cHldw}: This remote uses rclone's shared Google Drive client_id, which is being retired and will stop working during 2026. Create your own client_id to avoid interruption: https://rclone.org/drive/#making-your-own-client-id
+2026/11/08 22:12:19 NOTICE: Drive2{cHldw}: This remote uses rclone's shared Google Drive client_id, which is being retired and will stop working during 2026. Create your own client_id to avoid interruption: https://rclone.org/drive/#making-your-own-client-id
+2026/11/08 22:12:25 ERROR : symlinks not supported without the --links flag: /
+The service rclone has been started.
+2026/11/08 22:19:49 NOTICE: Serving remote control on http://127.0.0.1:5572/
+2026/11/08 22:19:49 NOTICE: Drive1{euPzV}: This remote uses rclone's shared Google Drive client_id, which is being retired and will stop working during 2026. Create your own client_id to avoid interruption: https://rclone.org/drive/#making-your-own-client-id
+2026/11/08 22:19:49 NOTICE: Drive2{euPzV}: This remote uses rclone's shared Google Drive client_id, which is being retired and will stop working during 2026. Create your own client_id to avoid interruption: https://rclone.org/drive/#making-your-own-client-id
+2026/11/08 22:19:49 NOTICE: Drive3{euPzV}: This remote uses rclone's shared Google Drive client_id, which is being retired and will stop working during 2026. Create your own client_id to avoid interruption: https://rclone.org/drive/#making-your-own-client-id
+2026/11/08 22:19:50 NOTICE: union root '': Symlinks support enabled
+The service rclone has been started.

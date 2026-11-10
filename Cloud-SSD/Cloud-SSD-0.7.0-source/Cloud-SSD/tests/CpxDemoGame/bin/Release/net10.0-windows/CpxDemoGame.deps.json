@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "CpxDemoGame/0.7.0": {
+        "runtime": {
+          "CpxDemoGame.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "CpxDemoGame/0.7.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
