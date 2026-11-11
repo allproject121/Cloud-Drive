@@ -167,14 +167,14 @@ sequenceDiagram
 
 ## 📸 Screenshots
 
-Phone app screenshots (from a slightly older version; the layout has changed in the newest build):
+Screenshots of the latest version, taken on a phone-sized screen. This is the web page the PC app serves; the Android app shows the same screens.
 
 <div align="center">
 
-| Gaming HUD | Offline Vault | Settings |
-|:---:|:---:|:---:|
-| <img src="Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/cloudssd_gaming_screen.png" width="230" alt="Phone app - Gaming HUD" /> | <img src="Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/cloudssd_vault_screen.png" width="230" alt="Phone app - Offline Vault" /> | <img src="Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/cloudssd_settings_screen.png" width="230" alt="Phone app - Settings" /> |
-| Live PC numbers on the phone | Files saved on the phone | Pairing, home-screen install, language |
+| Connect | Home | Cloud SSD | Gaming |
+|:---:|:---:|:---:|:---:|
+| <img src="screenshots/phone-connect.png" width="200" alt="Connect to your PC with a 6-digit code" /> | <img src="screenshots/phone-home.png" width="200" alt="Home: storage, PC drives, send to PC, transfers" /> | <img src="screenshots/phone-cloud-ssd.png" width="200" alt="Cloud SSD: browse the All Accounts and Each Account drives" /> | <img src="screenshots/phone-gaming.png" width="200" alt="Gaming: live PC numbers and media remote" /> |
+| Pair with the 6-digit code from the PC | Cloud space, PC drives, send to PC, transfers | Browse `Z:` All Accounts and `Y:` Each Account | Live PC numbers and media remote |
 
 </div>
 
