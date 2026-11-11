@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CloudSSD.App;
 using CloudSSD.Core;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -17,6 +17,7 @@ public sealed partial class MainViewModel : ObservableObject
             new MobileHubViewModel(host),
             new GameLibraryViewModel(host),
             new MemoryViewModel(host),
+            new SpaceViewModel(host),
             new SmartCacheViewModel(host),
             new SettingsViewModel(host),
         };

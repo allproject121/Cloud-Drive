@@ -13,5 +13,6 @@
     <ProjectReference Include="..\CloudSSD.Cache\CloudSSD.Cache.csproj" />
     <ProjectReference Include="..\CloudSSD.Streaming\CloudSSD.Streaming.csproj" />
     <ProjectReference Include="..\CloudSSD.Games\CloudSSD.Games.csproj" />
+    <ProjectReference Include="..\CloudSSD.GameStream\CloudSSD.GameStream.csproj" />
   </ItemGroup>
 </Project>

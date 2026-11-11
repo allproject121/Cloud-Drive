@@ -45,9 +45,30 @@ public sealed partial class LocalMobileBridgeService
             .Select(s => new CloudRoot(s.Id, s.Root, s.Definition.ReadOnly, s.Id == AppHost.SingleMountId, s.CacheDir, s.Definition.DisplayName))
             .ToList();
 
-    private sealed class FsException(int status, string message) : Exception(message)
+    private class FsException(int status, string message) : Exception(message)
     {
         public int Status { get; } = status;
+    }
+
+    /// <summary>A resumable upload that must continue from <see cref="Offset"/> (the bytes the PC really has).</summary>
+    private sealed class FsOffsetException(long offset, string message, int status = 409) : FsException(status, message)
+    {
+        public long Offset { get; } = offset;
+    }
+
+    private static Task SendFsErrorAsync(NetworkStream stream, Exception e, CancellationToken ct)
+    {
+        var (status, message) = e switch
+        {
+            FsException f => (f.Status, f.Message),
+            UnauthorizedAccessException => (403, "The drive refused this change."),
+            FileNotFoundException or DirectoryNotFoundException => (404, "Not found."),
+            // 0x70 = disk full, 0x27 = handle disk full: the cache disk or the cloud account has no room.
+            _ when (e.HResult & 0xFFFF) is 0x70 or 0x27 => (507, "No space left for this file."),
+            _ => (500, e.Message)
+        };
+        object body = e is FsOffsetException o ? new { error = message, offset = o.Offset } : new { error = message };
+        return SendJsonAsync(stream, status, StatusText(status), body, ct);
     }
 
     /// <summary>Handles /api/fs/* and /api/backup/*; false for every other path.</summary>
@@ -58,14 +79,9 @@ public sealed partial class LocalMobileBridgeService
         bool backup = path.StartsWith("/api/backup/", StringComparison.OrdinalIgnoreCase);
         if (!fs && !backup) return false;
 
-        if (!_host.Settings.MobileBridge.AllowFileManagement)
-        {
-            await SendJsonAsync(stream, 403, "Forbidden", new { error = "File management is switched off in Cloud-SSD → Mobile Hub settings." }, ct);
-            return true;
-        }
-
         var route = path.ToLowerInvariant();
-        bool read = route is "/api/fs/roots" or "/api/fs/list" or "/api/fs/stat" or "/api/fs/read" or "/api/backup/index";
+        bool read = route is "/api/fs/roots" or "/api/fs/list" or "/api/fs/stat" or "/api/fs/read" or "/api/backup/index"
+            or "/api/fs/thumb" or "/api/fs/search" or "/api/fs/usage";
         if (!read && method != "POST")
         {
             await SendJsonAsync(stream, 405, "Method Not Allowed", new { error = "Use POST." }, ct);
@@ -79,11 +95,18 @@ public sealed partial class LocalMobileBridgeService
                 await FsReadAsync(q, headers, stream, clientIp, ct);
                 return true;
             }
+            if (route == "/api/fs/thumb")
+            {
+                await FsThumbAsync(q, stream, ct);
+                return true;
+            }
             object? result = route switch
             {
                 "/api/fs/roots" => FsRoots(),
                 "/api/fs/list" => FsList(q),
                 "/api/fs/stat" => FsStat(q),
+                "/api/fs/search" => FsSearch(q, ct),
+                "/api/fs/usage" => FsUsage(q, ct),
                 "/api/fs/create" => FsCreate(q),
                 "/api/fs/rename" => FsRename(q),
                 "/api/fs/move" => FsMove(q),
@@ -98,17 +121,8 @@ public sealed partial class LocalMobileBridgeService
         }
         catch (Exception e) when (e is FsException or UnauthorizedAccessException or IOException)
         {
-            var (status, message) = e switch
-            {
-                FsException f => (f.Status, f.Message),
-                UnauthorizedAccessException => (403, "The drive refused this change."),
-                FileNotFoundException or DirectoryNotFoundException => (404, "Not found."),
-                // 0x70 = disk full, 0x27 = handle disk full: the cache disk or the cloud account has no room.
-                _ when (e.HResult & 0xFFFF) is 0x70 or 0x27 => (507, "No space left for this file."),
-                _ => (500, e.Message)
-            };
             if (route is "/api/fs/write" or "/api/backup/upload") await DrainBrieflyAsync(stream, ct);
-            await SendJsonAsync(stream, status, StatusText(status), new { error = message }, ct);
+            await SendFsErrorAsync(stream, e, ct);
         }
         return true;
     }
@@ -140,7 +154,8 @@ public sealed partial class LocalMobileBridgeService
 
     private static string StatusText(int status) => status switch
     {
-        400 => "Bad Request", 403 => "Forbidden", 404 => "Not Found", 409 => "Conflict", 411 => "Length Required",
+        200 => "OK", 400 => "Bad Request", 401 => "Unauthorized", 403 => "Forbidden", 404 => "Not Found", 405 => "Method Not Allowed",
+        409 => "Conflict", 411 => "Length Required", 415 => "Unsupported Media Type", 429 => "Too Many Requests",
         503 => "Service Unavailable", 507 => "Insufficient Storage", _ => "Internal Server Error"
     };
 
@@ -220,6 +235,7 @@ public sealed partial class LocalMobileBridgeService
         isDirectory = info is DirectoryInfo,
         size = info is FileInfo f ? f.Length : (long?)null,
         modified = new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+        created = new DateTimeOffset(info.CreationTimeUtc, TimeSpan.Zero).ToUnixTimeMilliseconds(),
         canEdit = t.CanEdit,
         canCreate = info is DirectoryInfo && t.CanCreateInside
     };
@@ -256,16 +272,19 @@ public sealed partial class LocalMobileBridgeService
     private object FsStat(Dictionary<string, string> q)
     {
         var t = Target(q);
-        return Entry(t, Existing(t));
+        var info = Existing(t);
+        if (q.GetValueOrDefault("details") is not ("1" or "true")) return Entry(t, info);
+        // Details screen: the usual entry plus the full path and, for photos and videos, what Windows knows about them.
+        var media = info is FileInfo && MediaDetailsFactory is { } f ? f(t.FullPath) : null;
+        return new { entry = Entry(t, info), fullPath = CleanPath(t.FullPath), drive = t.Root.DisplayName, media };
     }
 
     /// <summary>The file's bytes (with Range support), exactly like /api/stream but named by drive id.</summary>
     private async Task FsReadAsync(Dictionary<string, string> q, Dictionary<string, string> headers, NetworkStream stream, string clientIp, CancellationToken ct)
     {
-        if (!_host.Settings.MobileBridge.AllowStreaming) throw new FsException(403, "Streaming is switched off in Cloud-SSD → Mobile Hub settings.");
         var t = Target(q);
-        if (Existing(t) is not FileInfo) throw new FsException(400, "Not a file.");
-        await HandleStreamEndpointAsync(new Dictionary<string, string>(q) { ["path"] = t.FullPath }, headers, stream, clientIp, ct);
+        if (Existing(t) is not FileInfo file) throw new FsException(400, "Not a file.");
+        await SendFileAsync(file, headers, stream, clientIp, null, null, "stream", ct);
     }
 
     // ---- changes -------------------------------------------------------------------------------------------------
@@ -341,10 +360,26 @@ public sealed partial class LocalMobileBridgeService
         var t = Target(q);
         if (t.Depth == 0) throw new FsException(400, "Missing file name.");
         var parent = ResolveCloudPath(CloudRoots(), t.Root.Id + ":" + (t.Relative.Contains('/') ? t.Relative[..t.Relative.LastIndexOf('/')] : ""));
+        // A phone moving a whole folder to the cloud sends its files with mkdirs=1: missing folders are made on the way.
+        if (q.GetValueOrDefault("mkdirs") == "1" && parent.Depth > 0 && Existing(parent) is null && !File.Exists(parent.FullPath))
+        {
+            RequireCreatable(parent);
+            Directory.CreateDirectory(parent.FullPath);
+        }
         if (Existing(parent) is not DirectoryInfo) throw new FsException(400, "Not a folder.");
         RequireCreatable(parent);
         if (Directory.Exists(t.FullPath)) throw new FsException(409, "A folder with that name is already there.");
         bool overwrite = q.GetValueOrDefault("overwrite") is "1" or "true";
+        if (q.GetValueOrDefault("uploadId") is { } uploadId)
+        {
+            if (!IsUploadId(uploadId)) throw new FsException(400, "uploadId must be 32 lowercase hex characters.");
+            if (QueryLong(q, "total") is not { } total) throw new FsException(400, "A resumable upload needs total.");
+            var r = await ReceiveResumableAsync(uploadId, "fs:" + t.Root.Id, parent.FullPath, t.Name, overwrite, ModifiedTime(q),
+                QueryLong(q, "offset") ?? 0, total, t.Root.CacheDir ?? t.Root.Root, headers, stream, clientIp, ct);
+            if (!r.Complete) return new { complete = false, offset = r.Offset };
+            var done = Child(parent, Path.GetFileName(r.FinalPath!));
+            return Entry(done, Existing(done));
+        }
         var name = overwrite ? t.Name : FreeName(parent.FullPath, t.Name);
         await ReceiveFileAsync(headers, stream, clientIp, parent.FullPath, name, overwrite, ModifiedTime(q), t.Root.CacheDir ?? t.Root.Root, ct);
         var result = Child(parent, name);

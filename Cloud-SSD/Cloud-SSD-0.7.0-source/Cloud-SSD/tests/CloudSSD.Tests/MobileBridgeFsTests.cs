@@ -44,6 +44,7 @@ public class MobileBridgeFsTests
         var host = AppHost.Create(new AppPaths(tempDir));
         host.Settings.MobileBridge.Port = port;
         host.Settings.MobileBridge.PairingToken = Token;
+        host.Settings.MobileBridge.LegacyTokenAccepted = true;
         string all = Path.Combine(tempDir, "all"), each = Path.Combine(tempDir, "each"), ro = Path.Combine(tempDir, "ro");
         foreach (var d in new[] { all, Path.Combine(each, "a@gmail.com"), Path.Combine(each, "b@gmail.com"), ro }) Directory.CreateDirectory(d);
         File.WriteAllText(Path.Combine(ro, "old.txt"), "old");

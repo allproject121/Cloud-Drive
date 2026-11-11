@@ -43,6 +43,7 @@ public sealed class AppHost : IAsyncDisposable
         CacheIndex = new CacheIndex();
         MobileBridge = new LocalMobileBridgeService(this, LoggerFactory.CreateLogger<LocalMobileBridgeService>());
         Offloader = new SmartStorageOffloaderService(this, LoggerFactory.CreateLogger<SmartStorageOffloaderService>());
+        Space = new SpaceService(this);
         Engine = new StreamingEngine(Settings.Streaming, Settings.Network, Profiles,
             new MountReadExecutor(id => Mounts.Get(id) is { State: MountState.Mounted } s ? s.Root : null, id => Mounts.Get(id)?.Attribution),
             FileSize, _ => !_diskPressure, CacheIndex.IsCached, LoggerFactory.CreateLogger<StreamingEngine>());
@@ -101,6 +102,8 @@ public sealed class AppHost : IAsyncDisposable
     public ArchiveWarmer Archives { get; }
     public LocalMobileBridgeService MobileBridge { get; }
     public SmartStorageOffloaderService Offloader { get; }
+    /// <summary>Space &amp; RAM: where the disks' space and the RAM go, live; started by the desktop app (not by the command line).</summary>
+    public SpaceService Space { get; }
     /// <summary>RAM auto mode and game mode. Kept here, not in a page, so the Dashboard can show what they last did.</summary>
     public MemoryRelief MemoryRelief { get; } = new();
     public GameMode GameMode { get; } = new();
@@ -115,6 +118,9 @@ public sealed class AppHost : IAsyncDisposable
     public DateTime AccountsRefreshedAt { get; private set; }
     private readonly SemaphoreSlim _accountsGate = new(1, 1);
     public LaunchSession? CurrentLaunch { get; private set; }
+
+    /// <summary>The cloud account a game's save backups go to: the one behind its drive, else the first account.</summary>
+    public string? SaveRemoteFor(GameEntry game) => Mounts.Get(game.MountId)?.Definition.RemoteName ?? Remotes.FirstOrDefault()?.Name;
     public bool DiskPressure => _diskPressure;
     public string CpxPath => Path.Combine(AppPaths.AppDirectory, "cpx.exe");
 
@@ -609,9 +615,7 @@ public sealed class AppHost : IAsyncDisposable
             {
                 try
                 {
-                    var mount = Mounts.Get(fresh.MountId);
-                    var remote = mount?.Definition.RemoteName ?? Remotes.FirstOrDefault()?.Name;
-                    var res = await SaveBackups.BackupAsync(fresh, Rclone, RcloneConfig, remote);
+                    var res = await SaveBackups.BackupAsync(fresh, Rclone, RcloneConfig, SaveRemoteFor(fresh));
                     if (res.Success)
                     {
                         Library.Save(fresh);
@@ -662,6 +666,7 @@ public sealed class AppHost : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         _diskTimer?.Dispose();
+        Space.Dispose();
         Archives.Dispose();
         Pins.Dispose();
         Metrics.Dispose();

@@ -27,7 +27,7 @@ public static class DiskUsage
     }
 
     /// <summary>Windows' own folders: what is inside is not for the user to tidy up, so they stay one line.</summary>
-    private static readonly HashSet<string> Closed = new(StringComparer.OrdinalIgnoreCase) { "Windows", "$Recycle.Bin", "System Volume Information", "Recovery", "$WinREAgent" };
+    internal static readonly HashSet<string> Closed = new(StringComparer.OrdinalIgnoreCase) { "Windows", "$Recycle.Bin", "System Volume Information", "Recovery", "$WinREAgent" };
 
     private static readonly Dictionary<string, string> Notes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -106,10 +106,10 @@ public static class DiskUsage
         return node;
     }
 
-    private static string NoteFor(string path) => Notes.GetValueOrDefault(System.IO.Path.GetFileName(path.TrimEnd('\\')) ?? "", "");
+    internal static string NoteFor(string path) => Notes.GetValueOrDefault(System.IO.Path.GetFileName(path.TrimEnd('\\')) ?? "", "");
 
     /// <summary>What the file occupies. Only sparse and compressed files can differ from their length, so only those are asked for.</summary>
-    private static long OnDisk(FileInfo file)
+    internal static long OnDisk(FileInfo file)
     {
         if ((file.Attributes & (FileAttributes.SparseFile | FileAttributes.Compressed)) == 0) return file.Length;
         uint low = GetCompressedFileSizeW(@"\\?\" + file.FullName, out uint high);

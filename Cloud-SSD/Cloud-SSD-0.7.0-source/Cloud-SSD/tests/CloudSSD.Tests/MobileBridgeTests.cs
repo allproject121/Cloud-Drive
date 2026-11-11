@@ -24,6 +24,7 @@ public class MobileBridgeTests
         var host = AppHost.Create(paths);
         host.Settings.MobileBridge.Port = port;
         host.Settings.MobileBridge.PairingToken = Token;
+        host.Settings.MobileBridge.LegacyTokenAccepted = true; // these tests use the shared token, like phones paired before device tokens
         host.Settings.MobileBridge.UploadDirectory = Path.Combine(tempDir, "uploads");
         return (host, tempDir);
     }
@@ -90,7 +91,8 @@ public class MobileBridgeTests
         // Unpaired status: only what the phone needs to find the PC.
         using (var doc = JsonDocument.Parse(await http.GetStringAsync($"{baseUrl}/api/status")))
         {
-            Assert.Equal("0.7.0", doc.RootElement.GetProperty("version").GetString());
+            Assert.Equal(LocalMobileBridgeService.AppVersion, doc.RootElement.GetProperty("version").GetString());
+            Assert.Contains("device-tokens", doc.RootElement.GetProperty("features").EnumerateArray().Select(f => f.GetString()));
             Assert.False(doc.RootElement.GetProperty("isPaired").GetBoolean());
             Assert.False(doc.RootElement.TryGetProperty("storage", out _));
         }
@@ -129,9 +131,15 @@ public class MobileBridgeTests
         string code = bridge.PairingCode;
         var ok = await http.PostAsync($"{baseUrl}/api/pair?code={code}&name=vivo", null);
         Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+        string own;
         using (var doc = JsonDocument.Parse(await ok.Content.ReadAsStringAsync()))
-            Assert.Equal(Token, doc.RootElement.GetProperty("token").GetString());
-        Assert.Contains(host.Settings.MobileBridge.PairedDevices, d => d.Name == "vivo");
+            own = doc.RootElement.GetProperty("token").GetString()!;
+        // The phone gets a key of its own, never the shared one, and the PC keeps only its hash.
+        Assert.Matches("^[0-9a-f]{32}$", own);
+        Assert.NotEqual(Token, own);
+        Assert.Equal(HttpStatusCode.OK, (await http.GetAsync($"{baseUrl}/api/hud?token={own}")).StatusCode);
+        var vivo = Assert.Single(host.Settings.MobileBridge.PairedDevices, d => d.Name == "vivo");
+        Assert.Equal(LocalMobileBridgeService.HashToken(own), vivo.TokenHash);
 
         // Used up: the same six digits do not pair a second phone.
         Assert.NotEqual(code, bridge.PairingCode);
@@ -177,8 +185,9 @@ public class MobileBridgeTests
         Assert.Equal(local, LocalMobileBridgeService.IsLocalNetworkAddress(ip));
 
     [Fact]
-    public Task Files_lists_a_folder_and_reports_a_missing_drive() => WithBridge(async (http, baseUrl, _, tempDir) =>
+    public Task Files_lists_a_folder_and_reports_a_missing_drive() => WithBridge(async (http, baseUrl, host, tempDir) =>
     {
+        host.Settings.MobileBridge.AllowPcDisks = true; // the test folder is on a PC disk, not a cloud drive
         var dir = Directory.CreateDirectory(Path.Combine(tempDir, "browse")).FullName;
         Directory.CreateDirectory(Path.Combine(dir, "Zeta"));
         Directory.CreateDirectory(Path.Combine(dir, "alpha"));
@@ -224,8 +233,12 @@ public class MobileBridgeTests
     });
 
     [Fact]
-    public Task Drives_and_status_report_real_storage_only() => WithBridge(async (http, baseUrl, _, _) =>
+    public Task Drives_and_status_report_real_storage_only() => WithBridge(async (http, baseUrl, host, tempDir) =>
     {
+        // PC disks are listed only when they are shared.
+        using (var hidden = JsonDocument.Parse(await http.GetStringAsync($"{baseUrl}/api/drives?token={Token}")))
+            Assert.DoesNotContain(hidden.RootElement.EnumerateArray(), d => !d.GetProperty("isCloud").GetBoolean());
+        host.Settings.MobileBridge.AllowPcDisks = true;
         using var drives = JsonDocument.Parse(await http.GetStringAsync($"{baseUrl}/api/drives?token={Token}"));
         var local = drives.RootElement.EnumerateArray().First(d => !d.GetProperty("isCloud").GetBoolean());
         Assert.False(local.GetProperty("canToggle").GetBoolean());
@@ -290,8 +303,9 @@ public class MobileBridgeTests
     });
 
     [Fact]
-    public Task Open_on_pc_refuses_programs_and_scripts() => WithBridge(async (http, baseUrl, _, tempDir) =>
+    public Task Open_on_pc_refuses_programs_and_scripts() => WithBridge(async (http, baseUrl, host, tempDir) =>
     {
+        host.Settings.MobileBridge.AllowPcDisks = true; // so the file-type check is what refuses, not the shared-places check
         // Never executed: the check runs before anything is started. Contents are harmless anyway.
         foreach (var name in new[] { "x.bat", "x.exe", "x.ps1", "x.lnk", "x.url", "x.html" })
         {
@@ -303,9 +317,10 @@ public class MobileBridgeTests
     });
 
     [Fact]
-    public Task Stream_supports_ranges_including_suffix_and_416() => WithBridge(async (http, baseUrl, _, tempDir) =>
+    public Task Stream_supports_ranges_including_suffix_and_416() => WithBridge(async (http, baseUrl, host, tempDir) =>
     {
-        string testFile = Path.Combine(tempDir, "sample_clip.mp4");
+        var uploads = Directory.CreateDirectory(host.Settings.MobileBridge.UploadDirectory!).FullName; // a shared place
+        string testFile = Path.Combine(uploads, "sample_clip.mp4");
         byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)(i % 256)).ToArray();
         await File.WriteAllBytesAsync(testFile, data);
         string url = $"{baseUrl}/api/stream?path={Uri.EscapeDataString(testFile)}&token={Token}";

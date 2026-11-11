@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "wC7iAAH4fvo=",
+  "dgSpecHash": "HhVoj49aOmk=",
   "success": true,
   "projectFilePath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj",
   "expectedPackageFiles": [
@@ -12,12 +12,23 @@
     "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.12\\microsoft.extensions.logging.abstractions.10.0.12.nupkg.sha512",
     "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.options\\10.0.12\\microsoft.extensions.options.10.0.12.nupkg.sha512",
     "C:\\Users\\rosha\\.nuget\\packages\\microsoft.extensions.primitives\\10.0.12\\microsoft.extensions.primitives.10.0.12.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\sharpgen.runtime\\2.4.2-beta\\sharpgen.runtime.2.4.2-beta.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\sharpgen.runtime.com\\2.4.2-beta\\sharpgen.runtime.com.2.4.2-beta.nupkg.sha512",
     "C:\\Users\\rosha\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.12\\sqlitepclraw.bundle_e_sqlite3.2.1.12.nupkg.sha512",
     "C:\\Users\\rosha\\.nuget\\packages\\sqlitepclraw.core\\2.1.12\\sqlitepclraw.core.2.1.12.nupkg.sha512",
     "C:\\Users\\rosha\\.nuget\\packages\\sqlitepclraw.lib.e_sqlite3\\2.1.12\\sqlitepclraw.lib.e_sqlite3.2.1.12.nupkg.sha512",
     "C:\\Users\\rosha\\.nuget\\packages\\sqlitepclraw.provider.e_sqlite3\\2.1.12\\sqlitepclraw.provider.e_sqlite3.2.1.12.nupkg.sha512",
     "C:\\Users\\rosha\\.nuget\\packages\\system.diagnostics.eventlog\\10.0.12\\system.diagnostics.eventlog.10.0.12.nupkg.sha512",
-    "C:\\Users\\rosha\\.nuget\\packages\\system.security.cryptography.protecteddata\\10.0.12\\system.security.cryptography.protecteddata.10.0.12.nupkg.sha512"
+    "C:\\Users\\rosha\\.nuget\\packages\\system.security.cryptography.protecteddata\\10.0.12\\system.security.cryptography.protecteddata.10.0.12.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\vortice.direct3d11\\3.8.3\\vortice.direct3d11.3.8.3.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\vortice.directx\\3.8.3\\vortice.directx.3.8.3.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\vortice.dxgi\\3.8.3\\vortice.dxgi.3.8.3.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\vortice.mathematics\\2.1.0\\vortice.mathematics.2.1.0.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\vortice.mediafoundation\\3.8.3\\vortice.mediafoundation.3.8.3.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\10.0.14\\microsoft.netcore.app.runtime.win-x64.10.0.14.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\10.0.14\\microsoft.windowsdesktop.app.runtime.win-x64.10.0.14.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\10.0.14\\microsoft.aspnetcore.app.runtime.win-x64.10.0.14.nupkg.sha512",
+    "C:\\Users\\rosha\\.nuget\\packages\\microsoft.netcore.app.crossgen2.win-x64\\10.0.14\\microsoft.netcore.app.crossgen2.win-x64.10.0.14.nupkg.sha512"
   ],
   "logs": []
 }

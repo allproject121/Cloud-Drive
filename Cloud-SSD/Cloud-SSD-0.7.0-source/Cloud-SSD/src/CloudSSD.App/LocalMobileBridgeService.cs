@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
@@ -92,20 +92,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
                     if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
                     var ip = ua.Address;
                     if (IPAddress.IsLoopback(ip)) continue;
-
-                    var bytes = ip.GetAddressBytes();
-                    // Score based on interface type and subnet
-                    int score = 0;
-                    if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211) score += 30;
-                    else if (ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet) score += 20;
-
-                    // Typical local subnets
-                    if (bytes[0] == 192 && bytes[1] == 168) score += 15;
-                    else if (bytes[0] == 10) score += 10;
-                    else if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) score += 10;
-                    else if (bytes[0] == 169 && bytes[1] == 254) score -= 50; // Link-local autoconfig
-
-                    candidates.Add((ip, score));
+                    // Wi-Fi and Ethernet on a home subnet win; Tailscale and link-local never end up in the QR code.
+                    candidates.Add((ip, ScoreAddress(ni.NetworkInterfaceType, ip)));
                 }
             }
 
@@ -158,6 +146,20 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
             _host.SaveSettings();
             _log.LogWarning("Mobile Bridge pairing token upgraded to 128 bits; phones need to scan the QR code again");
         }
+
+        var bridge = _host.Settings.MobileBridge;
+        bool changed = false;
+        if (bridge.LegacyTokenAccepted is null)
+        {
+            // Phones paired before device tokens keep working with the shared token until it is turned off in Mobile
+            // Hub; a fresh install never accepts it.
+            bridge.LegacyTokenAccepted = bridge.PairedDevices.Count > 0;
+            changed = true;
+        }
+        if (string.IsNullOrEmpty(bridge.PcId)) { bridge.PcId = Convert.ToHexString(RandomNumberGenerator.GetBytes(8)).ToLowerInvariant(); changed = true; }
+        if (string.IsNullOrEmpty(bridge.MediaKey)) { bridge.MediaKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)); changed = true; }
+        if (changed) _host.SaveSettings();
+        CleanStaging(TimeSpan.FromHours(72));
 
         try
         {
@@ -294,9 +296,10 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
 
                 var clientEndpoint = client.Client.RemoteEndPoint as IPEndPoint;
                 var clientIp = clientEndpoint?.Address.ToString() ?? "unknown";
+                var route = ClassifyRoute(client.Client.LocalEndPoint as IPEndPoint, clientEndpoint);
 
                 // DNS rebinding guard: a web page can only reach us through a host name it controls, never an IP literal.
-                if (!IsAllowedHost(headers.GetValueOrDefault("Host")))
+                if (!IsAllowedHostHeader(headers.GetValueOrDefault("Host")))
                 {
                     await SendResponseAsync(networkStream, 421, "Misdirected Request", "text/plain", Encoding.UTF8.GetBytes("Unknown host"), ct);
                     return;
@@ -315,10 +318,23 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
                 string query = queryIdx >= 0 ? rawUrl[(queryIdx + 1)..] : "";
                 var queryParams = ParseQuery(query);
 
+                // Tailscale only when switched on; anything that is neither home network nor Tailscale only when allowed.
+                var bridgeSettings = _host.Settings.MobileBridge;
+                if (route == NetRoute.Tailnet && !bridgeSettings.AllowTailscale)
+                {
+                    await SendJsonAsync(networkStream, 403, "Forbidden", new { error = "Away access through Tailscale is off on the PC (Cloud-SSD → Phone → Permissions).", code = "tailnet-off" }, ct);
+                    return;
+                }
+                if (route == NetRoute.Other && bridgeSettings.LocalAndTailnetOnly)
+                {
+                    await SendJsonAsync(networkStream, 403, "Forbidden", new { error = "Only the home network and Tailscale may connect to this PC.", code = "network-refused" }, ct);
+                    return;
+                }
+
                 // Check authorization for API routes
                 if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
                 {
-                    await HandleApiRouteAsync(method, path, queryParams, headers, networkStream, clientIp, ct);
+                    await HandleApiRouteAsync(method, path, queryParams, headers, networkStream, clientIp, route, ct);
                 }
                 else
                 {
@@ -345,6 +361,7 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         Dictionary<string, string> headers,
         NetworkStream stream,
         string clientIp,
+        NetRoute route,
         CancellationToken ct)
     {
         // Check token / pairing
@@ -353,40 +370,60 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
             ?? (headers.GetValueOrDefault("Authorization")?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true
                 ? headers["Authorization"][7..].Trim() : null);
 
-        // Every request carries the token: being on the same Wi-Fi, on a previously paired IP or on this PC is not enough.
+        // Every request carries a token: being on the same Wi-Fi, on a previously paired IP or on this PC is not enough.
         // (128 random bits, so guessing needs no rate limit — and a limit would lock out phones polling with an old token.)
-        bool isPaired = TokenMatches(token) && !IsBlocked(clientIp);
+        // A signed file link stands in for the token on /api/stream and /api/download, for that one file only.
+        var caller = Authenticate(token, clientIp, route)
+            ?? (queryParams.ContainsKey("sig") ? VerifySignedUrl(path, queryParams, clientIp, route) : null);
+        CurrentCaller.Value = caller;
 
         if (path.Equals("/api/pair", StringComparison.OrdinalIgnoreCase) && method == "POST")
         {
+            if (route == NetRoute.Tailnet)
+            {
+                await SendJsonAsync(stream, 403, "Forbidden", new { error = "Pair at home on the same Wi-Fi first; after that the phone also works away through Tailscale." }, ct);
+                return;
+            }
             await HandlePairEndpointAsync(queryParams, headers, stream, clientIp, ct);
             return;
         }
 
         if (path.Equals("/api/status", StringComparison.OrdinalIgnoreCase))
         {
-            await HandleStatusEndpointAsync(stream, isPaired, ct);
+            await HandleStatusEndpointAsync(stream, caller, ct);
             return;
         }
 
-        if (!isPaired)
+        if (caller is null)
         {
             await SendJsonAsync(stream, 401, "Unauthorized", new { error = "Unauthorized. Please scan the QR code to pair your device." }, ct);
             return;
         }
 
-        // Update LastSeen for paired device
-        UpdateDeviceLastSeen(clientIp);
+        UpdateDeviceLastSeen(caller);
 
         var bridge = _host.Settings.MobileBridge;
-        if (Feature(path) is { } feature && !feature.allowed(bridge))
+        foreach (var (name, allowed) in RequiredSwitches(path, method))
         {
-            await SendJsonAsync(stream, 403, "Forbidden", new { error = $"{feature.name} is switched off in Cloud-SSD → Mobile Hub settings." }, ct);
+            if (allowed(bridge)) continue;
+            // Read away a body the phone is still sending, or Windows resets the connection and the reason is lost.
+            bool hasBody = (headers.TryGetValue("Content-Length", out var cl) && cl != "0") || headers.ContainsKey("Transfer-Encoding");
+            if (hasBody) await DrainBrieflyAsync(stream, ct);
+            await SendJsonAsync(stream, 403, "Forbidden", new { error = $"{name} is switched off on the PC (Cloud-SSD → Phone → Permissions).", code = "switched-off" }, ct);
             return;
         }
 
         // File management on the cloud drives (/api/fs/*, /api/backup/*) lives in LocalMobileBridgeService.Files.cs.
         if (await TryHandleFsRouteAsync(method, path, queryParams, headers, stream, clientIp, ct)) return;
+
+        // Routes added for the newer phone app; the list below is the original set.
+        if (await TryHandleExtraRouteAsync(method, path, queryParams, headers, stream, clientIp, ct)) return;
+
+        // Space & RAM (LocalMobileBridgeService.Space.cs).
+        if (await TryHandleSpaceRouteAsync(method, path, queryParams, headers, stream, ct)) return;
+
+        // Play on phone (LocalMobileBridgeService.Game.cs).
+        if (await TryHandleGameRouteAsync(method, path, stream, ct)) return;
 
         if (path.Equals("/api/hud", StringComparison.OrdinalIgnoreCase))
         {
@@ -414,7 +451,7 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         }
         else if (path.Equals("/api/download", StringComparison.OrdinalIgnoreCase))
         {
-            await HandleDownloadEndpointAsync(queryParams, stream, clientIp, ct);
+            await HandleDownloadEndpointAsync(queryParams, headers, stream, clientIp, ct);
         }
         else if (path.Equals("/api/upload", StringComparison.OrdinalIgnoreCase) && method == "POST")
         {
@@ -433,15 +470,16 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         }
         else if (path.Equals("/api/transfers/clear", StringComparison.OrdinalIgnoreCase))
         {
-            await HandleTransfersClearEndpointAsync(stream, ct);
+            if (method != "POST") await SendJsonAsync(stream, 405, "Method Not Allowed", new { error = "Use POST." }, ct);
+            else await HandleTransfersClearEndpointAsync(stream, ct);
         }
         else if (path.Equals("/api/saves", StringComparison.OrdinalIgnoreCase))
         {
-            await HandleSavesEndpointAsync(stream, ct);
+            await HandleSavesEndpointAsync(queryParams, stream, ct);
         }
         else if (path.Equals("/api/devices", StringComparison.OrdinalIgnoreCase))
         {
-            await HandleDevicesEndpointAsync(stream, ct);
+            await SendJsonAsync(stream, 200, "OK", DevicesDto(CurrentCaller.Value!), ct);
         }
         else if (path.Equals("/api/clean", StringComparison.OrdinalIgnoreCase))
         {
@@ -478,27 +516,27 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         !string.IsNullOrEmpty(token) &&
         CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(token), Encoding.UTF8.GetBytes(PairingToken));
 
-    private bool IsBlocked(string clientIp)
+    private void UpdateDeviceLastSeen(Caller caller)
     {
-        lock (_devicesLock) return _host.Settings.MobileBridge.PairedDevices.Any(d => d.IpAddress == clientIp && d.IsBlocked);
-    }
-
-    private void UpdateDeviceLastSeen(string clientIp)
-    {
+        if (caller.Device is not { } device) return;
         lock (_devicesLock)
         {
-            var device = _host.Settings.MobileBridge.PairedDevices.FirstOrDefault(d => d.IpAddress == clientIp);
-            if (device != null) device.LastSeen = DateTimeOffset.Now;
+            device.LastSeen = DateTimeOffset.Now;
+            device.IpAddress = caller.Ip;
         }
     }
 
     private readonly object _devicesLock = new();
 
+    private bool IsAllowedHostHeader(string? hostHeader) =>
+        IsAllowedHost(hostHeader, _host.Settings.MobileBridge.AllowTailscale ? TailscaleInfo.Current().DnsName : null);
+
     /// <summary>
-    /// The Host header must name this PC by IP literal, "localhost" or its machine name. A malicious web page can only
-    /// point a DNS name it owns at us (DNS rebinding), so anything else is refused.
+    /// The Host header must name this PC by IP literal, "localhost", its machine name or (with Tailscale) its own
+    /// MagicDNS name. A malicious web page can only point a DNS name it owns at us (DNS rebinding), so anything else is
+    /// refused — including other *.ts.net names.
     /// </summary>
-    internal static bool IsAllowedHost(string? hostHeader)
+    internal static bool IsAllowedHost(string? hostHeader, string? ownDnsName = null)
     {
         if (string.IsNullOrWhiteSpace(hostHeader)) return true; // HTTP/1.0 clients; browsers always send Host
         var host = hostHeader.Trim();
@@ -506,19 +544,12 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
             host = host[1..Math.Max(1, host.IndexOf(']'))];               // [::1]:8090
         else if (host.Count(c => c == ':') == 1)
             host = host[..host.IndexOf(':')];                            // 192.168.1.5:8090
+        host = host.TrimEnd('.');
         return IPAddress.TryParse(host, out _)
                || host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
-               || host.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase);
+               || host.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+               || (!string.IsNullOrEmpty(ownDnsName) && host.Equals(ownDnsName.TrimEnd('.'), StringComparison.OrdinalIgnoreCase));
     }
-
-    private static (string name, Func<MobileBridgeSettings, bool> allowed)? Feature(string path) => path.ToLowerInvariant() switch
-    {
-        "/api/files" or "/api/preview" or "/api/drives" => ("Drive browsing", s => s.AllowDriveBrowsing),
-        "/api/stream" or "/api/download" or "/api/open-pc" => ("Streaming", s => s.AllowStreaming),
-        "/api/upload" => ("Uploads", s => s.AllowUploads),
-        "/api/hud" or "/api/remote" => ("Gaming HUD and PC remote", s => s.AllowGamingHud),
-        _ => null
-    };
 
     private static Task SendJsonAsync(NetworkStream stream, int status, string statusText, object body, CancellationToken ct) =>
         SendResponseAsync(stream, status, statusText, "application/json; charset=utf-8", JsonSerializer.SerializeToUtf8Bytes(body, JsonOpts), ct);
@@ -532,6 +563,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
     {
         string? reqToken = queryParams.GetValueOrDefault("token");
         string? reqCode = queryParams.GetValueOrDefault("code");
+        string? reqLink = queryParams.GetValueOrDefault("pair");
+        string? installId = queryParams.GetValueOrDefault("installId");
         string deviceName = queryParams.GetValueOrDefault("name", "Android Device");
 
         if (headers.TryGetValue("Content-Length", out var clStr) && int.TryParse(clStr, out int cl) && cl > 0 && cl < 10000)
@@ -550,64 +583,53 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
                 using var doc = JsonDocument.Parse(body);
                 if (doc.RootElement.TryGetProperty("token", out var tProp)) reqToken = tProp.GetString();
                 if (doc.RootElement.TryGetProperty("code", out var cProp)) reqCode = cProp.GetString();
+                if (doc.RootElement.TryGetProperty("pair", out var pProp)) reqLink = pProp.GetString();
+                if (doc.RootElement.TryGetProperty("installId", out var iProp)) installId = iProp.GetString();
                 if (doc.RootElement.TryGetProperty("name", out var nProp)) deviceName = nProp.GetString() ?? deviceName;
             }
             catch { }
         }
         if (deviceName.Length > 60) deviceName = deviceName[..60];
 
-        bool byCode = false;
-        if (!TokenMatches(reqToken) && !string.IsNullOrWhiteSpace(reqCode))
+        // Three ways in: the six digits typed on the phone, the one-time secret in the QR link, or a token the phone
+        // already has (its own, or the old shared one while that is still accepted).
+        var already = Authenticate(reqToken, clientIp, NetRoute.Lan);
+        bool ok = already != null || TryPairingLink(reqLink, clientIp);
+        if (!ok && !string.IsNullOrWhiteSpace(reqCode))
         {
-            var (ok, retryAfter) = TryPairingCode(reqCode, clientIp);
+            var (codeOk, retryAfter) = TryPairingCode(reqCode, clientIp);
             if (retryAfter > 0)
             {
                 await SendJsonAsync(stream, 429, "Too Many Requests", new { success = false, error = $"Too many wrong codes. Try again in {retryAfter} seconds with the new code shown on the PC.", retryAfterSeconds = retryAfter }, ct);
                 return;
             }
-            byCode = ok;
+            ok = codeOk;
         }
 
-        if ((byCode || TokenMatches(reqToken)) && !IsBlocked(clientIp))
+        if (ok)
         {
-            lock (_devicesLock)
-            {
-                var existing = _host.Settings.MobileBridge.PairedDevices.FirstOrDefault(d => d.IpAddress == clientIp);
-                if (existing != null)
-                {
-                    existing.LastSeen = DateTimeOffset.Now;
-                    existing.Name = deviceName;
-                }
-                else
-                {
-                    _host.Settings.MobileBridge.PairedDevices.Add(new PairedDevice
-                    {
-                        Name = deviceName,
-                        IpAddress = clientIp,
-                        PairedAt = DateTimeOffset.Now,
-                        LastSeen = DateTimeOffset.Now,
-                        IsBlocked = false
-                    });
-                }
-            }
-
-            _host.SaveSettings();
-            StatusChanged?.Invoke();
-
-            var resp = JsonSerializer.Serialize(new
+            // Every pairing gets this phone's own token; the shared token is never handed out again.
+            var (token, device) = IssueDeviceToken(deviceName, clientIp, installId, already?.Device);
+            await SendJsonAsync(stream, 200, "OK", new
             {
                 success = true,
                 message = "Device paired successfully with Cloud-SSD",
-                token = PairingToken,
-                deviceName,
-                pcName = Environment.MachineName
-            }, JsonOpts);
-
-            await SendResponseAsync(stream, 200, "OK", "application/json; charset=utf-8", Encoding.UTF8.GetBytes(resp), ct);
+                token,
+                deviceId = device.Id,
+                deviceName = device.Name,
+                pcName = Environment.MachineName,
+                pcId = _host.Settings.MobileBridge.PcId
+            }, ct);
         }
         else
         {
-            var resp = JsonSerializer.Serialize(new { success = false, error = string.IsNullOrWhiteSpace(reqCode) ? "Invalid pairing token." : "Wrong pairing code. Check the 6 digits shown in Cloud-SSD → Phone on the PC." }, JsonOpts);
+            var resp = JsonSerializer.Serialize(new
+            {
+                success = false,
+                error = !string.IsNullOrWhiteSpace(reqCode) ? "Wrong pairing code. Check the 6 digits shown in Cloud-SSD → Phone on the PC."
+                    : !string.IsNullOrWhiteSpace(reqLink) ? "This pairing link has expired or was already used. Scan the new QR code on the PC."
+                    : "Invalid pairing token."
+            }, JsonOpts);
             await SendResponseAsync(stream, 403, "Forbidden", "application/json; charset=utf-8", Encoding.UTF8.GetBytes(resp), ct);
         }
     }
@@ -656,14 +678,21 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         return b[0] == 10 || (b[0] == 172 && b[1] is >= 16 and <= 31) || (b[0] == 192 && b[1] == 168) || (b[0] == 169 && b[1] == 254);
     }
 
-    private async Task HandleStatusEndpointAsync(NetworkStream stream, bool isPaired, CancellationToken ct)
+    private async Task HandleStatusEndpointAsync(NetworkStream stream, Caller? caller, CancellationToken ct)
     {
-        if (!isPaired)
+        bool isPaired = caller != null;
+        if (caller is null)
         {
-            // Enough for the phone to find the PC and ask for pairing; nothing about drives, games or storage.
-            await SendJsonAsync(stream, 200, "OK", new { pcName = Environment.MachineName, version = "0.7.0", port = Port, isPaired = false }, ct);
+            // Enough for the phone to find the PC and ask for pairing; nothing about drives, games or storage. The
+            // public pcId lets a phone check it reached its own PC before it sends its token to an address.
+            await SendJsonAsync(stream, 200, "OK", new
+            {
+                pcName = Environment.MachineName, version = AppVersion, port = Port, isPaired = false,
+                pcId = _host.Settings.MobileBridge.PcId, features = Features()
+            }, ct);
             return;
         }
+        UpdateDeviceLastSeen(caller);
 
         var metrics = _host.Metrics.Latest;
         double downMbps = metrics.DownloadBytesPerSec is { } bps ? Bandwidth.BytesPerSecondToMbps(bps) : 0;
@@ -684,8 +713,22 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
                 targetDrive = offloadStatus.TargetDriveName,
                 totalOffloadedFormatted = offloadStatus.TotalBytesOffloadedFormatted
             },
-            os = "Windows 11 / Cloud-SSD Engine",
-            version = "0.7.0",
+            os = OsDescription,
+            version = AppVersion,
+            pcId = _host.Settings.MobileBridge.PcId,
+            features = Features(),
+            auth = caller.Legacy ? "legacy" : "device",
+            deviceId = caller.Device?.Id,
+            deviceName = caller.Device?.Name,
+            route = RouteName(caller.Route),
+            away = AwayDto(),
+            backup = new
+            {
+                drive = AppHost.CombinedMountId,
+                folder = BackupFolderName,
+                custom = !string.IsNullOrEmpty(_host.Settings.MobileBridge.PhotoBackupDirectory)
+            },
+            permissions = PermissionsDto(),
             localIp = LocalIpAddress,
             port = Port,
             isPaired,
@@ -932,8 +975,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
             });
         }
 
-        // This PC's own disks, for browsing only (they cannot be disconnected from a phone).
-        try
+        // This PC's own disks, for browsing only (they cannot be disconnected from a phone) — only when shared on the PC.
+        if (_host.Settings.MobileBridge.AllowPcDisks) try
         {
             foreach (var d in DriveInfo.GetDrives())
             {
@@ -1087,13 +1130,21 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
     private async Task HandleFilesEndpointAsync(Dictionary<string, string> queryParams, NetworkStream stream, CancellationToken ct)
     {
         string? targetPath = queryParams.GetValueOrDefault("path");
-        if (!string.IsNullOrEmpty(targetPath) && (targetPath = ResolveLocalPath(targetPath)) is null)
+        if (!string.IsNullOrEmpty(targetPath))
         {
-            await SendJsonAsync(stream, 400, "Bad Request", new { error = "Invalid path" }, ct);
-            return;
+            var (shared, refusal) = ResolveShared(targetPath);
+            if (refusal != null) { await SendRefusalAsync(stream, refusal, ct); return; }
+            targetPath = shared;
         }
         string? category = queryParams.GetValueOrDefault("category")?.ToLowerInvariant();
         string? searchQuery = queryParams.GetValueOrDefault("search")?.ToLowerInvariant();
+
+        // Search over every connected cloud drive at once ("All cloud drives" in the phone's search panel).
+        if (!string.IsNullOrEmpty(searchQuery) && queryParams.GetValueOrDefault("scope") == "all")
+        {
+            await SendJsonAsync(stream, 200, "OK", SearchEverywhere(searchQuery, queryParams, ct), ct);
+            return;
+        }
 
         // No path: the uploads folder for "what did my phone send", else the first connected cloud drive.
         if (string.IsNullOrEmpty(targetPath))
@@ -1132,41 +1183,16 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         // Recursive category or search filter
         if (!string.IsNullOrEmpty(category) || !string.IsNullOrEmpty(searchQuery))
         {
-            var matched = new List<object>();
-            bool truncated = false;
-            try
-            {
-                var opt = new EnumerationOptions
-                {
-                    RecurseSubdirectories = true,
-                    MaxRecursionDepth = string.IsNullOrEmpty(searchQuery) ? 2 : 3,
-                    IgnoreInaccessible = true,
-                    AttributesToSkip = FileAttributes.Hidden | FileAttributes.System
-                };
-
-                // A cloud drive answers every folder with a round trip, so a deep search gets a time budget.
-                var clock = Stopwatch.StartNew();
-                foreach (var file in dirInfo.EnumerateFiles("*", opt))
-                {
-                    if (clock.Elapsed > TimeSpan.FromSeconds(10) || ct.IsCancellationRequested) { truncated = true; break; }
-                    if (!string.IsNullOrEmpty(category) && !MatchesCategory(category, file.Extension.ToLowerInvariant(), file.Name)) continue;
-                    if (!string.IsNullOrEmpty(searchQuery) && !file.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)) continue;
-                    matched.Add(FileDto(file));
-                    if (matched.Count >= 150) { truncated = true; break; }
-                }
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                _log.LogDebug(ex, "Error scanning category/search files in {Path}", targetPath);
-            }
-
+            bool wantFolders = !string.IsNullOrEmpty(searchQuery) && queryParams.GetValueOrDefault("folders") is "1" or "true";
+            int depth = string.IsNullOrEmpty(searchQuery) ? 2 : SearchDepth(queryParams);
+            var hits = SearchTree(dirInfo, searchQuery, category, depth, 150, TimeSpan.FromSeconds(15), wantFolders, ct);
             await SendJsonAsync(stream, 200, "OK", new
             {
                 currentPath = CleanPath(dirInfo.FullName),
                 parentPath = parent,
-                folders = Array.Empty<object>(),
-                files = matched,
-                truncated
+                folders = hits.Folders.Select(d => new { name = d.Name, path = CleanPath(d.FullName), modified = d.LastWriteTimeUtc }),
+                files = hits.Files.Select(FileDto),
+                truncated = hits.Truncated
             }, ct);
             return;
         }
@@ -1220,22 +1246,53 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         string clientIp,
         CancellationToken ct)
     {
-        string? filePath = ResolveLocalPath(queryParams.GetValueOrDefault("path"));
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        var (filePath, refusal) = ResolveShared(queryParams.GetValueOrDefault("path"));
+        if (refusal != null) { await SendRefusalAsync(stream, refusal, ct); return; }
+        if (!File.Exists(filePath))
         {
             await SendResponseAsync(stream, 404, "Not Found", "text/plain", Encoding.UTF8.GetBytes("File not found"), ct);
             return;
         }
+        await SendFileAsync(new FileInfo(filePath!), headers, stream, clientIp, null, null, "stream", ct);
+    }
 
-        var fileInfo = new FileInfo(filePath);
+    private async Task HandleDownloadEndpointAsync(
+        Dictionary<string, string> queryParams,
+        Dictionary<string, string> headers,
+        NetworkStream stream,
+        string clientIp,
+        CancellationToken ct)
+    {
+        var (filePath, refusal) = ResolveShared(queryParams.GetValueOrDefault("path"));
+        if (refusal != null) { await SendRefusalAsync(stream, refusal, ct); return; }
+        if (!File.Exists(filePath))
+        {
+            await SendResponseAsync(stream, 404, "Not Found", "text/plain", Encoding.UTF8.GetBytes("File not found"), ct);
+            return;
+        }
+        await SendFileAsync(new FileInfo(filePath!), headers, stream, clientIp, "application/octet-stream", "attachment", "download", ct);
+    }
+
+    /// <summary>An ETag that changes when the file's size or time changes, so a resumed download never mixes two versions.</summary>
+    internal static string ETagOf(FileInfo f) => $"\"{f.Length:x}-{f.LastWriteTimeUtc.Ticks:x}\"";
+
+    /// <summary>
+    /// Sends a file the caller has already checked, with Range support. "If-Range" with an old ETag gets the whole
+    /// file (200), so a phone resuming a download of a file that changed starts over instead of joining two versions.
+    /// </summary>
+    private async Task SendFileAsync(FileInfo fileInfo, Dictionary<string, string> headers, NetworkStream stream, string clientIp,
+        string? contentType, string? disposition, string direction, CancellationToken ct)
+    {
         long totalLength = fileInfo.Length;
-        string contentType = GetMimeType(fileInfo.Extension);
+        contentType ??= GetMimeType(fileInfo.Extension);
+        string etag = ETagOf(fileInfo);
 
         long start = 0;
         long end = totalLength - 1;
         bool isRange = false;
 
-        if (headers.TryGetValue("Range", out var rangeHeader))
+        bool rangeStillValid = !headers.TryGetValue("If-Range", out var ifRange) || ifRange.Trim() == etag;
+        if (rangeStillValid && headers.TryGetValue("Range", out var rangeHeader))
         {
             if (ParseRange(rangeHeader, totalLength) is not { } range)
             {
@@ -1261,108 +1318,49 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
 
         headerSb.Append($"Content-Type: {contentType}\r\n");
         headerSb.Append($"Content-Length: {chunkLength}\r\n");
+        if (disposition != null) headerSb.Append($"Content-Disposition: {disposition}; filename=\"{Uri.EscapeDataString(fileInfo.Name)}\"\r\n");
+        headerSb.Append($"ETag: {etag}\r\n");
+        headerSb.Append($"Last-Modified: {fileInfo.LastWriteTimeUtc.ToString("R", CultureInfo.InvariantCulture)}\r\n");
         headerSb.Append("Accept-Ranges: bytes\r\n");
         headerSb.Append("Access-Control-Allow-Origin: *\r\n");
         headerSb.Append("Access-Control-Allow-Methods: GET, POST, OPTIONS, HEAD\r\n");
         headerSb.Append("Access-Control-Allow-Headers: *\r\n");
+        headerSb.Append("Access-Control-Expose-Headers: ETag, Content-Range, Content-Length\r\n");
         headerSb.Append("Connection: close\r\n\r\n"); // one request per connection
 
-        byte[] headerBytes = Encoding.UTF8.GetBytes(headerSb.ToString());
-        await stream.WriteAsync(headerBytes, ct);
+        await stream.WriteAsync(Encoding.UTF8.GetBytes(headerSb.ToString()), ct);
 
-        // Stream file bytes with chunked rate tracking
-        const int bufferSize = 128 * 1024; // 128 KB chunks
+        const int bufferSize = 128 * 1024;
         byte[] buffer = new byte[bufferSize];
         long remaining = chunkLength;
 
         var sw = Stopwatch.StartNew();
-        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize, useAsync: true);
-        fs.Seek(start, SeekOrigin.Begin);
-
-        while (remaining > 0 && !ct.IsCancellationRequested)
+        await using (var fs = new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize, useAsync: true))
         {
-            int toRead = (int)Math.Min(buffer.Length, remaining);
-            int read = await fs.ReadAsync(buffer.AsMemory(0, toRead), ct);
-            if (read == 0) break;
-
-            await stream.WriteAsync(buffer.AsMemory(0, read), ct);
-            remaining -= read;
-            TrackBytes(read);
+            fs.Seek(start, SeekOrigin.Begin);
+            try
+            {
+                while (remaining > 0 && !ct.IsCancellationRequested)
+                {
+                    int read = await fs.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)), ct);
+                    if (read == 0) break;
+                    await stream.WriteAsync(buffer.AsMemory(0, read), ct);
+                    remaining -= read;
+                    TrackBytes(read);
+                }
+                await stream.FlushAsync(ct);
+            }
+            catch (IOException) { } // the phone went away; recorded below as interrupted
         }
         sw.Stop();
 
         long transferred = chunkLength - remaining;
-        if (transferred > 0)
-        {
-            double elapsed = Math.Max(0.01, sw.Elapsed.TotalSeconds);
-            double speedMBps = (transferred / (1024.0 * 1024.0)) / elapsed;
-            string devName = ResolveDeviceName(clientIp);
-
-            FileTransferred?.Invoke(fileInfo.Name, transferred);
-
-            // Record streaming transfer (if initial start or substantial chunk)
-            if (start == 0 || transferred > 1024 * 1024)
-            {
-                RecordTransfer(fileInfo.Name, fileInfo.FullName, transferred, "stream", devName, clientIp, speedMBps, remaining == 0 ? "Completed" : "Interrupted");
-            }
-        }
-    }
-
-    private async Task HandleDownloadEndpointAsync(
-        Dictionary<string, string> queryParams,
-        NetworkStream stream,
-        string clientIp,
-        CancellationToken ct)
-    {
-        string? filePath = ResolveLocalPath(queryParams.GetValueOrDefault("path"));
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-        {
-            await SendResponseAsync(stream, 404, "Not Found", "text/plain", Encoding.UTF8.GetBytes("File not found"), ct);
-            return;
-        }
-
-        var fileInfo = new FileInfo(filePath);
-        long length = fileInfo.Length;
-        string contentType = "application/octet-stream";
-
-        var headerSb = new StringBuilder();
-        headerSb.Append("HTTP/1.1 200 OK\r\n");
-        headerSb.Append($"Content-Type: {contentType}\r\n");
-        headerSb.Append($"Content-Length: {length}\r\n");
-        headerSb.Append($"Content-Disposition: attachment; filename=\"{Uri.EscapeDataString(fileInfo.Name)}\"\r\n");
-        headerSb.Append("Access-Control-Allow-Origin: *\r\n");
-        headerSb.Append("Access-Control-Allow-Methods: GET, POST, OPTIONS, HEAD\r\n");
-        headerSb.Append("Access-Control-Allow-Headers: *\r\n");
-        headerSb.Append("Connection: close\r\n\r\n");
-
-        await stream.WriteAsync(Encoding.UTF8.GetBytes(headerSb.ToString()), ct);
-
-        const int bufferSize = 64 * 1024;
-        byte[] buffer = new byte[bufferSize];
-        long remaining = length;
-
-        var sw = Stopwatch.StartNew();
-        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize, useAsync: true);
-        while (remaining > 0 && !ct.IsCancellationRequested)
-        {
-            int toRead = (int)Math.Min(buffer.Length, remaining);
-            int read = await fs.ReadAsync(buffer.AsMemory(0, toRead), ct);
-            if (read == 0) break;
-
-            await stream.WriteAsync(buffer.AsMemory(0, read), ct);
-            remaining -= read;
-            TrackBytes(read);
-        }
-        await stream.FlushAsync(ct);
-        sw.Stop();
-
-        long transferred = length - remaining;
-        double elapsed = Math.Max(0.01, sw.Elapsed.TotalSeconds);
-        double speedMBps = (transferred / (1024.0 * 1024.0)) / elapsed;
-        string devName = ResolveDeviceName(clientIp);
-
+        if (transferred <= 0) return;
+        double speedMBps = transferred / (1024.0 * 1024.0) / Math.Max(0.01, sw.Elapsed.TotalSeconds);
         FileTransferred?.Invoke(fileInfo.Name, transferred);
-        RecordTransfer(fileInfo.Name, fileInfo.FullName, transferred, "download", devName, clientIp, speedMBps, remaining == 0 ? "Completed" : "Interrupted");
+        // A video player asks for many small ranges; only the start and big pieces go into the history.
+        if (direction != "stream" || start == 0 || transferred > 1024 * 1024)
+            RecordTransfer(fileInfo.Name, fileInfo.FullName, transferred, direction, ResolveDeviceName(clientIp), clientIp, speedMBps, remaining == 0 ? "Completed" : "Interrupted");
     }
 
     private async Task HandleUploadEndpointAsync(
@@ -1372,9 +1370,13 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         string clientIp,
         CancellationToken ct)
     {
-        string uploadDir = _host.Settings.MobileBridge.UploadDirectory
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Cloud-SSD_Uploads");
+        if (queryParams.ContainsKey("uploadId"))
+        {
+            await HandleResumableUploadAsync(queryParams, headers, stream, clientIp, ct);
+            return;
+        }
 
+        string uploadDir = UploadDirectory;
         Directory.CreateDirectory(uploadDir);
 
         string filename = SafeUploadName(queryParams.GetValueOrDefault("filename"));
@@ -1483,7 +1485,9 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
 
     private string ResolveDeviceName(string clientIp)
     {
-        var dev = _host.Settings.MobileBridge.PairedDevices.FirstOrDefault(d => d.IpAddress == clientIp);
+        if (CurrentCaller.Value?.Device is { Name.Length: > 0 } known) return known.Name;
+        PairedDevice? dev;
+        lock (_devicesLock) dev = _host.Settings.MobileBridge.PairedDevices.FirstOrDefault(d => d.IpAddress == clientIp);
         if (dev != null && !string.IsNullOrEmpty(dev.Name)) return dev.Name;
         if (IPAddress.TryParse(clientIp, out var ip) && IPAddress.IsLoopback(ip)) return "PC / Localhost";
         return "Android Phone";
@@ -1600,37 +1604,6 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         }
     }
 
-    private async Task HandleSavesEndpointAsync(NetworkStream stream, CancellationToken ct)
-    {
-        var saves = new List<object>();
-
-        // Query game saves directory
-        string savesDir = Path.Combine(_host.Paths.DataRoot, "Saves");
-        if (Directory.Exists(savesDir))
-        {
-            foreach (var f in new DirectoryInfo(savesDir).EnumerateFiles("*.*", SearchOption.AllDirectories))
-            {
-                saves.Add(new
-                {
-                    name = f.Name,
-                    path = f.FullName,
-                    size = f.Length,
-                    sizeFormatted = ByteSize.Format(f.Length),
-                    modified = f.LastWriteTimeUtc
-                });
-            }
-        }
-
-        var json = JsonSerializer.Serialize(saves, JsonOpts);
-        await SendResponseAsync(stream, 200, "OK", "application/json; charset=utf-8", Encoding.UTF8.GetBytes(json), ct);
-    }
-
-    private async Task HandleDevicesEndpointAsync(NetworkStream stream, CancellationToken ct)
-    {
-        var devices = _host.Settings.MobileBridge.PairedDevices;
-        var json = JsonSerializer.Serialize(devices, JsonOpts);
-        await SendResponseAsync(stream, 200, "OK", "application/json; charset=utf-8", Encoding.UTF8.GetBytes(json), ct);
-    }
 
     private async Task HandleCleanEndpointAsync(NetworkStream stream, CancellationToken ct)
     {
@@ -1726,18 +1699,33 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
     {
         if (method == "POST")
         {
-            if (queryParams.TryGetValue("enabled", out var enabledStr) && bool.TryParse(enabledStr, out var en))
+            // Check everything first, change nothing unless all of it is valid.
+            bool? enabled = null;
+            double? threshold = null;
+            string? target = null;
+            if (queryParams.TryGetValue("enabled", out var enabledStr))
             {
-                _host.Settings.SmartOffload.Enabled = en;
+                if (!bool.TryParse(enabledStr, out var en)) { await SendJsonAsync(stream, 400, "Bad Request", new { error = "enabled must be true or false." }, ct); return; }
+                enabled = en;
             }
-            if (queryParams.TryGetValue("thresholdGb", out var threshStr) && double.TryParse(threshStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var th) && th > 0)
+            if (queryParams.TryGetValue("thresholdGb", out var threshStr))
             {
-                _host.Settings.SmartOffload.MinFreeSpaceThresholdGB = Math.Round(th, 1);
+                double maxGb = Math.Max(1, _host.Offloader.GetStatus().LaptopTotalSpaceGB);
+                if (!double.TryParse(threshStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var th) || th < 1 || th > maxGb)
+                {
+                    await SendJsonAsync(stream, 400, "Bad Request", new { error = $"The limit must be between 1 and {maxGb:0} GB." }, ct);
+                    return;
+                }
+                threshold = Math.Round(th, 1);
             }
             if (queryParams.TryGetValue("targetMountId", out var targetId) && !string.IsNullOrWhiteSpace(targetId))
             {
-                _host.Settings.SmartOffload.TargetMountId = targetId.Trim();
+                if (FindDrive(targetId.Trim()) is not { } def) { await SendJsonAsync(stream, 400, "Bad Request", new { error = $"Drive '{targetId}' is not set up on the PC." }, ct); return; }
+                target = def.Id;
             }
+            if (enabled is { } e) _host.Settings.SmartOffload.Enabled = e;
+            if (threshold is { } t) _host.Settings.SmartOffload.MinFreeSpaceThresholdGB = t;
+            if (target != null) _host.Settings.SmartOffload.TargetMountId = target;
             _host.SaveSettings();
         }
 
@@ -1802,7 +1790,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         NetworkStream stream,
         CancellationToken ct)
     {
-        string? filePath = ResolveLocalPath(queryParams.GetValueOrDefault("path"));
+        var (filePath, refusal) = ResolveShared(queryParams.GetValueOrDefault("path"));
+        if (refusal != null) { await SendRefusalAsync(stream, refusal, ct); return; }
         if (string.IsNullOrEmpty(filePath) || (!File.Exists(filePath) && !Directory.Exists(filePath)))
         {
             var notFound = JsonSerializer.Serialize(new { success = false, error = "File not found" }, JsonOpts);
@@ -1837,7 +1826,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         NetworkStream stream,
         CancellationToken ct)
     {
-        string? filePath = ResolveLocalPath(queryParams.GetValueOrDefault("path"));
+        var (filePath, refusal) = ResolveShared(queryParams.GetValueOrDefault("path"));
+        if (refusal != null) { await SendRefusalAsync(stream, refusal, ct); return; }
         if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
         {
             var notFound = JsonSerializer.Serialize(new { success = false, error = "File not found" }, JsonOpts);
@@ -1906,7 +1896,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         string contentType,
         byte[] body,
         CancellationToken ct,
-        string? extraHeader = null)
+        string? extraHeader = null,
+        string? cacheControl = null)
     {
         var sb = new StringBuilder();
         sb.Append($"HTTP/1.1 {statusCode} {statusText}\r\n");
@@ -1916,8 +1907,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         sb.Append("Access-Control-Allow-Origin: *\r\n");
         sb.Append("Access-Control-Allow-Methods: GET, POST, OPTIONS, HEAD\r\n");
         sb.Append("Access-Control-Allow-Headers: *\r\n");
-        sb.Append("Cache-Control: no-cache, no-store, must-revalidate\r\n");
-        sb.Append("Pragma: no-cache\r\n");
+        if (cacheControl != null) sb.Append($"Cache-Control: {cacheControl}\r\n");
+        else sb.Append("Cache-Control: no-cache, no-store, must-revalidate\r\nPragma: no-cache\r\n");
         sb.Append("Connection: close\r\n\r\n");
 
         byte[] headerBytes = Encoding.UTF8.GetBytes(sb.ToString());

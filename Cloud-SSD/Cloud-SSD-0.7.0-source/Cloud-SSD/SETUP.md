@@ -194,17 +194,36 @@ $adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"       # na ho to: 
 
 1. PC app me **Mobile Hub** (Phone) page kholo. Wahan **6 ank ka code** aur QR dikhega.
 2. Phone aur PC ek hi Wi-Fi par hon. Phone app kholo — wo PC ko khud dhoondh leta hai (port 8090). Na mile to PC ka IP haath se daalo: `<PC-IP>:8090`.
-3. Phone me 6 ank ka code daalo → jud gaya.
-4. Phone app jo permission maange (notification, photos/files) → user **Allow** kare.
+3. Phone me 6 ank ka code daalo → jud gaya. Har phone ko **apni alag chaabi (key)** milti hai; PC se ek phone hatane par baaki chalte rehte hain.
+4. QR code sirf **ek baar** aur **10 minute** chalta hai (phone ke browser ke liye). Dobara chahiye to Mobile Hub me **New Code** dabao.
+5. Phone app jo permission maange (notification, photos/files) → user **Allow** kare.
 
 **Check:** PC app ke Mobile Hub page me phone ka naam "connected devices" me dikhna chahiye, aur phone app me PC ka naam aur drive dikhni chahiye.
+
+**Purane phone (0.8 ya pehle):** naye PC app se judte hi phone khud apni nayi key le leta hai. Sab phone update ho jaayein to Mobile Hub me **Turn off old key** dabao.
+
+Phone kya-kya kar sakta hai, yeh Mobile Hub ke switches tay karte hain: Browse, Stream, Upload, File management, Gaming, **Control the PC** (drive connect/disconnect, Space saver, game save restore), **PC disks** (C: jaisi PC ki apni disk — default OFF), **Tailscale** (ghar ke bahar — default OFF).
 
 Phone par PC nahi mil raha → Section 6 ki "Phone" wali line dekho.
 
 ### Step 9 — Phone ki optional cheezein
 
-- **Camera backup:** phone app me Camera backup ON karo. Photo PC ke raste cloud me jaati hain: `Z:\Phone Backup\<phone>\Camera\<saal-mahina>`. Iske liye PC app chalu hona chahiye.
-- **Phone ke Files app me cloud:** system file picker me "All Accounts" / "Each Account" dikhte hain.
+- **Camera backup:** phone app me Camera backup ON karo. ⚙ button se folder chuno (Camera, Screenshots, WhatsApp…), "sirf charging par", "mobile data par bhi". Photo jaati hain: `Z:\Phone Backup\<phone ka naam>\<folder>\<saal-mahina>`. Tuta upload wahi se aage chalta hai.
+- **Phone ke Files app me cloud:** system file picker me "All Accounts" / "Each Account" dikhte hain (thumbnail aur search ke saath).
+- **Settings (phone app):** connection sheet → **Settings** — theme (phone jaisa / Light / Dark), switches dekhna, paired phones, Space saver, Tailscale, Google account.
+- **Space & RAM (dono app me):** PC app ke sidebar me **Space & RAM** page; phone app me Home ka RAM ya Storage tile. Upar device chuno (yeh phone / PC). Overview, Folders, Apps, RAM, Clean up — har line ka **⋮** batata hai ki kitna khaali hoga (Recycle Bin/trash, hamesha ke liye delete, cloud par bhejo, uninstall, app band, startup se hatao). Phone par app sizes ke liye ek baar **Usage access** dena hota hai (screen par button hai). Phone ka data PC tak tab jaata hai jab phone app khula ho; phone Settings → "This phone on the PC" se band ho sakta hai — band ya door hone par PC aakhri baar ka data time ke saath dikhata hai.
+- **Ghar ke bahar (Tailscale) — ab automatic:**
+  1. PC app → Mobile Hub → Permissions → **Set up away-from-home** dabao. App khud Tailscale install karega (Windows ek baar poochhega), browser me Tailscale login khulega (ek baar login), phir khud "Allow Tailscale" ON karega aur firewall rule lagayega (Windows ka ek "Yes").
+  2. Agar Tailscale pehle se laga aur login hai, to PC app ise khud pakad leta hai aur ON kar deta hai ("Turn it on by itself…" checkbox).
+  3. Phone par: phone app → Settings → **Tailscale on this phone → Install/Open**, aur PC wale hi account se login.
+  4. Firewall rule mana ho gaya ho to Mobile Hub ka **Copy** command ek baar admin terminal me chalao:
+
+     ```powershell
+     netsh advfirewall firewall add rule name="Cloud-SSD via Tailscale" dir=in action=allow protocol=TCP localport=8090 remoteip=100.64.0.0/10 profile=any
+     ```
+
+  5. Pehli baar phone ko **ghar ke Wi-Fi par** jodo (pairing Tailscale se nahi hota). Uske baad phone khud Tailscale par chala jaata hai jab ghar ka Wi-Fi na ho.
+- **Bina PC ke (Google Drive seedha phone se):** neeche Step B5 wali Google key ke saath bana APK chahiye. Phir phone app → Settings → **Sign in to Google** (wahi Gmail jo PC par hain). PC band ho to Cloud SSD tab aur Files app seedha Google Drive se chalte hain; camera backup bhi.
 
 ---
 
@@ -259,7 +278,25 @@ Copy-Item mobile-android\Cloud-SSD-Mobile.apk src\CloudSSD.Desktop\wwwroot\mobil
 Copy-Item mobile-android\Cloud-SSD-Mobile.apk releases\Cloud-SSD-Mobile.apk -Force
 ```
 
-Phone app ki web files do jagah hain aur dono same rehni chahiye: `mobile-android\src\main\assets\` aur `src\CloudSSD.Desktop\wwwroot\mobile\`.
+Phone app ki web files do jagah hain aur dono same rehni chahiye: `mobile-android\src\main\assets\` aur `src\CloudSSD.Desktop\wwwroot\mobile\` (test `Phone_app_assets_match_the_PC_copy` check karta hai).
+
+`-Debug` lagao to page ko USB par Chrome (`chrome://inspect`) se dekh sakte ho; normal build me yeh band rehta hai.
+
+### Step B5 — Phone par Google login (bina PC ke Drive) — ek baar, insaan chahiye
+
+Yeh key **kabhi GitHub par nahi jaati** (`.gitignore` me hai).
+
+1. [Google Cloud Console](https://console.cloud.google.com/) me **wahi project** kholo jisme PC wali key hai. **OAuth consent screen** → Publishing status **In production** hona chahiye (Testing me 7 din me login toot jaata hai).
+2. **APIs & Services → Credentials → Create credentials → OAuth client ID** → Application type **iOS** → Bundle ID: `com.cloudssd.mobile` → Create.
+3. Jo **Client ID** mile (`….apps.googleusercontent.com`) use is file me daalo — `mobile-android\google-oauth.json`:
+
+   ```json
+   { "iosClientId": "1234567890-abc.apps.googleusercontent.com" }
+   ```
+
+   iOS client na chale to Desktop client bhi chalta hai: `{ "desktopClientId": "…", "desktopClientSecret": "…" }`.
+4. APK dobara banao (Step B4). Build me likha aayega: `Google sign-in on the phone: ios key`.
+5. Login ke waqt Google "unverified app" dikha sakta hai → **Advanced → Go to … (unsafe)** → Allow. Yeh aapki apni app hai.
 
 ---
 

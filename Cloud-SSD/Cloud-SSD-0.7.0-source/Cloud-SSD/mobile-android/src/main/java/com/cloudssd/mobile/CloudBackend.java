@@ -5,8 +5,8 @@ import java.io.InputStream;
 import java.util.List;
 
 /**
- * Where the cloud files really are. Today that is the Cloud-SSD app on the PC ({@link PcBackend}); a backend that
- * talks to Google Drive directly (no PC needed) can be added behind the same interface.
+ * Where the cloud files really are: the Cloud-SSD app on the PC ({@link PcBackend}), or Google Drive directly when
+ * the PC is off ({@link DriveBackend}); {@link Backends#files} picks the one that answers.
  *
  * An item is named by an id of the form "&lt;drive&gt;:&lt;folder/file&gt;", for example "cloudssd:Photos/a.jpg";
  * "&lt;drive&gt;:" is the drive itself.
@@ -34,6 +34,8 @@ interface CloudBackend {
         boolean canEdit;
         /** A folder that accepts new items. */
         boolean canCreate;
+        /** A Google Docs/Sheets/Slides file, read as its Word/Excel/PowerPoint export (read-only). */
+        boolean exported;
     }
 
     /** A failed request. {@link #status} is the HTTP-style code, or {@link #UNREACHABLE} when the backend did not answer. */
@@ -74,4 +76,13 @@ interface CloudBackend {
      * normally: if reading it throws, the upload is abandoned and the old content stays.
      */
     DocInfo write(String id, InputStream data) throws IOException;
+
+    /** A small JPEG of a photo or video (about {@code px} pixels), or null when there is none. */
+    InputStream thumbnail(String id, int px) throws IOException;
+
+    /** Items below a folder whose name contains every word of {@code query}. */
+    List<DocInfo> search(String folderId, String query, int max) throws IOException;
+
+    /** "PC" or "Google Drive": what the user is told the files come from. */
+    String label();
 }

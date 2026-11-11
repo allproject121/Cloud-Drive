@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -24,6 +24,11 @@ public sealed partial class MobileHubViewModel : PageViewModel
         _allowStreaming = host.Settings.MobileBridge.AllowStreaming;
         _allowUploads = host.Settings.MobileBridge.AllowUploads;
         _allowGamingHud = host.Settings.MobileBridge.AllowGamingHud;
+        _allowFileManagement = host.Settings.MobileBridge.AllowFileManagement;
+        _allowPcControl = host.Settings.MobileBridge.AllowPcControl;
+        _allowPcDisks = host.Settings.MobileBridge.AllowPcDisks;
+        _allowTailscale = host.Settings.MobileBridge.AllowTailscale;
+        _tailscaleAuto = host.Settings.MobileBridge.TailscaleAuto;
 
         Host.MobileBridge.StatusChanged += () => Ui(RefreshState);
         Host.MobileBridge.FileTransferred += (name, bytes) => Ui(() =>
@@ -45,8 +50,82 @@ public sealed partial class MobileHubViewModel : PageViewModel
     [ObservableProperty] private int _port = 8090;
     [ObservableProperty] private string _localUrl = "http://127.0.0.1:8090/";
     [ObservableProperty] private string _pairingUrl = "";
-    [ObservableProperty] private string _pairingToken = "";
     [ObservableProperty] private string _pairingCode = "";
+    [ObservableProperty] private bool _allowFileManagement;
+    [ObservableProperty] private bool _allowPcControl;
+    [ObservableProperty] private bool _allowPcDisks;
+    [ObservableProperty] private bool _allowTailscale;
+    [ObservableProperty] private int _legacyPhones;
+    [ObservableProperty] private bool _legacyKeyOn;
+    [ObservableProperty] private string _tailscaleText = "";
+
+    /// <summary>Lets phones reach the bridge through Tailscale on any network profile (run once, as administrator).</summary>
+    public string FirewallCommand => "netsh " + TailscaleSetup.FirewallArguments(Host.MobileBridge.Port);
+
+    [ObservableProperty] private bool _tailscaleAuto;
+    [ObservableProperty] private string _awaySetupText = "";
+    private bool _settingUpAway;
+
+    partial void OnTailscaleAutoChanged(bool value)
+    {
+        Host.Settings.MobileBridge.TailscaleAuto = value;
+        Host.SaveSettings();
+    }
+
+    /// <summary>
+    /// One button for "away from home": installs Tailscale when it is missing, opens its sign-in, then lets phones
+    /// in through it and adds the firewall rule (Windows asks once). Only the sign-in needs the user.
+    /// </summary>
+    [RelayCommand]
+    private async Task SetUpAwayAsync()
+    {
+        if (_settingUpAway) return;
+        _settingUpAway = true;
+        try
+        {
+            if (TailscaleSetup.FindExe() == null)
+            {
+                AwaySetupText = L("Installing Tailscale… (Windows may ask for permission)");
+                var (ok, message) = await TailscaleSetup.InstallAsync();
+                if (!ok) { AwaySetupText = L(message); return; }
+            }
+            if (await Task.Run(TailscaleSetup.Read) != TailscaleSetup.State.Running)
+            {
+                AwaySetupText = L("Sign in to Tailscale in the browser that opened (once). Waiting…");
+                if (!await TailscaleSetup.LoginAsync())
+                {
+                    AwaySetupText = L("Tailscale is not signed in yet. Finish the sign-in, then press the button again.");
+                    return;
+                }
+            }
+            AllowTailscale = true;
+            var b = Host.Settings.MobileBridge;
+            if (!await Task.Run(TailscaleSetup.FirewallRuleExists))
+            {
+                AwaySetupText = L("Allowing phones through the firewall… (answer Yes in the Windows prompt)");
+                b.TailscaleFirewallAsked = true;
+                Host.SaveSettings();
+                if (!await Task.Run(() => TailscaleSetup.AddFirewallRule(Host.MobileBridge.Port)))
+                {
+                    AwaySetupText = L("Tailscale works, but the firewall rule was not added. Run the command below once as administrator.");
+                    RefreshState();
+                    return;
+                }
+            }
+            TailscaleInfo.Forget();
+            RefreshState();
+            AwaySetupText = L("Done. Install Tailscale on the phone and sign in with the same account; the app switches to it by itself away from home.");
+        }
+        catch (Exception e) when (e is InvalidOperationException or IOException or System.ComponentModel.Win32Exception)
+        {
+            AwaySetupText = e.Message;
+        }
+        finally { _settingUpAway = false; }
+    }
+
+    private static string L(string text) => LocalizationManager.T(text);
+
+    private string _shownLinkSecret = "";
     [ObservableProperty] private BitmapSource? _qrCode;
     [ObservableProperty] private string _transferRateFormatted = "0.0 MB/s";
     [ObservableProperty] private string _uploadDirectory;
@@ -70,6 +149,8 @@ public sealed partial class MobileHubViewModel : PageViewModel
     public override void OnShown()
     {
         base.OnShown();
+        // The automatic Tailscale set-up may have switched it on meanwhile.
+        if (AllowTailscale != Host.Settings.MobileBridge.AllowTailscale) AllowTailscale = Host.Settings.MobileBridge.AllowTailscale;
         RefreshState();
     }
 
@@ -78,6 +159,8 @@ public sealed partial class MobileHubViewModel : PageViewModel
         base.OnMetrics(m);
         double rateMbps = Host.MobileBridge.CurrentTransferRateMbps;
         TransferRateFormatted = rateMbps > 0 ? $"{rateMbps / 8.0:0.0} MB/s ({rateMbps:0.0} Mbps)" : "0.0 MB/s";
+        // The QR link lasts ten minutes; show the new one when it has been replaced.
+        if (Host.MobileBridge.PairingLinkSecret != _shownLinkSecret) RefreshState();
     }
 
     private void RefreshState()
@@ -88,8 +171,15 @@ public sealed partial class MobileHubViewModel : PageViewModel
         LocalIp = Host.MobileBridge.LocalIpAddress;
         Port = Host.MobileBridge.Port;
         LocalUrl = Host.MobileBridge.LocalUrl;
-        PairingToken = Host.MobileBridge.PairingToken;
-        PairingUrl = $"{LocalUrl}?token={PairingToken}";
+        // The QR code carries a one-time secret (ten minutes, home network only), never a lasting key.
+        _shownLinkSecret = Host.MobileBridge.PairingLinkSecret;
+        PairingUrl = $"{LocalUrl}?pair={_shownLinkSecret}";
+        LegacyPhones = Host.MobileBridge.LegacyPhones;
+        LegacyKeyOn = Host.MobileBridge.LegacyTokenAccepted;
+        var ts = Host.Settings.MobileBridge.AllowTailscale ? TailscaleInfo.Current() : null;
+        TailscaleText = ts is null ? "Off. Phones work only on the same Wi-Fi as this PC."
+            : ts.Available ? $"On. Away from home the phone uses {string.Join(" or ", ts.Ips.Take(1).Concat(ts.DnsName is { } n ? new[] { n } : []))} (Tailscale must be on in the phone)."
+            : "On, but Tailscale is not running on this PC. Install or start Tailscale and sign in.";
         var code = Host.MobileBridge.PairingCode;
         PairingCode = $"{code[..3]} {code[3..]}"; // "123 456" is easier to read off the screen
 
@@ -132,10 +222,33 @@ public sealed partial class MobileHubViewModel : PageViewModel
     [RelayCommand]
     private void RegenerateToken()
     {
-        Host.Settings.MobileBridge.PairingToken = MobileBridgeSettings.NewPairingToken();
-        Host.SaveSettings();
+        // Only the six digits and the QR link change; phones that are already paired keep working.
+        Host.MobileBridge.NewPairingSecrets();
         RefreshState();
-        Say("New pairing token generated. Existing phones must rescan QR code.", "ok");
+        Say("New pairing code and QR code made. Phones that are already paired keep working.", "ok");
+    }
+
+    [RelayCommand]
+    private void RetireLegacyKey()
+    {
+        if (!Confirm("Turn off the old shared key?\n\nPhones paired before this update (marked 'old key') stop working until they are paired again with the code or QR. Updated phone apps switch to their own key by themselves.", "Cloud Drive Mobile Hub")) return;
+        Host.MobileBridge.RetireLegacyToken();
+        RefreshState();
+        Say("Old shared key turned off.", "ok");
+    }
+
+    [RelayCommand]
+    private void CopyFirewallCommand()
+    {
+        try
+        {
+            Clipboard.SetText(FirewallCommand);
+            Say("Command copied. Paste it into an administrator PowerShell or Command Prompt once.", "ok");
+        }
+        catch (Exception ex)
+        {
+            Say("Could not copy to clipboard: " + ex.Message, "warn");
+        }
     }
 
     [RelayCommand]
@@ -201,10 +314,35 @@ public sealed partial class MobileHubViewModel : PageViewModel
     private void RevokeAll()
     {
         if (!Confirm("Are you sure you want to disconnect all paired mobile devices?", "Cloud Drive Mobile Hub")) return;
-        Host.Settings.MobileBridge.PairedDevices.Clear();
-        Host.SaveSettings();
+        // Removes every phone's key and the old shared key, and makes a new pairing code: nothing paired before works.
+        Host.MobileBridge.RevokeAll();
         RefreshState();
         Say("All paired mobile devices have been disconnected.", "ok");
+    }
+
+    partial void OnAllowFileManagementChanged(bool value)
+    {
+        Host.Settings.MobileBridge.AllowFileManagement = value;
+        Host.SaveSettings();
+    }
+
+    partial void OnAllowPcControlChanged(bool value)
+    {
+        Host.Settings.MobileBridge.AllowPcControl = value;
+        Host.SaveSettings();
+    }
+
+    partial void OnAllowPcDisksChanged(bool value)
+    {
+        Host.Settings.MobileBridge.AllowPcDisks = value;
+        Host.SaveSettings();
+    }
+
+    partial void OnAllowTailscaleChanged(bool value)
+    {
+        Host.Settings.MobileBridge.AllowTailscale = value;
+        Host.SaveSettings();
+        RefreshState();
     }
 
     partial void OnAllowDriveBrowsingChanged(bool value)
@@ -233,8 +371,7 @@ public sealed partial class MobileHubViewModel : PageViewModel
 
     public void RemoveDevice(PairedDeviceItem item)
     {
-        Host.Settings.MobileBridge.PairedDevices.RemoveAll(d => d.Id == item.Id);
-        Host.SaveSettings();
+        Host.MobileBridge.RemoveDevice(item.Id); // its key stops working at once
         RefreshState();
         Say($"Device '{item.Name}' removed.", "ok");
     }
@@ -288,6 +425,7 @@ public sealed partial class MobileHubViewModel : PageViewModel
             if (filter == "Received" && item.Direction != "upload") continue;
             if (filter == "Sent" && item.Direction != "download") continue;
             if (filter == "Streamed" && item.Direction != "stream") continue;
+            if (filter == "Offload" && item.Direction != "offload") continue;
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -364,6 +502,13 @@ public sealed partial class TransferRecordViewModel : ObservableObject
             DirectionBadge = "↓ Received";
             DirectionTone = "ok";
             DirectionIcon = "";
+        }
+        else if (model.Direction == "offload")
+        {
+            DirectionLabel = "Moved to the cloud (Storage Saver)";
+            DirectionBadge = "☁ Space saver";
+            DirectionTone = "accent";
+            DirectionIcon = "";
         }
         else
         {
@@ -467,7 +612,10 @@ public sealed partial class PairedDeviceItem : ObservableObject
         PairedAtFormatted = device.PairedAt.ToString("g");
         LastSeenFormatted = device.LastSeen.ToString("t");
         IsBlocked = device.IsBlocked;
+        KeyText = device.TokenHash == null ? "old shared key" : "own key";
     }
+
+    public string KeyText { get; set; } = string.Empty;
 
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;

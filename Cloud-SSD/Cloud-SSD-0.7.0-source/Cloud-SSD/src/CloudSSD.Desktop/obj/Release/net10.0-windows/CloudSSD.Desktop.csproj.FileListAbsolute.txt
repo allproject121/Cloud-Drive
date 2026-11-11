@@ -240,3 +240,16 @@ C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-sou
 C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Release\net10.0-windows\Cloud-SSD.pdb
 C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Release\net10.0-windows\CloudSSD.Desktop.genruntimeconfig.cache
 C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Release\net10.0-windows\ref\Cloud-SSD.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Release\net10.0-windows\Views\SpaceView.baml
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Release\net10.0-windows\Views\SpaceView.g.cs
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\wwwroot\mobile\space.js
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\SharpGen.Runtime.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\SharpGen.Runtime.COM.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\Vortice.Direct3D11.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\Vortice.DirectX.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\Vortice.DXGI.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\Vortice.Mathematics.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\Vortice.MediaFoundation.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\CloudSSD.GameStream.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\CloudSSD.GameStream.pdb
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\wwwroot\mobile\stream.js

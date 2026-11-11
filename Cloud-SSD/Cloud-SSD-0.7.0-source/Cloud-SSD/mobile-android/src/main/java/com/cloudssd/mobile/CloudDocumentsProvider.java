@@ -96,7 +96,8 @@ public class CloudDocumentsProvider extends DocumentsProvider {
 
     @Override
     public boolean onCreate() {
-        backend = new PcBackend(getContext());
+        // The PC when it answers (home or Tailscale), Google Drive directly when it does not.
+        backend = Backends.files(getContext());
         HandlerThread t = new HandlerThread("cloudssd-docs");
         t.start();
         closeHandler = new Handler(t.getLooper());
@@ -197,8 +198,8 @@ public class CloudDocumentsProvider extends DocumentsProvider {
             row.add(Root.COLUMN_ROOT_ID, r.id);
             row.add(Root.COLUMN_DOCUMENT_ID, r.id + ":");
             row.add(Root.COLUMN_TITLE, r.title);
-            row.add(Root.COLUMN_SUMMARY, "Cloud-SSD");
-            row.add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_IS_CHILD | (r.readOnly ? 0 : Root.FLAG_SUPPORTS_CREATE));
+            row.add(Root.COLUMN_SUMMARY, "Cloud-SSD · via " + backend.label());
+            row.add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_IS_CHILD | Root.FLAG_SUPPORTS_SEARCH | (r.readOnly ? 0 : Root.FLAG_SUPPORTS_CREATE));
             row.add(Root.COLUMN_ICON, R.mipmap.ic_launcher);
             row.add(Root.COLUMN_AVAILABLE_BYTES, r.freeBytes >= 0 ? r.freeBytes : null);
             row.add(Root.COLUMN_CAPACITY_BYTES, r.totalBytes >= 0 ? r.totalBytes : null);
@@ -277,6 +278,8 @@ public class CloudDocumentsProvider extends DocumentsProvider {
 
     private static void addRow(MatrixCursor c, DocInfo d) {
         int flags = 0;
+        String mime = mimeOf(d);
+        if (mime.startsWith("image/") || mime.startsWith("video/")) flags |= Document.FLAG_SUPPORTS_THUMBNAIL;
         if (d.dir && d.canCreate) flags |= Document.FLAG_DIR_SUPPORTS_CREATE;
         if (!d.dir && d.canEdit) flags |= Document.FLAG_SUPPORTS_WRITE;
         if (d.canEdit) flags |= Document.FLAG_SUPPORTS_DELETE | Document.FLAG_SUPPORTS_RENAME | Document.FLAG_SUPPORTS_MOVE;
@@ -375,6 +378,67 @@ public class CloudDocumentsProvider extends DocumentsProvider {
         } catch (IOException e) {
             throw notFound(e);
         }
+    }
+
+    // ---- thumbnails and search -------------------------------------------------------------------------------------
+
+    /** Thumbnails are kept on the phone (64 MB at most), so scrolling back through a folder does not fetch them again. */
+    @Override
+    public android.content.res.AssetFileDescriptor openDocumentThumbnail(String documentId, android.graphics.Point sizeHint, CancellationSignal signal)
+            throws FileNotFoundException {
+        int px = Math.max(96, Math.min(512, sizeHint == null ? 256 : Math.max(sizeHint.x, sizeHint.y)));
+        File dir = new File(getContext().getCacheDir(), "doc-thumbs");
+        File file;
+        try {
+            DocInfo d = document(documentId);
+            file = new File(dir, Integer.toHexString((documentId + "|" + d.modified + "|" + d.size + "|" + px).hashCode()) + ".jpg");
+            if (!file.exists()) {
+                try (InputStream in = backend.thumbnail(documentId, px)) {
+                    if (in == null) throw new FileNotFoundException("No thumbnail");
+                    dir.mkdirs();
+                    File tmp = new File(dir, file.getName() + ".tmp");
+                    try (OutputStream out = new FileOutputStream(tmp)) {
+                        copy(in, out);
+                    }
+                    if (!tmp.renameTo(file)) throw new FileNotFoundException("No thumbnail");
+                }
+                trimThumbs(dir);
+            }
+        } catch (IOException e) {
+            throw notFound(e);
+        }
+        return new android.content.res.AssetFileDescriptor(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY), 0,
+                android.content.res.AssetFileDescriptor.UNKNOWN_LENGTH);
+    }
+
+    private static void trimThumbs(File dir) {
+        File[] all = dir.listFiles();
+        if (all == null) return;
+        long size = 0;
+        for (File f : all) size += f.length();
+        if (size < 64L * 1024 * 1024) return;
+        java.util.Arrays.sort(all, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+        for (File f : all) {
+            if (size < 48L * 1024 * 1024) break;
+            size -= f.length();
+            f.delete();
+        }
+    }
+
+    @Override
+    public Cursor querySearchDocuments(String rootId, String query, String[] projection) throws FileNotFoundException {
+        MatrixCursor c = new MatrixCursor(projection != null ? projection : DOCUMENT_COLUMNS);
+        try {
+            for (DocInfo d : backend.search(rootId + ":", query, 100)) {
+                remember(d);
+                addRow(c, d);
+            }
+        } catch (IOException e) {
+            Bundle extras = new Bundle();
+            extras.putString(DocumentsContract.EXTRA_ERROR, e.getMessage());
+            c.setExtras(extras);
+        }
+        return c;
     }
 
     // ---- opening ---------------------------------------------------------------------------------------------------

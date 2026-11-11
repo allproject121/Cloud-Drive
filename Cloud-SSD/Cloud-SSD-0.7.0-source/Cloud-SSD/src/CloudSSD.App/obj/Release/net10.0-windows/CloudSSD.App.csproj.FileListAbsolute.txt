@@ -54,3 +54,5 @@ C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-sou
 C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.App\obj\Release\net10.0-windows\refint\CloudSSD.App.dll
 C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.App\obj\Release\net10.0-windows\CloudSSD.App.pdb
 C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.App\obj\Release\net10.0-windows\ref\CloudSSD.App.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.App\bin\Release\net10.0-windows\CloudSSD.GameStream.dll
+C:\Users\rosha\Downloads\Project's\PC AI\Clude SSD\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.App\bin\Release\net10.0-windows\CloudSSD.GameStream.pdb

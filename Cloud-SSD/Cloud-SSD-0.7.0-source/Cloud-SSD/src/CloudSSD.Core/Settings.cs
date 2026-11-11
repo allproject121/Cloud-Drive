@@ -154,17 +154,74 @@ public sealed class MobileBridgeSettings
     public bool AllowGamingHud { get; set; } = true;
     /// <summary>Lets a paired phone create, change and delete files on the cloud drives (and back up its camera folder).</summary>
     public bool AllowFileManagement { get; set; } = true;
+    /// <summary>Lets a paired phone act on the PC: connect/disconnect drives, free up space, open files on its screen, restore game saves.</summary>
+    public bool AllowPcControl { get; set; } = true;
+    /// <summary>Lets a paired phone browse and download from this PC's own disks (C:, D:…), not only the cloud drives. Off by default.</summary>
+    public bool AllowPcDisks { get; set; }
+    /// <summary>Lets a paired phone reach the PC through Tailscale (away from home). Pairing itself still needs the home network.</summary>
+    public bool AllowTailscale { get; set; }
+    /// <summary>Refuses connections that come neither from the local network nor through Tailscale.</summary>
+    public bool LocalAndTailnetOnly { get; set; } = true;
+    /// <summary>When Tailscale is signed in on this PC, turn <see cref="AllowTailscale"/> on by itself (the user asked for it to be automatic).</summary>
+    public bool TailscaleAuto { get; set; } = true;
+    /// <summary>The firewall rule for Tailscale was asked for once (Windows shows a Yes/No prompt); never asked again by itself.</summary>
+    public bool TailscaleFirewallAsked { get; set; }
+    /// <summary>Lets a paired phone see where the PC's space and RAM go (Space &amp; RAM). Changing anything there also needs <see cref="AllowPcControl"/>.</summary>
+    public bool AllowSpace { get; set; } = true;
+
+    /// <summary>
+    /// Whether the shared <see cref="PairingToken"/> still opens the bridge. Phones paired before device tokens keep
+    /// working with it until it is turned off in Mobile Hub; null = not decided yet (decided once on start).
+    /// </summary>
+    public bool? LegacyTokenAccepted { get; set; }
+
+    /// <summary>Key for signed, short-lived file links that can be handed to other apps without the token.</summary>
+    public string MediaKey { get; set; } = "";
+
+    /// <summary>A public random id for this PC, so a phone can tell it is talking to its own PC before it sends its token.</summary>
+    public string PcId { get; set; } = "";
+
     public List<PairedDevice> PairedDevices { get; set; } = new();
+
+    /// <summary>
+    /// Lets a paired phone play the game running on this PC: the phone sees the screen and hears the game, and its
+    /// touches reach the emulator. Only on the home network, only with a per-phone key, only while an emulator is in front.
+    /// </summary>
+    public bool AllowGameStream { get; set; } = true;
+
+    public GameStreamSettings GameStream { get; set; } = new();
+}
+
+/// <summary>Picture, sound and game start for "Play on phone".</summary>
+public sealed class GameStreamSettings
+{
+    public int Width { get; set; } = 1280;
+    public int Height { get; set; } = 720;
+    public int Fps { get; set; } = 60;
+    /// <summary>Starting bitrate; lowered by itself while the Wi-Fi cannot keep up and raised again up to this.</summary>
+    public int BitrateKbps { get; set; } = 10_000;
+    public int MinBitrateKbps { get; set; } = 2_000;
+    /// <summary>Game sound goes to the phone. Only the emulator's own sound when Windows allows it, else everything the PC plays.</summary>
+    public bool Sound { get; set; } = true;
+    /// <summary>What "Play" starts on the PC; the same command Sunshine used for Free Fire.</summary>
+    public string GameName { get; set; } = "Free Fire";
+    public string LaunchPath { get; set; } = @"C:\Program Files\BlueStacks_nxt\HD-Player.exe";
+    public string LaunchArguments { get; set; } = "--instance Nougat32 --cmd launchApp --package \"com.garena.game.ffi\"";
 }
 
 public sealed class PairedDevice
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
     public string Name { get; set; } = "Android Device";
+    /// <summary>The address the phone last used (it changes with the network); shown only, never used to let it in.</summary>
     public string IpAddress { get; set; } = "";
     public DateTimeOffset PairedAt { get; set; } = DateTimeOffset.Now;
     public DateTimeOffset LastSeen { get; set; } = DateTimeOffset.Now;
     public bool IsBlocked { get; set; }
+    /// <summary>SHA-256 (hex) of this phone's own token. The token itself is never stored on the PC.</summary>
+    public string? TokenHash { get; set; }
+    /// <summary>A random id the phone app keeps for its install, so re-pairing updates this entry instead of adding one.</summary>
+    public string? InstallId { get; set; }
 }
 
 public sealed class SmartOffloadSettings

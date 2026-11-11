@@ -113,9 +113,7 @@ public partial class GameSettingsWindow : Window
         try
         {
             _game.CustomSavePath = string.IsNullOrWhiteSpace(SavePathBox.Text) ? null : SavePathBox.Text.Trim();
-            var mount = _host.Mounts.Get(_game.MountId);
-            var remote = mount?.Definition.RemoteName ?? _host.Remotes.FirstOrDefault()?.Name;
-            var res = await _host.SaveBackups.BackupAsync(_game, _host.Rclone, _host.RcloneConfig, remote);
+            var res = await _host.SaveBackups.BackupAsync(_game, _host.Rclone, _host.RcloneConfig, _host.SaveRemoteFor(_game));
             if (res.Success)
             {
                 SaveStatusText.Text = res.Message;
@@ -147,9 +145,7 @@ public partial class GameSettingsWindow : Window
         try
         {
             _game.CustomSavePath = string.IsNullOrWhiteSpace(SavePathBox.Text) ? null : SavePathBox.Text.Trim();
-            var mount = _host.Mounts.Get(_game.MountId);
-            var remote = mount?.Definition.RemoteName ?? _host.Remotes.FirstOrDefault()?.Name;
-            var res = await _host.SaveBackups.RestoreAsync(_game, _host.Rclone, _host.RcloneConfig, remote);
+            var res = await _host.SaveBackups.RestoreAsync(_game, _host.Rclone, _host.RcloneConfig, _host.SaveRemoteFor(_game));
             if (res.Success)
             {
                 SaveStatusText.Text = res.Message;

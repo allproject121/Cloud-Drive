@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Windows;
 using CloudSSD.App;
 using CloudSSD.Desktop.ViewModels;
@@ -51,6 +51,7 @@ public partial class App : Application
             }
 
             _host = AppHost.Create();
+            MobileThumbnailer.Attach(_host.MobileBridge);
             var lockAcquired = _host.TryAcquireInstanceLock();
             System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] lockAcquired={lockAcquired}\n");
             if (!lockAcquired)
@@ -97,6 +98,9 @@ public partial class App : Application
                 first.ShowDialog();
             }
             vm.Selected.OnShown();
+            // Space & RAM keeps a live map of the disks (first read in the background, after start-up settles).
+            _host.Space.Start();
+            StartTailscaleAuto(_host);
             System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] Startup completed successfully!\n");
         }
         catch (Exception ex)
@@ -104,6 +108,37 @@ public partial class App : Application
             System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] FATAL STARTUP EXCEPTION: {ex}\n");
             throw;
         }
+    }
+
+    private System.Threading.Timer? _tailscaleTimer;
+
+    /// <summary>
+    /// "Away from home" by itself: once Tailscale is signed in on this PC, phones may use it; the firewall rule is
+    /// asked for once (Windows' Yes/No prompt, announced by a note first) and never again by itself.
+    /// </summary>
+    private void StartTailscaleAuto(AppHost host)
+    {
+        _tailscaleTimer = new System.Threading.Timer(_ =>
+        {
+            try
+            {
+                var b = host.Settings.MobileBridge;
+                if (TailscaleSetup.AutoEnable(b))
+                {
+                    host.SaveSettings();
+                    Notifier.Show(LocalizationManager.T("Away from home is on"), LocalizationManager.T("Tailscale is signed in on this PC, so your phone can reach it on mobile data too."));
+                }
+                if (b.AllowTailscale && b.TailscaleAuto && !b.TailscaleFirewallAsked && !GameActivity.IsPlaying(host) && !TailscaleSetup.FirewallRuleExists())
+                {
+                    b.TailscaleFirewallAsked = true;
+                    host.SaveSettings();
+                    Notifier.Show(LocalizationManager.T("One question from Windows"), LocalizationManager.T("Answer Yes so your phone can reach this PC through Tailscale."));
+                    Thread.Sleep(3000);
+                    TailscaleSetup.AddFirewallRule(host.MobileBridge.Port);
+                }
+            }
+            catch (Exception) { /* tried again in a minute */ }
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(1));
     }
 
     private async void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)

@@ -10,6 +10,7 @@
     <Project Path="src/CloudSSD.Desktop/CloudSSD.Desktop.csproj" />
     <Project Path="src/CloudSSD.Diagnostics/CloudSSD.Diagnostics.csproj" />
     <Project Path="src/CloudSSD.Games/CloudSSD.Games.csproj" />
+    <Project Path="src/CloudSSD.GameStream/CloudSSD.GameStream.csproj" />
     <Project Path="src/CloudSSD.Mount/CloudSSD.Mount.csproj" />
     <Project Path="src/CloudSSD.Providers/CloudSSD.Providers.csproj" />
     <Project Path="src/CloudSSD.SimCloud/CloudSSD.SimCloud.csproj" />

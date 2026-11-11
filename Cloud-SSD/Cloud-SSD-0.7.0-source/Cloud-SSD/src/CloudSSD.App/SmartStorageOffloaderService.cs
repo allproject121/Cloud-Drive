@@ -429,6 +429,108 @@ public sealed class SmartStorageOffloaderService
         }
     }
 
+    /// <summary>
+    /// Moves one file or folder the user picked (Space &amp; RAM page) from the PC to "Offloaded_Files\From PC" on the
+    /// cloud drive, straight to the cloud like the auto mode does, and can leave a shortcut where it was. The space is
+    /// free on the PC as soon as this returns.
+    /// </summary>
+    public async Task<OffloadResult> MoveToCloudAsync(string localPath, bool leaveShortcut, CancellationToken ct = default)
+    {
+        if (!await _gate.WaitAsync(0, ct))
+            return new OffloadResult { Success = false, Message = "Another move to the cloud is still running. Try again when it is done." };
+        try
+        {
+            var full = Path.GetFullPath(localPath).TrimEnd('\\');
+            bool isDir = Directory.Exists(full);
+            if (!isDir && !File.Exists(full)) return new OffloadResult { Success = false, Message = "That file or folder is not there any more." };
+            if (TargetMount() is not { } mount || !Directory.Exists(mount.Root))
+                return new OffloadResult { Success = false, Message = "No cloud drive is connected. Connect one first." };
+            if (full.StartsWith(mount.Root.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase))
+                return new OffloadResult { Success = false, Message = "That is already on the cloud drive." };
+
+            var settings = _host.Settings.SmartOffload;
+            string subfolder = string.IsNullOrWhiteSpace(settings.TargetSubfolder) ? "Offloaded_Files" : settings.TargetSubfolder.Trim();
+            string destDir = Path.Combine(mount.Root, subfolder, "From PC");
+            Directory.CreateDirectory(destDir);
+            string name = Path.GetFileName(full);
+            string dest = Path.Combine(destDir, name);
+            if (File.Exists(dest) || Directory.Exists(dest))
+                dest = Path.Combine(destDir, $"{Path.GetFileNameWithoutExtension(name)}_{DateTime.Now:yyyyMMdd_HHmmss}{(isDir ? "" : Path.GetExtension(name))}");
+            string rel = Path.GetRelativePath(mount.Root, dest).Replace('\\', '/');
+
+            long bytes = isDir ? new DirectoryInfo(full).EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length) : new FileInfo(full).Length;
+            var (freeBefore, _) = DiskInfo.FreeSpace(full);
+
+            if (mount.Rc is { } rc)
+            {
+                bool ok;
+                if (isDir)
+                {
+                    string spec = mount.Definition.RemoteSpec;
+                    string dstFs = spec + (spec.EndsWith(':') ? "" : "/") + rel;
+                    ok = await RcJobAsync(rc, "sync/move", new { srcFs = full, dstFs, deleteEmptySrcDirs = true, _async = true }, ct);
+                    if (ok && Directory.Exists(full) && !Directory.EnumerateFileSystemEntries(full).Any()) Directory.Delete(full);
+                    ok = ok && !Directory.Exists(full);
+                }
+                else ok = await RcMoveAsync(rc, Path.GetDirectoryName(full)!, name, mount.Definition.RemoteSpec, rel, ct) && !File.Exists(full);
+                _ = rc.CallAsync("vfs/forget", null, ct);
+                if (!ok) return new OffloadResult { Success = false, Message = $"Could not move {name} to the cloud. It stays on the PC." };
+            }
+            else if (isDir)
+            {
+                CopyTree(full, dest);
+                Directory.Delete(full, recursive: true);
+            }
+            else
+            {
+                File.Copy(full, dest);
+                File.Delete(full);
+            }
+
+            if (leaveShortcut) ShellShortcut.TryCreate(full + ".lnk", dest, "Moved to the cloud drive by Cloud-SSD");
+            long freed = Math.Max(0, DiskInfo.FreeSpace(Path.GetPathRoot(full)!).FreeForUser - freeBefore);
+            settings.TotalBytesOffloaded += bytes;
+            _host.SaveSettings();
+            LastAction = new OffloadAction(DateTimeOffset.Now, name, bytes);
+            _log.LogInformation("Moved '{Name}' ({Size}) to the cloud: {Target}", name, ByteSize.Format(bytes), dest);
+            _host.MobileBridge.RecordTransfer(name, dest, bytes, "offload", "Space & RAM", "127.0.0.1", 0, $"Completed • {ByteSize.Format(bytes)} moved to the cloud");
+            return new OffloadResult
+            {
+                Success = true, Message = $"{name} is on the cloud drive now ({ByteSize.Format(bytes)}).", BytesFreed = Math.Max(freed, bytes),
+                BytesFreedFormatted = ByteSize.Format(Math.Max(freed, bytes)), FilesMovedCount = 1, FilesMoved = [name], TargetPath = dest
+            };
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or HttpRequestException or RcException or InvalidOperationException)
+        {
+            _log.LogWarning(ex, "Could not move {Path} to the cloud", localPath);
+            return new OffloadResult { Success = false, Message = "Could not move it to the cloud: " + ex.Message };
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private static void CopyTree(string from, string to)
+    {
+        Directory.CreateDirectory(to);
+        foreach (var f in Directory.EnumerateFiles(from)) File.Copy(f, Path.Combine(to, Path.GetFileName(f)));
+        foreach (var d in Directory.EnumerateDirectories(from)) CopyTree(d, Path.Combine(to, Path.GetFileName(d)));
+    }
+
+    /// <summary>Runs one rclone command as a job and waits for it; true when rclone reports success.</summary>
+    private static async Task<bool> RcJobAsync(RcClient rc, string command, object args, CancellationToken ct)
+    {
+        var job = await rc.CallAsync(command, args, ct);
+        long id = job["jobid"]?.GetValue<long>() ?? throw new InvalidOperationException("rclone did not start the job.");
+        while (true)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+            var status = await rc.CallAsync("job/status", new { jobid = id }, ct);
+            if (status["finished"]?.GetValue<bool>() == true) return status["success"]?.GetValue<bool>() == true;
+        }
+    }
+
     /// <summary>The cloud drive files are moved to: the one chosen in the settings, else any writable mounted drive.</summary>
     private MountSession? TargetMount()
     {

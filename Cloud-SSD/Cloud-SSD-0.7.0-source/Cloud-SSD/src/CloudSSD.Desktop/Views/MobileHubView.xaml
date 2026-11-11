@@ -64,7 +64,8 @@
 
                     <StackPanel Grid.Column="0" Margin="0,0,24,0">
                         <DockPanel Margin="0,0,0,12">
-                            <Button DockPanel.Dock="Right" Content="New Token" Command="{Binding RegenerateTokenCommand}" Padding="8,4" FontSize="11" Margin="12,0,0,0" />
+                            <Button DockPanel.Dock="Right" Content="New Code" Command="{Binding RegenerateTokenCommand}" Padding="8,4" FontSize="11" Margin="12,0,0,0"
+                                    ToolTip="Make a new pairing code and QR code. Phones that are already paired keep working." />
                             <TextBlock Text="SCAN QR CODE WITH PHONE" Style="{StaticResource Label}" VerticalAlignment="Center" />
                         </DockPanel>
                         <!-- QR Code Box -->
@@ -87,7 +88,7 @@
                             </StackPanel>
                         </Border>
 
-                        <TextBlock Text="LOCAL ACCESS ADDRESS" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                        <TextBlock Text="ONE-TIME PAIRING LINK (QR CODE · 10 MINUTES)" Style="{StaticResource Label}" Margin="0,0,0,4" />
                         <TextBox Text="{Binding PairingUrl, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,10"
                                  FontFamily="Consolas" FontSize="11.5" />
 
@@ -116,6 +117,20 @@
                         <TextBlock Text="PAIRED DEVICES" Style="{StaticResource Label}" VerticalAlignment="Center" />
                     </DockPanel>
 
+                    <!-- Phones paired before per-phone keys still use the one shared key until it is turned off. -->
+                    <Border Background="{StaticResource Surface2}" CornerRadius="8" Padding="12,10" Margin="0,0,0,10"
+                            BorderBrush="{StaticResource Warning}" BorderThickness="1"
+                            Visibility="{Binding LegacyKeyOn, Converter={StaticResource Vis}}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Turn off old key" Command="{Binding RetireLegacyKeyCommand}" Padding="10,4" FontSize="11" VerticalAlignment="Center" Margin="10,0,0,0" />
+                            <TextBlock TextWrapping="Wrap" FontSize="11.5" VerticalAlignment="Center">
+                                <Run Text="The old shared key is still on" FontWeight="SemiBold" />
+                                <Run Text="{Binding LegacyPhones, Mode=OneWay, StringFormat=' ({0} phone(s) still use it).'}" />
+                                <Run Text="Updated phone apps switch to their own key by themselves; then turn the old key off." Foreground="{StaticResource Dim}" />
+                            </TextBlock>
+                        </DockPanel>
+                    </Border>
+
                     <ItemsControl ItemsSource="{Binding PairedDevices}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -129,6 +144,7 @@
                                             <TextBlock FontSize="11" Foreground="{StaticResource Dim}">
                                                 <Run Text="IP: " /><Run Text="{Binding IpAddress, Mode=OneWay}" />
                                                 <Run Text=" · Last seen: " /><Run Text="{Binding LastSeenFormatted, Mode=OneWay}" />
+                                                <Run Text=" · " /><Run Text="{Binding KeyText, Mode=OneWay}" />
                                             </TextBlock>
                                         </StackPanel>
                                     </DockPanel>
@@ -175,6 +191,8 @@
                             <Button Content="&#x2191; Sent" Command="{Binding SetFilterCommand}" CommandParameter="Sent"
                                     Padding="9,3" FontSize="11" Margin="0,0,4,0" />
                             <Button Content="&#x25BA; Stream" Command="{Binding SetFilterCommand}" CommandParameter="Streamed"
+                                    Padding="9,3" FontSize="11" Margin="0,0,4,0" />
+                            <Button Content="&#x2601; Space saver" Command="{Binding SetFilterCommand}" CommandParameter="Offload"
                                     Padding="9,3" FontSize="11" />
                         </StackPanel>
                     </DockPanel>
@@ -262,8 +280,31 @@
                     <TextBlock Text="ACCESS PERMISSIONS" Style="{StaticResource Label}" Margin="0,0,0,10" />
                     <CheckBox Content="Allow Browsing Cloud Drive Virtual Drives" IsChecked="{Binding AllowDriveBrowsing}" Margin="0,0,0,8" />
                     <CheckBox Content="Allow Media Streaming (4K Video &amp; Music)" IsChecked="{Binding AllowStreaming}" Margin="0,0,0,8" />
-                    <CheckBox Content="Allow Mobile-to-PC File Uploads" IsChecked="{Binding AllowUploads}" Margin="0,0,0,8" />
-                    <CheckBox Content="Enable Live Gaming HUD on Phone Screen" IsChecked="{Binding AllowGamingHud}" />
+                    <CheckBox Content="Allow Mobile-to-PC File Uploads (Send to PC, camera backup)" IsChecked="{Binding AllowUploads}" Margin="0,0,0,8" />
+                    <CheckBox Content="Allow File Management on the Cloud Drives (new folder, rename, move, delete, camera backup)" IsChecked="{Binding AllowFileManagement}" Margin="0,0,0,8" />
+                    <CheckBox Content="Enable Live Gaming HUD on Phone Screen" IsChecked="{Binding AllowGamingHud}" Margin="0,0,0,8" />
+                    <CheckBox Content="Allow PC Control (connect/disconnect drives, free up space, open files on this screen, restore game saves)" IsChecked="{Binding AllowPcControl}" Margin="0,0,0,8" />
+                    <CheckBox IsChecked="{Binding AllowPcDisks}" Margin="0,0,0,4">
+                        <TextBlock Text="Share this PC's own disks (C:, D:…) with paired phones — not only the cloud drives" TextWrapping="Wrap" />
+                    </CheckBox>
+                    <TextBlock Text="Off by default: a paired phone then sees only the cloud drives and the folders phone files are saved in."
+                               Style="{StaticResource Caption}" Margin="22,0,0,14" TextWrapping="Wrap" />
+
+                    <TextBlock Text="AWAY FROM HOME (TAILSCALE)" Style="{StaticResource Label}" Margin="0,4,0,8" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Set up away-from-home" Command="{Binding SetUpAwayCommand}" Style="{StaticResource Primary}" Padding="12,6"
+                                ToolTip="Installs Tailscale if needed, opens its sign-in, then lets phones in and adds the firewall rule" />
+                        <TextBlock Text="{Binding AwaySetupText}" Style="{StaticResource Caption}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,0" MaxWidth="460" />
+                    </StackPanel>
+                    <CheckBox Content="Let paired phones reach this PC through Tailscale (mobile data, other Wi-Fi)" IsChecked="{Binding AllowTailscale}" Margin="0,0,0,6" />
+                    <CheckBox Content="Turn it on by itself when Tailscale is signed in on this PC" IsChecked="{Binding TailscaleAuto}" Margin="0,0,0,6" />
+                    <TextBlock Text="{Binding TailscaleText}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="22,0,0,6" />
+                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="22,0,0,8"
+                               Text="Pairing always happens at home on the same Wi-Fi. The button above adds the firewall rule; if it was refused, run this command once in an administrator terminal." />
+                    <DockPanel Margin="22,0,0,0">
+                        <Button DockPanel.Dock="Right" Content="Copy" Command="{Binding CopyFirewallCommandCommand}" Padding="10,3" Margin="8,0,0,0" />
+                        <TextBox Text="{Binding FirewallCommand, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="10.5" />
+                    </DockPanel>
                 </StackPanel>
             </Border>
 

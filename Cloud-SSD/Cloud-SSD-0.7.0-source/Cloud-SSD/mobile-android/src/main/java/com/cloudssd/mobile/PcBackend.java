@@ -52,8 +52,12 @@ final class PcBackend implements CloudBackend {
 
     @Override
     public boolean isConfigured() {
-        SharedPreferences p = prefs();
-        return !p.getString("server", "").isEmpty() && !p.getString("token", "").isEmpty();
+        return PcLink.isPaired(context);
+    }
+
+    @Override
+    public String label() {
+        return "PC";
     }
 
     // ---- requests ------------------------------------------------------------------------------------------------
@@ -62,13 +66,20 @@ final class PcBackend implements CloudBackend {
         return URLEncoder.encode(s, "UTF-8").replace("+", "%20");
     }
 
+    /**
+     * A request to the PC at the address that reaches it now (home Wi-Fi or Tailscale), checked to be our PC before
+     * the key goes there (see {@link PcLink}).
+     */
     private HttpURLConnection open(String method, String route, String query, int readMs) throws IOException {
-        SharedPreferences p = prefs();
-        String server = p.getString("server", "");
-        String token = p.getString("token", "");
-        if (server.isEmpty() || token.isEmpty())
+        String token = TokenStore.pcToken(context);
+        if (!isConfigured() || token.isEmpty())
             throw new BackendException(BackendException.NOT_PAIRED, "Not paired with a PC yet. Open the Cloud-SSD app and pair it first.");
         if (SystemClock.elapsedRealtime() < downUntil) throw unreachable();
+        String server = PcLink.resolve(context);
+        if (server.isEmpty()) {
+            downUntil = SystemClock.elapsedRealtime() + DOWN_MS;
+            throw unreachable();
+        }
         HttpURLConnection c = (HttpURLConnection) new URL(server + route + (query.isEmpty() ? "" : "?" + query)).openConnection();
         c.setConnectTimeout(CONNECT_MS);
         c.setReadTimeout(readMs);
@@ -81,7 +92,7 @@ final class PcBackend implements CloudBackend {
 
     private static BackendException unreachable() {
         return new BackendException(BackendException.UNREACHABLE,
-                "PC not reachable. Keep Cloud-SSD running on the PC and this phone on the same Wi-Fi.");
+                "PC not reachable. At home keep this phone on the same Wi-Fi; away, turn Tailscale on (and allow it on the PC).");
     }
 
     private static void connect(HttpURLConnection c) throws IOException {
@@ -89,9 +100,15 @@ final class PcBackend implements CloudBackend {
             c.connect();
         } catch (ConnectException | SocketTimeoutException | NoRouteToHostException | UnknownHostException e) {
             downUntil = SystemClock.elapsedRealtime() + DOWN_MS;
+            PcLink.markDown(c.getURL().getProtocol() + "://" + c.getURL().getAuthority());
             c.disconnect();
             throw unreachable();
         }
+    }
+
+    /** True when the PC told the app it can do this (see the "features" the page saves after each status check). */
+    private boolean pcHas(String feature) {
+        return prefs().getString("features", "").contains("\"" + feature + "\"");
     }
 
     private static String readAll(InputStream in) throws IOException {
@@ -260,5 +277,35 @@ final class PcBackend implements CloudBackend {
             throw e;
         }
         return doc(object(answer(c)));
+    }
+
+    @Override
+    public InputStream thumbnail(String id, int px) throws IOException {
+        if (!pcHas("fs-thumb")) return null;
+        HttpURLConnection c = open("GET", "/api/fs/thumb", "path=" + enc(id) + "&w=" + px, STREAM_MS);
+        connect(c);
+        try {
+            if (c.getResponseCode() != 200) return null;
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try (InputStream in = c.getInputStream()) {
+                byte[] buf = new byte[16 * 1024];
+                for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+            }
+            return new java.io.ByteArrayInputStream(out.toByteArray());
+        } finally {
+            c.disconnect();
+        }
+    }
+
+    @Override
+    public List<DocInfo> search(String folderId, String query, int max) throws IOException {
+        if (!pcHas("fs-search")) throw new BackendException(404, "Update Cloud-SSD on the PC to search here.");
+        JSONArray a = object(get("/api/fs/search", "path=" + enc(folderId) + "&q=" + enc(query) + "&limit=" + max + "&depth=6")).optJSONArray("entries");
+        List<DocInfo> docs = new ArrayList<>();
+        for (int i = 0; a != null && i < a.length(); i++) {
+            JSONObject e = a.optJSONObject(i);
+            if (e != null && e.optJSONObject("entry") != null) docs.add(doc(e.optJSONObject("entry")));
+        }
+        return docs;
     }
 }

@@ -223,6 +223,28 @@ public static class MemoryHealth
         finally { CloseHandle(handle); }
     }
 
+    /// <summary>
+    /// Ends every process of an app in this user's session at once (Task Manager's "End task"); unsaved work in it
+    /// is lost, so the page asks first. Protected apps are never ended. Returns how many processes were ended.
+    /// </summary>
+    public static int Kill(string appName)
+    {
+        if (IsProtected(appName)) return 0;
+        int session = Process.GetCurrentProcess().SessionId, ended = 0;
+        foreach (var p in Process.GetProcessesByName(appName))
+        {
+            try
+            {
+                if (p.SessionId != session) continue;
+                p.Kill(entireProcessTree: true);
+                ended++;
+            }
+            catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException) { }
+            finally { p.Dispose(); }
+        }
+        return ended;
+    }
+
     public static bool IsRunning(string appName)
     {
         var found = Process.GetProcessesByName(appName);

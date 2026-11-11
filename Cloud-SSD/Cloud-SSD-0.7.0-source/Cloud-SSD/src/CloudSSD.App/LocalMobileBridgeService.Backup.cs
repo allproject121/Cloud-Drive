@@ -69,22 +69,36 @@ public sealed partial class LocalMobileBridgeService
         if (wanted.Length == 0) throw new FsException(400, "Missing file name.");
         var name = IsPlainName(wanted) ? wanted : SafeUploadName(wanted);
         var modified = ModifiedTime(q);
-        var month = (modified ?? DateTime.UtcNow).ToLocalTime().ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        // The phone sends the month in its own time zone, so a photo taken late on the 31st lands in the month the
+        // phone shows; an older phone app leaves it out and the PC works it out.
+        var month = IsMonth(q.GetValueOrDefault("month")) ? q["month"]
+            : (modified ?? DateTime.UtcNow).ToLocalTime().ToString("yyyy-MM", CultureInfo.InvariantCulture);
         var folder = Path.Combine(baseFolder, month);
         Directory.CreateDirectory(folder);
 
-        long incoming = -1;
-        if (!(headers.TryGetValue("Content-Length", out var cl) && long.TryParse(cl, out incoming)) &&
+        long incoming = QueryLong(q, "total") ?? -1;
+        if (incoming < 0 && !(headers.TryGetValue("Content-Length", out var cl) && long.TryParse(cl, out incoming)) &&
             !long.TryParse(q.GetValueOrDefault("size"), out incoming)) incoming = -1;
+        long offset = QueryLong(q, "offset") ?? 0;
 
         // Same name and same size: this photo is already here. The body is read and dropped so the phone gets its answer.
         var existing = new FileInfo(Path.Combine(folder, name));
-        if (existing.Exists && existing.Length == incoming)
+        if (offset == 0 && existing.Exists && existing.Length == incoming)
         {
             await DrainBodyAsync(headers, stream, ct);
             return new { skipped = true, month, name, size = existing.Length };
         }
-        // Same name, different content (two phones, or an edited photo): keep both.
+
+        if (q.GetValueOrDefault("uploadId") is { } uploadId)
+        {
+            if (!IsUploadId(uploadId)) throw new FsException(400, "uploadId must be 32 lowercase hex characters.");
+            if (incoming < 0) throw new FsException(400, "A resumable upload needs total.");
+            // Same name, different content (two phones, or an edited photo): keep both — the free name is picked at the end.
+            var r = await ReceiveResumableAsync(uploadId, "backup", folder, name, false, modified, offset, incoming, space, headers, stream, clientIp, ct);
+            if (!r.Complete) return new { skipped = false, complete = false, offset = r.Offset, month, name };
+            return new { skipped = false, complete = true, month, name = Path.GetFileName(r.FinalPath), size = r.Size };
+        }
+
         name = FreeName(folder, name);
         long saved = await ReceiveFileAsync(headers, stream, clientIp, folder, name, overwrite: false, modified, space, ct);
         return new { skipped = false, month, name, size = saved };
