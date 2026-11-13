@@ -1,0 +1,16 @@
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\bin\Release\net10.0-windows\CloudSSD.GameStream.deps.json
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\bin\Release\net10.0-windows\CloudSSD.GameStream.dll
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\bin\Release\net10.0-windows\CloudSSD.GameStream.pdb
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\bin\Release\net10.0-windows\CloudSSD.Core.dll
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\bin\Release\net10.0-windows\CloudSSD.Core.pdb
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\CloudSSD.GameStream.csproj.AssemblyReference.cache
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\CloudSSD.GameStream.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\CloudSSD.GameStream.AssemblyInfoInputs.cache
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\CloudSSD.GameStream.AssemblyInfo.cs
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\CloudSSD.GameStream.csproj.CoreCompileInputs.cache
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\CloudSSD.GameStream.sourcelink.json
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\CloudSSD.CD150DD8.Up2Date
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\CloudSSD.GameStream.dll
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\refint\CloudSSD.GameStream.dll
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\CloudSSD.GameStream.pdb
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.GameStream\obj\Release\net10.0-windows\ref\CloudSSD.GameStream.dll

@@ -460,11 +460,11 @@
           "buildMultiTargeting/_._": {}
         }
       },
-      "CloudSSD.Cache/0.7.0": {
+      "CloudSSD.Cache/0.9.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "CloudSSD.Core": "0.7.0"
+          "CloudSSD.Core": "0.9.0"
         },
         "compile": {
           "bin/placeholder/CloudSSD.Cache.dll": {}
@@ -473,7 +473,7 @@
           "bin/placeholder/CloudSSD.Cache.dll": {}
         }
       },
-      "CloudSSD.Core/0.7.0": {
+      "CloudSSD.Core/0.9.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
@@ -486,11 +486,11 @@
           "bin/placeholder/CloudSSD.Core.dll": {}
         }
       },
-      "CloudSSD.Diagnostics/0.7.0": {
+      "CloudSSD.Diagnostics/0.9.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
+          "CloudSSD.Core": "0.9.0",
           "Microsoft.Extensions.Logging": "10.0.12",
           "System.Security.Cryptography.ProtectedData": "10.0.12"
         },
@@ -501,15 +501,15 @@
           "bin/placeholder/CloudSSD.Diagnostics.dll": {}
         }
       },
-      "CloudSSD.Games/0.7.0": {
+      "CloudSSD.Games/0.9.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "CloudSSD.Cache": "0.7.0",
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Diagnostics": "0.7.0",
-          "CloudSSD.Mount": "0.7.0",
-          "CloudSSD.Streaming": "0.7.0",
+          "CloudSSD.Cache": "0.9.0",
+          "CloudSSD.Core": "0.9.0",
+          "CloudSSD.Diagnostics": "0.9.0",
+          "CloudSSD.Mount": "0.9.0",
+          "CloudSSD.Streaming": "0.9.0",
           "System.Diagnostics.EventLog": "10.0.12"
         },
         "compile": {
@@ -519,11 +519,11 @@
           "bin/placeholder/CloudSSD.Games.dll": {}
         }
       },
-      "CloudSSD.GameStream/0.7.0": {
+      "CloudSSD.GameStream/0.9.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
+          "CloudSSD.Core": "0.9.0",
           "Microsoft.Extensions.Logging.Abstractions": "10.0.12",
           "Vortice.Direct3D11": "3.8.3",
           "Vortice.MediaFoundation": "3.8.3"
@@ -535,12 +535,12 @@
           "bin/placeholder/CloudSSD.GameStream.dll": {}
         }
       },
-      "CloudSSD.Mount/0.7.0": {
+      "CloudSSD.Mount/0.9.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Diagnostics": "0.7.0"
+          "CloudSSD.Core": "0.9.0",
+          "CloudSSD.Diagnostics": "0.9.0"
         },
         "compile": {
           "bin/placeholder/CloudSSD.Mount.dll": {}
@@ -549,12 +549,12 @@
           "bin/placeholder/CloudSSD.Mount.dll": {}
         }
       },
-      "CloudSSD.Providers/0.7.0": {
+      "CloudSSD.Providers/0.9.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Mount": "0.7.0"
+          "CloudSSD.Core": "0.9.0",
+          "CloudSSD.Mount": "0.9.0"
         },
         "compile": {
           "bin/placeholder/CloudSSD.Providers.dll": {}
@@ -563,492 +563,11 @@
           "bin/placeholder/CloudSSD.Providers.dll": {}
         }
       },
-      "CloudSSD.Streaming/0.7.0": {
+      "CloudSSD.Streaming/0.9.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "Microsoft.Data.Sqlite": "10.0.12"
-        },
-        "compile": {
-          "bin/placeholder/CloudSSD.Streaming.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/CloudSSD.Streaming.dll": {}
-        }
-      }
-    },
-    "net10.0-windows/win-x64": {
-      "Microsoft.Data.Sqlite/10.0.12": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Data.Sqlite.Core": "10.0.12",
-          "SQLitePCLRaw.bundle_e_sqlite3": "2.1.12",
-          "SQLitePCLRaw.core": "2.1.12"
-        },
-        "compile": {
-          "lib/netstandard2.0/_._": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/_._": {}
-        }
-      },
-      "Microsoft.Data.Sqlite.Core/10.0.12": {
-        "type": "package",
-        "dependencies": {
-          "SQLitePCLRaw.core": "2.1.12"
-        },
-        "compile": {
-          "lib/net8.0/Microsoft.Data.Sqlite.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Microsoft.Data.Sqlite.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "Microsoft.Extensions.DependencyInjection/10.0.12": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12"
-        },
-        "compile": {
-          "lib/net10.0/Microsoft.Extensions.DependencyInjection.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Microsoft.Extensions.DependencyInjection.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "buildTransitive/net8.0/_._": {}
-        }
-      },
-      "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.12": {
-        "type": "package",
-        "compile": {
-          "lib/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "buildTransitive/net8.0/_._": {}
-        }
-      },
-      "Microsoft.Extensions.Logging/10.0.12": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection": "10.0.12",
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.12",
-          "Microsoft.Extensions.Options": "10.0.12"
-        },
-        "compile": {
-          "lib/net10.0/Microsoft.Extensions.Logging.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Microsoft.Extensions.Logging.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "buildTransitive/net8.0/_._": {}
-        }
-      },
-      "Microsoft.Extensions.Logging.Abstractions/10.0.12": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12"
-        },
-        "compile": {
-          "lib/net10.0/Microsoft.Extensions.Logging.Abstractions.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Microsoft.Extensions.Logging.Abstractions.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "buildTransitive/net8.0/Microsoft.Extensions.Logging.Abstractions.targets": {}
-        }
-      },
-      "Microsoft.Extensions.Options/10.0.12": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12",
-          "Microsoft.Extensions.Primitives": "10.0.12"
-        },
-        "compile": {
-          "lib/net10.0/Microsoft.Extensions.Options.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Microsoft.Extensions.Options.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "buildTransitive/net8.0/Microsoft.Extensions.Options.targets": {}
-        }
-      },
-      "Microsoft.Extensions.Primitives/10.0.12": {
-        "type": "package",
-        "compile": {
-          "lib/net10.0/Microsoft.Extensions.Primitives.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Microsoft.Extensions.Primitives.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "buildTransitive/net8.0/_._": {}
-        }
-      },
-      "SharpGen.Runtime/2.4.2-beta": {
-        "type": "package",
-        "compile": {
-          "lib/net9.0/SharpGen.Runtime.dll": {}
-        },
-        "runtime": {
-          "lib/net9.0/SharpGen.Runtime.dll": {}
-        },
-        "build": {
-          "build/_._": {}
-        },
-        "buildMultiTargeting": {
-          "buildMultiTargeting/_._": {}
-        }
-      },
-      "SharpGen.Runtime.COM/2.4.2-beta": {
-        "type": "package",
-        "dependencies": {
-          "SharpGen.Runtime": "2.4.2-beta"
-        },
-        "compile": {
-          "lib/net9.0/SharpGen.Runtime.COM.dll": {}
-        },
-        "runtime": {
-          "lib/net9.0/SharpGen.Runtime.COM.dll": {}
-        },
-        "build": {
-          "build/_._": {}
-        },
-        "buildMultiTargeting": {
-          "buildMultiTargeting/_._": {}
-        }
-      },
-      "SQLitePCLRaw.bundle_e_sqlite3/2.1.12": {
-        "type": "package",
-        "dependencies": {
-          "SQLitePCLRaw.lib.e_sqlite3": "2.1.12",
-          "SQLitePCLRaw.provider.e_sqlite3": "2.1.12"
-        },
-        "compile": {
-          "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll": {}
-        }
-      },
-      "SQLitePCLRaw.core/2.1.12": {
-        "type": "package",
-        "compile": {
-          "lib/netstandard2.0/SQLitePCLRaw.core.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/SQLitePCLRaw.core.dll": {}
-        }
-      },
-      "SQLitePCLRaw.lib.e_sqlite3/2.1.12": {
-        "type": "package",
-        "compile": {
-          "lib/netstandard2.0/_._": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/_._": {}
-        },
-        "native": {
-          "runtimes/win-x64/native/e_sqlite3.dll": {}
-        },
-        "build": {
-          "buildTransitive/net9.0/SQLitePCLRaw.lib.e_sqlite3.targets": {}
-        }
-      },
-      "SQLitePCLRaw.provider.e_sqlite3/2.1.12": {
-        "type": "package",
-        "dependencies": {
-          "SQLitePCLRaw.core": "2.1.12"
-        },
-        "compile": {
-          "lib/net6.0-windows7.0/SQLitePCLRaw.provider.e_sqlite3.dll": {}
-        },
-        "runtime": {
-          "lib/net6.0-windows7.0/SQLitePCLRaw.provider.e_sqlite3.dll": {}
-        }
-      },
-      "System.Diagnostics.EventLog/10.0.12": {
-        "type": "package",
-        "compile": {
-          "lib/net10.0/System.Diagnostics.EventLog.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "runtimes/win/lib/net10.0/System.Diagnostics.EventLog.Messages.dll": {},
-          "runtimes/win/lib/net10.0/System.Diagnostics.EventLog.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "buildTransitive/net8.0/_._": {}
-        }
-      },
-      "System.Security.Cryptography.ProtectedData/10.0.12": {
-        "type": "package",
-        "compile": {
-          "lib/net10.0/System.Security.Cryptography.ProtectedData.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/System.Security.Cryptography.ProtectedData.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "buildTransitive/net8.0/_._": {}
-        }
-      },
-      "Vortice.Direct3D11/3.8.3": {
-        "type": "package",
-        "dependencies": {
-          "SharpGen.Runtime": "2.4.2-beta",
-          "Vortice.DXGI": "3.8.3"
-        },
-        "compile": {
-          "lib/net10.0/Vortice.Direct3D11.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Vortice.Direct3D11.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "build/_._": {}
-        },
-        "buildMultiTargeting": {
-          "buildMultiTargeting/_._": {}
-        }
-      },
-      "Vortice.DirectX/3.8.3": {
-        "type": "package",
-        "dependencies": {
-          "SharpGen.Runtime": "2.4.2-beta",
-          "SharpGen.Runtime.COM": "2.4.2-beta",
-          "Vortice.Mathematics": "2.1.0"
-        },
-        "compile": {
-          "lib/net10.0/Vortice.DirectX.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Vortice.DirectX.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "build/_._": {}
-        },
-        "buildMultiTargeting": {
-          "buildMultiTargeting/_._": {}
-        }
-      },
-      "Vortice.DXGI/3.8.3": {
-        "type": "package",
-        "dependencies": {
-          "SharpGen.Runtime": "2.4.2-beta",
-          "Vortice.DirectX": "3.8.3"
-        },
-        "compile": {
-          "lib/net10.0/Vortice.DXGI.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Vortice.DXGI.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "build/_._": {}
-        },
-        "buildMultiTargeting": {
-          "buildMultiTargeting/_._": {}
-        }
-      },
-      "Vortice.Mathematics/2.1.0": {
-        "type": "package",
-        "compile": {
-          "lib/net10.0/Vortice.Mathematics.dll": {
-            "related": ".pdb;.xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Vortice.Mathematics.dll": {
-            "related": ".pdb;.xml"
-          }
-        }
-      },
-      "Vortice.MediaFoundation/3.8.3": {
-        "type": "package",
-        "dependencies": {
-          "SharpGen.Runtime": "2.4.2-beta",
-          "Vortice.DirectX": "3.8.3"
-        },
-        "compile": {
-          "lib/net10.0/Vortice.MediaFoundation.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net10.0/Vortice.MediaFoundation.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "build/_._": {}
-        },
-        "buildMultiTargeting": {
-          "buildMultiTargeting/_._": {}
-        }
-      },
-      "CloudSSD.Cache/0.7.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "CloudSSD.Core": "0.7.0"
-        },
-        "compile": {
-          "bin/placeholder/CloudSSD.Cache.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/CloudSSD.Cache.dll": {}
-        }
-      },
-      "CloudSSD.Core/0.7.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.12"
-        },
-        "compile": {
-          "bin/placeholder/CloudSSD.Core.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/CloudSSD.Core.dll": {}
-        }
-      },
-      "CloudSSD.Diagnostics/0.7.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "Microsoft.Extensions.Logging": "10.0.12",
-          "System.Security.Cryptography.ProtectedData": "10.0.12"
-        },
-        "compile": {
-          "bin/placeholder/CloudSSD.Diagnostics.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/CloudSSD.Diagnostics.dll": {}
-        }
-      },
-      "CloudSSD.Games/0.7.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "CloudSSD.Cache": "0.7.0",
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Diagnostics": "0.7.0",
-          "CloudSSD.Mount": "0.7.0",
-          "CloudSSD.Streaming": "0.7.0",
-          "System.Diagnostics.EventLog": "10.0.12"
-        },
-        "compile": {
-          "bin/placeholder/CloudSSD.Games.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/CloudSSD.Games.dll": {}
-        }
-      },
-      "CloudSSD.GameStream/0.7.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.12",
-          "Vortice.Direct3D11": "3.8.3",
-          "Vortice.MediaFoundation": "3.8.3"
-        },
-        "compile": {
-          "bin/placeholder/CloudSSD.GameStream.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/CloudSSD.GameStream.dll": {}
-        }
-      },
-      "CloudSSD.Mount/0.7.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Diagnostics": "0.7.0"
-        },
-        "compile": {
-          "bin/placeholder/CloudSSD.Mount.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/CloudSSD.Mount.dll": {}
-        }
-      },
-      "CloudSSD.Providers/0.7.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Mount": "0.7.0"
-        },
-        "compile": {
-          "bin/placeholder/CloudSSD.Providers.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/CloudSSD.Providers.dll": {}
-        }
-      },
-      "CloudSSD.Streaming/0.7.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "CloudSSD.Core": "0.7.0",
+          "CloudSSD.Core": "0.9.0",
           "Microsoft.Data.Sqlite": "10.0.12"
         },
         "compile": {
@@ -1653,42 +1172,42 @@
         "vortice.mediafoundation.nuspec"
       ]
     },
-    "CloudSSD.Cache/0.7.0": {
+    "CloudSSD.Cache/0.9.0": {
       "type": "project",
       "path": "../CloudSSD.Cache/CloudSSD.Cache.csproj",
       "msbuildProject": "../CloudSSD.Cache/CloudSSD.Cache.csproj"
     },
-    "CloudSSD.Core/0.7.0": {
+    "CloudSSD.Core/0.9.0": {
       "type": "project",
       "path": "../CloudSSD.Core/CloudSSD.Core.csproj",
       "msbuildProject": "../CloudSSD.Core/CloudSSD.Core.csproj"
     },
-    "CloudSSD.Diagnostics/0.7.0": {
+    "CloudSSD.Diagnostics/0.9.0": {
       "type": "project",
       "path": "../CloudSSD.Diagnostics/CloudSSD.Diagnostics.csproj",
       "msbuildProject": "../CloudSSD.Diagnostics/CloudSSD.Diagnostics.csproj"
     },
-    "CloudSSD.Games/0.7.0": {
+    "CloudSSD.Games/0.9.0": {
       "type": "project",
       "path": "../CloudSSD.Games/CloudSSD.Games.csproj",
       "msbuildProject": "../CloudSSD.Games/CloudSSD.Games.csproj"
     },
-    "CloudSSD.GameStream/0.7.0": {
+    "CloudSSD.GameStream/0.9.0": {
       "type": "project",
       "path": "../CloudSSD.GameStream/CloudSSD.GameStream.csproj",
       "msbuildProject": "../CloudSSD.GameStream/CloudSSD.GameStream.csproj"
     },
-    "CloudSSD.Mount/0.7.0": {
+    "CloudSSD.Mount/0.9.0": {
       "type": "project",
       "path": "../CloudSSD.Mount/CloudSSD.Mount.csproj",
       "msbuildProject": "../CloudSSD.Mount/CloudSSD.Mount.csproj"
     },
-    "CloudSSD.Providers/0.7.0": {
+    "CloudSSD.Providers/0.9.0": {
       "type": "project",
       "path": "../CloudSSD.Providers/CloudSSD.Providers.csproj",
       "msbuildProject": "../CloudSSD.Providers/CloudSSD.Providers.csproj"
     },
-    "CloudSSD.Streaming/0.7.0": {
+    "CloudSSD.Streaming/0.9.0": {
       "type": "project",
       "path": "../CloudSSD.Streaming/CloudSSD.Streaming.csproj",
       "msbuildProject": "../CloudSSD.Streaming/CloudSSD.Streaming.csproj"
@@ -1696,30 +1215,30 @@
   },
   "projectFileDependencyGroups": {
     "net10.0-windows": [
-      "CloudSSD.Cache >= 0.7.0",
-      "CloudSSD.Core >= 0.7.0",
-      "CloudSSD.Diagnostics >= 0.7.0",
-      "CloudSSD.GameStream >= 0.7.0",
-      "CloudSSD.Games >= 0.7.0",
-      "CloudSSD.Mount >= 0.7.0",
-      "CloudSSD.Providers >= 0.7.0",
-      "CloudSSD.Streaming >= 0.7.0"
+      "CloudSSD.Cache >= 0.9.0",
+      "CloudSSD.Core >= 0.9.0",
+      "CloudSSD.Diagnostics >= 0.9.0",
+      "CloudSSD.GameStream >= 0.9.0",
+      "CloudSSD.Games >= 0.9.0",
+      "CloudSSD.Mount >= 0.9.0",
+      "CloudSSD.Providers >= 0.9.0",
+      "CloudSSD.Streaming >= 0.9.0"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\rosha\\.nuget\\packages\\": {}
+    "C:\\Users\\Roshan\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "0.7.0",
+    "version": "0.9.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj",
+      "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj",
       "projectName": "CloudSSD.App",
-      "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj",
-      "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\obj\\",
+      "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj",
+      "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0-windows"
@@ -1732,29 +1251,29 @@
           "framework": "net10.0-windows7.0",
           "targetAlias": "net10.0-windows",
           "projectReferences": {
-            "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
-              "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj"
+            "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
+              "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj"
             },
-            "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-              "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+            "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+              "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
             },
-            "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
-              "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
+            "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
+              "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
             },
-            "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj": {
-              "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj"
+            "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj": {
+              "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj"
             },
-            "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj": {
-              "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj"
+            "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj": {
+              "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj"
             },
-            "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
-              "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
+            "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
+              "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
             },
-            "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj": {
-              "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj"
+            "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj": {
+              "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj"
             },
-            "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
-              "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj"
+            "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
+              "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj"
             }
           }
         }
@@ -1786,30 +1305,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-            "version": "[10.0.14, 10.0.14]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Crossgen2.win-x64",
-            "version": "[10.0.14, 10.0.14]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Runtime.win-x64",
-            "version": "[10.0.14, 10.0.14]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
-            "version": "[10.0.14, 10.0.14]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -2084,11 +1585,6 @@
           "System.Xml.XPath": "(,4.3.32767]",
           "System.Xml.XPath.XDocument": "(,5.0.32767]"
         }
-      }
-    },
-    "runtimes": {
-      "win-x64": {
-        "#import": []
       }
     }
   }

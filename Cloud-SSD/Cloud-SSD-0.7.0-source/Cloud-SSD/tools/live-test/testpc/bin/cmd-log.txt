@@ -1,0 +1,45 @@
+00:53:05 received from vivo I2221: cssd_held_test.txt
+00:54:24 revoke browse for vivo I2221: now stream,upload,manage,hud,control,space,game,relay
+00:54:30 request eb4df324d5aa from vivo I2221: browse
+00:54:32 decided eb4df324d5aa always: True
+00:54:46 no request waiting
+00:54:55 revoke stream for vivo I2221: now upload,manage,hud,control,space,game,relay,browse
+00:54:58 request c1fd08321bbc from vivo I2221: stream
+00:54:59 decided c1fd08321bbc deny: True
+00:55:04 grant stream for vivo I2221: now upload,manage,hud,control,space,game,relay,browse,stream
+00:55:14 share af6f3f93b195fcb736 DESKTOP-LHEHBE2 -> vivo I2221: offered (laptop-notes.txt,report-2026.pdf)
+00:55:14 offered af6f3f93b195fcb736 to vivo I2221: laptop-notes.txt,report-2026.pdf
+00:55:17 share af6f3f93b195fcb736 DESKTOP-LHEHBE2 -> vivo I2221: accepted (laptop-notes.txt,report-2026.pdf)
+00:55:17 share af6f3f93b195fcb736 DESKTOP-LHEHBE2 -> vivo I2221: done (laptop-notes.txt✓,report-2026.pdf✓)
+00:56:18 ask fs.roots : needs-permission 
+00:56:20 ask fs.list Download: ok {"path":"Download","folders":[{"name":"Cloud-SSD","path":"Download\/Cloud-SSD","modified":1794511353720,"count":3},{"name":"SyncTest","path":"Download\/SyncTest","modified":1794501405407,"count":8}],"files":[{"name":"Bill_from_SSD.pdf","path":"Download\/Bill_from_SSD.pdf","modified":1794234011863,"size":129523},{"name":"e38d5f5c-e02d-4d69-8e19-6ce1f8010f81.jpeg","path":"Download\/e38d5f5c-e02d-4d69-8e19-6ce1f8010f81.jpeg","modified":1794041524129,"size":123797},{"name":"FOS006196154612.pdf","path":"Download\/FOS006196154612.pdf","modified":1794209030646,"size":242087},{"name":"jarvis-android-m…
+00:56:22 clip: ok 
+00:56:26 ring: ok 
+00:57:32 wol E0:E2:58:43:E4:C3 from 192.168.31.4 (102 B)
+00:57:32 wol E0:E2:58:43:E4:C3 from 192.168.31.4 (102 B)
+00:57:32 wol E0:E2:58:43:E4:C3 from 192.168.31.4 (102 B)
+00:57:32 wol E0:E2:58:43:E4:C3 from 192.168.31.4 (102 B)
+00:57:32 wol E0:E2:58:43:E4:C3 from 192.168.31.4 (102 B)
+00:57:32 wol E0:E2:58:43:E4:C3 from 192.168.31.4 (102 B)
+00:58:36 guest code 610993 for 1 min: browse
+01:00:44 guest code 616944 for 1 min: browse
+01:02:17 guest code 841226 for 2 min: browse
+01:03:19 request c33c983d7fff from vivo I2221: space
+02:28:49 devices: vivo I2221 kind=Phone online=True link=usb-adb listening=True blocked=False activity=DeviceActivity { Kind = Browsing, File = , Percent = , Since = 13-11-2026 02:28:46 +05:30 }
+02:29:06 share 2f3519224739ca754a DESKTOP-LHEHBE2 -> vivo I2221: offered (README.md,logo.txt,index.js,index.js)
+02:29:06 offered 2f3519224739ca754a to vivo I2221: README.md,logo.txt,index.js,index.js
+02:29:09 share 2f3519224739ca754a DESKTOP-LHEHBE2 -> vivo I2221: accepted (README.md,logo.txt,index.js,index.js)
+02:29:09 share 2f3519224739ca754a DESKTOP-LHEHBE2 -> vivo I2221: done (README.md✓,logo.txt✓,index.js✓,index.js✓)
+02:29:35 share ed968a0564acdba36a DESKTOP-LHEHBE2 -> vivo I2221: offered (README.md,logo.txt,index.js,index.js,loose-note.txt)
+02:29:35 offered ed968a0564acdba36a to vivo I2221: README.md,logo.txt,index.js,index.js,loose-note.txt
+02:29:36 share ed968a0564acdba36a DESKTOP-LHEHBE2 -> vivo I2221: accepted (README.md,logo.txt,index.js,index.js,loose-note.txt)
+02:29:37 share ed968a0564acdba36a DESKTOP-LHEHBE2 -> vivo I2221: done (README.md✓,logo.txt✓,index.js✓,index.js✓,loose-note.txt✓)
+02:30:47 received from vivo I2221: README.md
+02:30:47 received from vivo I2221: main.py
+02:30:47 received from vivo I2221: main.py
+02:32:14 received from vivo I2221: README.md
+02:32:14 received from vivo I2221: main.py
+02:32:14 received from vivo I2221: main.py
+02:35:22 received from vivo I2221: README.md
+02:35:22 received from vivo I2221: main.py
+02:35:22 received from vivo I2221: main.py
