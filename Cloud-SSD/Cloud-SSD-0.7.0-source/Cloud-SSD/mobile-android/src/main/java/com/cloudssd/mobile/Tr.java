@@ -21,6 +21,10 @@ final class Tr {
         put("Found it? Tap the button to stop.", "Mil gaya? Rokne ke liye button dabao.", "मिल गया? रोकने के लिए बटन दबाएँ।");
         put("Found it — stop", "Mil gaya — roko", "मिल गया — रोकें");
         put("{0} wants to see this phone's files", "{0} is phone ki files dekhna chahta hai", "{0} इस फ़ोन की फ़ाइलें देखना चाहता है");
+        put("{0} wants to add files to this phone", "{0} is phone me files daalna chahta hai", "{0} इस फ़ोन में फ़ाइलें डालना चाहता है");
+        put("Allow only if you are at that PC. It can add files and folders for 1 hour.",
+                "Tabhi allow karo jab aap us PC ke paas ho. 1 ghante tak wo files aur folders daal sakega.",
+                "तभी अनुमति दें जब आप उस पीसी के पास हों। 1 घंटे तक वह फ़ाइलें और फ़ोल्डर डाल सकेगा।");
         put("Allow only if you are at that PC. Photos, Downloads and Documents for 1 hour.",
                 "Tabhi allow karo jab aap us PC ke paas ho. Photos, Downloads aur Documents 1 ghante ke liye.",
                 "तभी अनुमति दें जब आप उस पीसी के पास हों। Photos, Downloads और Documents 1 घंटे के लिए।");
@@ -67,7 +71,8 @@ final class Tr {
         put("Download could not start", "Download shuru nahi ho paaya", "डाउनलोड शुरू नहीं हो पाया");
         put("Open Settings > Apps > Cloud-SSD > Permissions > Files", "Settings > Apps > Cloud-SSD > Permissions > Files kholo",
                 "Settings > Apps > Cloud-SSD > Permissions > Files खोलें");
-        put("Open Settings → Apps → Special app access → Usage access", "Settings → Apps → Special app access → Usage access kholo",
+        put("Open Settings > Apps > Cloud-SSD", "Settings > Apps > Cloud-SSD kholo", "Settings > Apps > Cloud-SSD खोलें");
+        put("Open Settings → Apps → Special app access → Usage access","Settings → Apps → Special app access → Usage access kholo",
                 "Settings → Apps → Special app access → Usage access खोलें");
         put("Open Settings → Developer options → Running services", "Settings → Developer options → Running services kholo",
                 "Settings → Developer options → Running services खोलें");

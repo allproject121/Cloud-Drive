@@ -37,7 +37,7 @@ public sealed partial class GameItem : ObservableObject
 
 public sealed partial class GameLibraryViewModel : PageViewModel
 {
-    public GameLibraryViewModel(AppHost host) : base(host, "Game Library", "") { }
+    public GameLibraryViewModel(AppHost host) : base(host, "Games", "") { }
 
     public ObservableCollection<GameItem> Games { get; } = new();
     public ObservableCollection<Issue> Issues { get; } = new();

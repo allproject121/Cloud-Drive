@@ -3,6 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:CloudSSD.Desktop.Views">
     <UserControl.Resources>
+        <!-- A tab of the strip at the top; the chosen one is filled (set per button). -->
+        <Style x:Key="SubTab" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Dim}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
         <Style x:Key="Field" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
             <Setter Property="Width" Value="140" />
             <Setter Property="HorizontalAlignment" Value="Left" />
@@ -18,73 +27,73 @@
         <!-- Phone-style Settings Category Selector Strip -->
         <Border Grid.Row="0" Background="{DynamicResource Surface}" CornerRadius="18" Padding="6" Margin="0,0,0,14" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                <Button Content="⚙️ General" Command="{Binding SwitchSubTabCommand}" CommandParameter="General" Margin="2,0">
+                <Button Content="General" Command="{Binding SwitchSubTabCommand}" CommandParameter="General" Margin="2,0">
                     <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource ButtonBase}">
-                            <Setter Property="Background" Value="Transparent" />
-                            <Setter Property="Foreground" Value="{DynamicResource Dim}" />
-                            <Setter Property="BorderThickness" Value="0" />
-                            <Setter Property="Padding" Value="16,8" />
-                            <Setter Property="FontWeight" Value="SemiBold" />
-                            <Setter Property="FontSize" Value="13" />
+                        <Style TargetType="Button" BasedOn="{StaticResource SubTab}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ActiveTab}" Value="General">
                                     <Setter Property="Background" Value="{DynamicResource Accent}" />
-                                    <Setter Property="Foreground" Value="White" />
+                                    <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button Content="⚡ Speed &amp; Fast Load" Command="{Binding SwitchSubTabCommand}" CommandParameter="Speed" Margin="2,0">
+                <Button Content="Look and language" Command="{Binding SwitchSubTabCommand}" CommandParameter="Customize" Margin="2,0">
                     <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource ButtonBase}">
-                            <Setter Property="Background" Value="Transparent" />
-                            <Setter Property="Foreground" Value="{DynamicResource Dim}" />
-                            <Setter Property="BorderThickness" Value="0" />
-                            <Setter Property="Padding" Value="16,8" />
-                            <Setter Property="FontWeight" Value="SemiBold" />
-                            <Setter Property="FontSize" Value="13" />
+                        <Style TargetType="Button" BasedOn="{StaticResource SubTab}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveTab}" Value="Customize">
+                                    <Setter Property="Background" Value="{DynamicResource Accent}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="Speed" Command="{Binding SwitchSubTabCommand}" CommandParameter="Speed" Margin="2,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SubTab}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ActiveTab}" Value="Speed">
                                     <Setter Property="Background" Value="{DynamicResource Accent}" />
-                                    <Setter Property="Foreground" Value="White" />
+                                    <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button Content="📊 Performance" Command="{Binding SwitchSubTabCommand}" CommandParameter="Performance" Margin="2,0">
+                <Button Content="Performance" Command="{Binding SwitchSubTabCommand}" CommandParameter="Performance" Margin="2,0">
                     <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource ButtonBase}">
-                            <Setter Property="Background" Value="Transparent" />
-                            <Setter Property="Foreground" Value="{DynamicResource Dim}" />
-                            <Setter Property="BorderThickness" Value="0" />
-                            <Setter Property="Padding" Value="16,8" />
-                            <Setter Property="FontWeight" Value="SemiBold" />
-                            <Setter Property="FontSize" Value="13" />
+                        <Style TargetType="Button" BasedOn="{StaticResource SubTab}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ActiveTab}" Value="Performance">
                                     <Setter Property="Background" Value="{DynamicResource Accent}" />
-                                    <Setter Property="Foreground" Value="White" />
+                                    <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button Content="🛠️ Advanced &amp; Logs" Command="{Binding SwitchSubTabCommand}" CommandParameter="Advanced" Margin="2,0">
+                <Button Content="Folders" Command="{Binding SwitchSubTabCommand}" CommandParameter="Folders" Margin="2,0">
                     <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource ButtonBase}">
-                            <Setter Property="Background" Value="Transparent" />
-                            <Setter Property="Foreground" Value="{DynamicResource Dim}" />
-                            <Setter Property="BorderThickness" Value="0" />
-                            <Setter Property="Padding" Value="16,8" />
-                            <Setter Property="FontWeight" Value="SemiBold" />
-                            <Setter Property="FontSize" Value="13" />
+                        <Style TargetType="Button" BasedOn="{StaticResource SubTab}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveTab}" Value="Folders">
+                                    <Setter Property="Background" Value="{DynamicResource Accent}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="Logs" Command="{Binding SwitchSubTabCommand}" CommandParameter="Advanced" Margin="2,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SubTab}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ActiveTab}" Value="Advanced">
                                     <Setter Property="Background" Value="{DynamicResource Accent}" />
-                                    <Setter Property="Foreground" Value="White" />
+                                    <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>

@@ -68,13 +68,18 @@
     </Style>
 
     <!-- The curved blue band at the top of every page (MainWindow), and the text on it. -->
+    <!-- The page title bar: slim. Ocean paints it blue; Clean and Midnight leave it see-through (ThemeManager). -->
     <Style x:Key="Band" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource BandBrush}" />
-        <Setter Property="CornerRadius" Value="0,0,0,30" />
-        <Setter Property="Padding" Value="32,26,32,28" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="28,12,24,12" />
+        <Setter Property="MinHeight" Value="56" />
     </Style>
     <Style x:Key="BandTitle" TargetType="TextBlock" BasedOn="{StaticResource H1}">
-        <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+        <Setter Property="Foreground" Value="{DynamicResource BandText}" />
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="0" />
     </Style>
 
@@ -83,9 +88,9 @@
         <Setter Property="Background" Value="{DynamicResource Surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="20" />
-        <Setter Property="Padding" Value="20,18" />
-        <Setter Property="Margin" Value="0,0,14,14" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="18,14" />
+        <Setter Property="Margin" Value="0,0,12,12" />
     </Style>
     <!-- A small tag ("Live", "Guest"): pale blue pill. -->
     <Style x:Key="Pill" TargetType="Border">
@@ -475,17 +480,19 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="b" CornerRadius="22" Padding="14,10" Margin="12,2" Background="Transparent">
+                    <!-- Slim rows; the chosen page is a soft tint with the accent text (not a solid pill). -->
+                    <Border x:Name="b" CornerRadius="10" Padding="12,8" Margin="10,1" Background="Transparent">
                         <ContentPresenter />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="b" Property="Background" Value="{DynamicResource AccentSoft}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+                            <Setter TargetName="b" Property="Background" Value="{DynamicResource Surface2}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Text}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="b" Property="Background" Value="{DynamicResource Accent}" />
-                            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+                            <Setter TargetName="b" Property="Background" Value="{DynamicResource AccentSoft}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -499,7 +506,13 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
     </Style>
+    <!-- A list item's text follows the theme (without this it is Windows' black, unreadable in dark mode). -->
+    <Style TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+
     <Style x:Key="RowItem" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource Text}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">

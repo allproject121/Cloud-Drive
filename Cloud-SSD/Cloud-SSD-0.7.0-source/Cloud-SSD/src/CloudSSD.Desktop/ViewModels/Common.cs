@@ -69,6 +69,9 @@ public abstract partial class PageViewModel : ObservableObject
     public string Title { get; }
     public string Icon { get; }
 
+    /// <summary>The section this page sits in (a hub page), when it is not in the sidebar itself: Back goes there.</summary>
+    public PageViewModel? Parent { get; set; }
+
     [ObservableProperty] private bool _busy;
     [ObservableProperty] private string? _message;
     [ObservableProperty] private string _messageTone = "muted";

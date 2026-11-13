@@ -1258,8 +1258,11 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         if (!string.IsNullOrEmpty(category) || !string.IsNullOrEmpty(searchQuery))
         {
             bool wantFolders = !string.IsNullOrEmpty(searchQuery) && queryParams.GetValueOrDefault("folders") is "1" or "true";
-            int depth = string.IsNullOrEmpty(searchQuery) ? 2 : SearchDepth(queryParams);
-            var hits = SearchTree(dirInfo, searchQuery, category, depth, 150, TimeSpan.FromSeconds(15), wantFolders, ct);
+            // A kind of file alone ("Photos" in the phone's Cloud SSD tab) looks well inside the folder: a camera or
+            // project folder keeps its files a few levels down.
+            bool kindOnly = string.IsNullOrEmpty(searchQuery);
+            int depth = kindOnly ? 5 : SearchDepth(queryParams);
+            var hits = SearchTree(dirInfo, searchQuery, category, depth, kindOnly ? 300 : 150, TimeSpan.FromSeconds(15), wantFolders, ct);
             await SendJsonAsync(stream, 200, "OK", new
             {
                 currentPath = CleanPath(dirInfo.FullName),

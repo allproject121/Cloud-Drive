@@ -17,6 +17,10 @@ public sealed partial class LocalMobileBridgeService
 
     public ShareStore Shares => LazyInitializer.EnsureInitialized(ref _shares, () => new ShareStore(_host.Paths.SharesDirectory, () => Now()))!;
 
+    private TransferTasks? _tasks;
+    /// <summary>All transfers of this PC as tasks (offers, uploads, passed-on files, phone folders); screens bind to them.</summary>
+    public TransferTasks Tasks => LazyInitializer.EnsureInitialized(ref _tasks, () => new TransferTasks(() => Now()))!;
+
     /// <summary>A device sent a file to this PC ("Send to PC"); the PC shows a note.</summary>
     public event Action<PairedDevice, string>? FileReceived;
 

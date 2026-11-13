@@ -34,8 +34,9 @@
                     </ItemsControl>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                         <Button Style="{StaticResource Primary}" Content="Cloud Drives" Command="{Binding GoCommand}" CommandParameter="Cloud Drives" />
-                        <Button Content="Game Library" Command="{Binding GoCommand}" CommandParameter="Game Library" />
-                        <Button Content="Phone (Mobile Hub)" Command="{Binding GoCommand}" CommandParameter="Phone (Mobile Hub)" Margin="8,0,0,0" />
+                        <Button Content="Games" Command="{Binding GoCommand}" CommandParameter="Games" />
+                        <Button Content="Devices" Command="{Binding GoCommand}" CommandParameter="Devices" Margin="8,0,0,0" />
+                        <Button Content="Files" Command="{Binding GoCommand}" CommandParameter="Files" Margin="8,0,0,0" />
                     </StackPanel>
                 </StackPanel>
             </Border>

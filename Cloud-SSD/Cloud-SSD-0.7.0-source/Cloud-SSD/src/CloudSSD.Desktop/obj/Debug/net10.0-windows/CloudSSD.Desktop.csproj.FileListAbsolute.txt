@@ -196,3 +196,11 @@ C:\Users\Roshan\AppData\Local\Temp\render-check\Cloud-SSD.deps.json
 C:\Users\Roshan\AppData\Local\Temp\render-check\Cloud-SSD.runtimeconfig.json
 C:\Users\Roshan\AppData\Local\Temp\render-check\Cloud-SSD.dll
 C:\Users\Roshan\AppData\Local\Temp\render-check\Cloud-SSD.pdb
+C:\Users\Roshan\AppData\Local\Temp\claude\9160aa004d9340d2\5bfeb0f8-12e4-46d3-92e2-8c31bd630f4d\scratchpad\render\bin\wwwroot\mobile\pages.css
+C:\Users\Roshan\AppData\Local\Temp\claude\9160aa004d9340d2\5bfeb0f8-12e4-46d3-92e2-8c31bd630f4d\scratchpad\render\bin\wwwroot\mobile\pages.js
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Debug\net10.0-windows\wwwroot\mobile\transfers.js
+C:\Users\Roshan\AppData\Local\Temp\render-check\wwwroot\mobile\transfers.js
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Debug\net10.0-windows\Views\PhoneFoldersView.baml
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Debug\net10.0-windows\Views\TransferHistoryView.baml
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Debug\net10.0-windows\Views\PhoneFoldersView.g.cs
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Debug\net10.0-windows\Views\TransferHistoryView.g.cs

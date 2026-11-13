@@ -21,7 +21,11 @@ public class PeerDecisionReceiver extends BroadcastReceiver {
         }
         String pc = intent.getStringExtra("pc");
         int minutes = intent.getIntExtra("minutes", -1);
-        if (pc != null && minutes >= 0) PeerLink.Grants.set(context, pc, intent.getStringExtra("scope"), minutes);
+        if (pc != null && minutes >= 0) {
+            // The note for adding files allows that too; the plain "see files" note keeps what was allowed before.
+            if (intent.hasExtra("write")) PeerLink.Grants.set(context, pc, intent.getStringExtra("scope"), minutes, intent.getBooleanExtra("write", false));
+            else PeerLink.Grants.set(context, pc, intent.getStringExtra("scope"), minutes);
+        }
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) nm.cancel(PeerLink.NOTE_ID);
         // Allowed from the note with the app closed: keep answering for as long as it was allowed.

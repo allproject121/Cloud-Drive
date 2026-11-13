@@ -335,6 +335,7 @@ test('peer: what the PC may see on this phone, in words', () => {
   assert.equal(data.peerText({ scope: 'all', until: 0 }, now), 'Whole phone storage · until you stop it');
   assert.equal(data.peerText({ scope: 'shared', until: new Date(2026, 10, 12, 16, 0).getTime() }, now), 'Photos, downloads, documents and music · until 16:00');
   assert.equal(data.peerText({ scope: 'shared', until: now - 1 }, now), 'Not allowed');
+  assert.equal(data.peerText({ scope: 'all', until: 0, write: true }, now), 'Whole phone storage · can add files · until you stop it');
 });
 
 test('friendlyPath names a folder by its place, not its Windows path', () => {
@@ -401,4 +402,24 @@ test('an offer is summed up by its folders and loose files', () => {
   assert.deepEqual(s.folders, ['MyApp', 'Other']);
   assert.equal(s.text, 'MyApp/, Other/, n.txt');
   assert.equal(data.offerSummary([{ name: '1' }, { name: '2' }, { name: '3' }], 2).text, '1, 2 and 1 more');
+});
+
+test('a task says how the phone reaches the PC in the shared words', () => {
+  assert.equal(data.taskLink('tailnet', 'wifi'), 'tailscale');
+  assert.equal(data.taskLink('lan', 'internet'), 'tailscale');
+  assert.equal(data.taskLink('lan', 'usb-adb'), 'usb');
+  assert.equal(data.taskLink('lan', 'phone-hotspot'), 'hotspot');
+  assert.equal(data.taskLink('lan', 'lan'), 'wifi');
+  assert.equal(data.taskLink('lan', ''), 'wifi');
+});
+
+test('a changed task replaces the old one and the list stays newest first', () => {
+  let list = [];
+  list = data.upsertTask(list, { id: 'a', started: '2026-11-13T10:00:00+05:30', state: 'running' });
+  list = data.upsertTask(list, { id: 'b', started: '2026-11-13T11:00:00+05:30', state: 'waiting' });
+  list = data.upsertTask(list, { id: 'a', started: '2026-11-13T10:00:00+05:30', state: 'done' });
+  assert.deepEqual(list.map(t => t.id + ':' + t.state), ['b:waiting', 'a:done']);
+  assert.equal(data.upsertTask(list, null).length, 2);
+  for (let i = 0; i < 50; i++) list = data.upsertTask(list, { id: 'x' + i, started: '2026-11-14T00:00:' + String(i).padStart(2, '0') });
+  assert.equal(list.length, 40);
 });

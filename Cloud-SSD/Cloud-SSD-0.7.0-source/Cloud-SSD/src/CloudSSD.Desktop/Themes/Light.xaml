@@ -46,4 +46,10 @@
     <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF" />
     <SolidColorBrush x:Key="OnAccentMuted" Color="#DCE6FD" />
     <SolidColorBrush x:Key="BandBrush" Color="{StaticResource AccentColor}" />
+    <!-- The page title bar (Ocean: a slim blue bar; ThemeManager sets these per look): its text, the bar under the busy line, hover. -->
+    <SolidColorBrush x:Key="BandText" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="BandTextMuted" Color="#DCE6FD" />
+    <SolidColorBrush x:Key="BandHover" Color="#33FFFFFF" />
+    <!-- The side menu and the bottom status line (see-through with the glass effect). -->
+    <SolidColorBrush x:Key="SidebarBg" Color="{StaticResource SurfaceColor}" />
 </ResourceDictionary>

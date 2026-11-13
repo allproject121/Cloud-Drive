@@ -41,7 +41,7 @@ public sealed class AddGuestWindow : Window
         panel.Children.Add(Caption(T("The guest pairs in the Cloud-SSD app (+ Add device) with the code shown here. It may do only what you tick, and is removed when its time is up."),
             new Thickness(0, 0, 0, 12)));
         if (!host.MobileBridge.IsRunning)
-            panel.Children.Add(Caption(T("The phone bridge is off, so no device can connect. Turn it on in Phone (Mobile Hub)."), new Thickness(0, 0, 0, 10), "Warning"));
+            panel.Children.Add(Caption(T("The phone bridge is off, so no device can connect. Turn it on in Devices → Add or connect."), new Thickness(0, 0, 0, 10), "Warning"));
 
         panel.Children.Add(Label(T("For how long")));
         var times = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 12) };

@@ -52,6 +52,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 final class TransferHub {
     interface Listener {
         void onTransfer(JSONObject t);
+
+        /** A task changed (see {@link #taskJson}). */
+        default void onTask(JSONObject task) { }
     }
 
     static final String CHANNEL = "cloudssd_transfers";
@@ -86,6 +89,247 @@ final class TransferHub {
         watchNetwork();
     }
 
+    // ---- tasks: one offer, one folder or one batch of files, as people think of a transfer --------------------------
+
+    /** Files queued on this thread between beginTask and endTask belong to that task; others get a task of their own. */
+    private final ThreadLocal<String> taskScope = new ThreadLocal<>();
+    /** How the phone reaches the PC now (wifi, usb, hotspot, tailscale), told by the page. */
+    volatile String linkKind = "wifi";
+    /** The PC in use, by name (told by the page), for tasks made here. */
+    volatile String pcName = "PC";
+    private final Map<String, Long> taskRaised = new ConcurrentHashMap<>();
+    private final Map<String, String> taskLastState = new ConcurrentHashMap<>();
+
+    /**
+     * Starts a task: meta has dir (toPc, toPhone, toDevice, fromDevice), device, link, kind (files, folder), folder,
+     * saveTo and openPath; id may be given (an offer's) or is made. Files queued on this thread until endTask join it.
+     */
+    String beginTask(JSONObject meta) {
+        String id = meta.optString("id", "");
+        if (id.isEmpty()) id = "ph-" + Uploader.randomId().substring(0, 12);
+        store.putTask(id, meta);
+        taskScope.set(id);
+        return id;
+    }
+
+    void endTask() {
+        taskScope.remove();
+    }
+
+    /** Puts the row into the current task, or into a task of its own (a single file, a backup…). */
+    private void tag(ContentValues v) {
+        String t = taskScope.get();
+        if (t == null) {
+            t = "ph-" + Uploader.randomId().substring(0, 12);
+            boolean down = "download".equals(v.getAsString("type"));
+            String target = v.getAsString("target") == null ? "" : v.getAsString("target");
+            boolean relay = target.startsWith("share:");
+            JSONObject meta = new JSONObject();
+            try {
+                meta.put("dir", down ? "toPhone" : relay ? "toDevice" : "toPc");
+                meta.put("device", pcName);
+                meta.put("link", relay ? "relay" : linkKind);
+                meta.put("kind", "files");
+                meta.put("saveTo", down ? "Downloads" + (target.isEmpty() ? "" : " › " + target.replace("/", " › ")) : relay ? pcName : pcName + (target.isEmpty() ? " › Uploads" : " › " + target));
+                meta.put("openPath", down ? "Download" + (target.isEmpty() ? "" : "/" + target) : "");
+            } catch (Exception ignored) { }
+            store.putTask(t, meta);
+        }
+        v.put("task", t);
+    }
+
+    /** The task in the shared model (the PC's TransferTask has the same fields). */
+    JSONObject taskJson(String id) {
+        JSONObject meta = store.taskMeta(id);
+        if (meta == null) return null;
+        List<JSONObject> rows = store.rowsOf(id);
+        int files = rows.size(), done = 0, failed = 0, cancelled = 0, active = 0, held = 0, waiting = 0;
+        long bytes = 0, doneBytes = 0, speedSum = 0, ended = 0;
+        String current = "";
+        JSONArray fails = new JSONArray();
+        for (JSONObject r : rows) {
+            String st = r.optString("state");
+            long size = Math.max(0, r.optLong("size", 0));
+            bytes += size;
+            switch (st) {
+                case "done": done++; doneBytes += size; break;
+                case "failed": failed++; fails.put(failure(r)); break;
+                case "cancelled": cancelled++; fails.put(failure(r)); break;
+                case "active":
+                    active++;
+                    doneBytes += r.optLong("bytes");
+                    current = r.optString("name");
+                    double[] s = speed.get(r.optLong("id"));
+                    if (s != null) speedSum += Math.round(s[0]);
+                    break;
+                case "held": held++; doneBytes += r.optLong("bytes"); break;
+                default: waiting++; doneBytes += r.optLong("bytes"); break;
+            }
+            ended = Math.max(ended, r.optLong("finished", 0));
+        }
+        boolean open = active + held + waiting > 0;
+        // Work done outside the hub: open until it is finished; then what never came counts as failed.
+        int expected = meta.optInt("files", 0);
+        boolean outside = meta.has("open");
+        if (outside && meta.optBoolean("open", false)) open = true;
+        else if (outside && expected > done + failed + cancelled) {
+            for (int i = done + failed + cancelled; i < expected; i++) {
+                try { fails.put(new JSONObject().put("name", "").put("reason", "network")); } catch (Exception ignored) { }
+            }
+            failed += expected - (done + failed + cancelled);
+        }
+        String state;
+        if (outside && open) state = done + failed > 0 ? "running" : "waiting";
+        else if (active > 0) state = "running";
+        else if (held > 0) state = "paused";
+        else if (waiting > 0) state = done + failed + cancelled > 0 ? "running" : "waiting";
+        else if (files == 0) state = "waiting";
+        else if (failed + cancelled == 0) state = "done";
+        else if (done == 0) state = failed == 0 ? "cancelled" : "failed";
+        else state = "partial";
+        JSONObject o = new JSONObject();
+        try {
+            o.put("id", id);
+            o.put("dir", meta.optString("dir", "toPc"));
+            o.put("kind", meta.optString("kind", "files"));
+            o.put("folder", meta.optString("folder", ""));
+            o.put("device", meta.optString("device", pcName));
+            o.put("link", meta.optString("link", linkKind));
+            o.put("state", state);
+            o.put("name", rows.isEmpty() ? meta.optString("name", "") : rows.get(0).optString("name"));
+            o.put("files", Math.max(files, meta.optInt("files", 0)));
+            o.put("doneFiles", done);
+            o.put("bytes", Math.max(bytes, meta.optLong("bytes", 0)));
+            o.put("doneBytes", doneBytes);
+            o.put("speed", open ? speedSum : 0);
+            o.put("current", open ? current : "");
+            o.put("failed", fails);
+            o.put("saveTo", meta.optString("saveTo", ""));
+            o.put("openPath", meta.optString("openPath", ""));
+            o.put("started", iso(meta.optLong("started", System.currentTimeMillis())));
+            o.put("ended", open || ended == 0 ? JSONObject.NULL : iso(ended));
+            o.put("canRetry", !outside && !open && failed + cancelled > 0);   // outside work is retried where it runs
+            o.put("canCancel", open && !outside);
+        } catch (Exception ignored) { }
+        return o;
+    }
+
+    private static String iso(long ms) {
+        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US);
+        return f.format(new java.util.Date(ms));
+    }
+
+    /** Why a file did not arrive, in the model's words, from the error the page showed. */
+    static String reasonOf(String state, String error) {
+        if ("cancelled".equals(state)) return "cancelled";
+        String e = error == null ? "" : error.toLowerCase(java.util.Locale.US);
+        if (e.contains("space") || e.contains("full")) return "space";
+        if (e.contains("not reachable") || e.contains("connection") || e.contains("network") || e.contains("timed out") || e.contains("stopped when")) return "network";
+        if (e.contains("no longer") || e.contains("not found") || e.contains("missing") || e.contains("gone")) return "missing";
+        if (e.contains("denied") || e.contains("permission") || e.contains("not allowed") || e.contains("403")) return "denied";
+        if (e.contains("cancel")) return "cancelled";
+        return "other";
+    }
+
+    private static JSONObject failure(JSONObject r) {
+        JSONObject f = new JSONObject();
+        try {
+            f.put("name", r.optString("name"));
+            f.put("reason", reasonOf(r.optString("state"), r.optString("error")));
+        } catch (Exception ignored) { }
+        return f;
+    }
+
+    // ---- work done outside the hub (PeerLink's fs.pull…): the same tasks and events ---------------------------------
+
+    /**
+     * A task for work this hub does not run itself. meta as for beginTask (dir, kind, folder, device, link, files,
+     * bytes, saveTo, openPath; id optional, e.g. the PC's task id so several calls join one task). Returns its id ("pl-…").
+     */
+    String external(JSONObject meta) {
+        String id = meta.optString("id", "");
+        if (id.isEmpty()) id = "pl-" + Uploader.randomId().substring(0, 12);
+        JSONObject old = store.taskMeta(id);
+        try {
+            if (old != null) { for (java.util.Iterator<String> k = old.keys(); k.hasNext(); ) { String key = k.next(); if (!meta.has(key)) meta.put(key, old.get(key)); } }
+            meta.put("open", true);
+        } catch (Exception ignored) { }
+        store.putTask(id, meta);
+        raiseTask(id);
+        return id;
+    }
+
+    /** One file of an outside task arrived (ok) or did not (reason: network, space, missing, cancelled, denied, other). */
+    void externalFile(String id, String name, long size, boolean ok, String reason) {
+        ContentValues v = new ContentValues();
+        v.put("type", "external");
+        v.put("name", name);
+        v.put("size", size);
+        v.put("bytes", ok ? size : 0);
+        v.put("state", ok ? "done" : "failed");
+        v.put("error", ok ? "" : reason == null ? "other" : reason);
+        v.put("finished", System.currentTimeMillis());
+        v.put("task", id);
+        store.insert(v);
+        raiseTask(id);
+    }
+
+    /** An outside task ends: what did not arrive by now counts as failed. */
+    void externalFinish(String id) {
+        JSONObject meta = store.taskMeta(id);
+        if (meta == null) return;
+        try { meta.put("open", false); } catch (Exception ignored) { }
+        store.putTask(id, meta);
+        raiseTask(id);
+    }
+
+    private void raiseTask(String id) {
+        JSONObject t = taskJson(id);
+        if (t == null) return;
+        taskLastState.put(id, t.optString("state") + "/" + t.optInt("doneFiles"));
+        taskRaised.put(id, SystemClock.elapsedRealtime());
+        for (Listener l : listeners) l.onTask(t);
+    }
+
+    /** The newest tasks, for a page that just opened. */
+    JSONArray tasks() {
+        JSONArray out = new JSONArray();
+        for (String id : store.recentTasks(40)) {
+            JSONObject t = taskJson(id);
+            if (t != null && t.optInt("files") > 0) out.put(t);
+        }
+        return out;
+    }
+
+    void taskCancel(String id) {
+        for (JSONObject r : store.rowsOf(id)) {
+            String st = r.optString("state");
+            if (!"done".equals(st) && !"failed".equals(st) && !"cancelled".equals(st)) cancel(r.optLong("id"));
+        }
+    }
+
+    void taskRetry(String id) {
+        for (JSONObject r : store.rowsOf(id)) {
+            String st = r.optString("state");
+            if (("failed".equals(st) || "cancelled".equals(st)) && !"external".equals(r.optString("type"))) retry(r.optLong("id"));
+        }
+    }
+
+    /** Tells the page about the row's task: at most 4 times a second, always when its state changes. */
+    private void publishTask(JSONObject row) {
+        String task = row.optString("task", "");
+        if (task.isEmpty() || listeners.isEmpty()) return;
+        long now = SystemClock.elapsedRealtime();
+        JSONObject t = taskJson(task);
+        if (t == null) return;
+        String state = t.optString("state") + "/" + t.optInt("doneFiles") + "/" + t.optJSONArray("failed").length();
+        boolean changed = !state.equals(taskLastState.put(task, state));
+        Long last = taskRaised.get(task);
+        if (!changed && last != null && now - last < 250) return;
+        taskRaised.put(task, now);
+        for (Listener l : listeners) l.onTask(t);
+    }
+
     void addListener(Listener l) {
         listeners.add(l);
     }
@@ -112,6 +356,7 @@ final class TransferHub {
         v.put("uploadId", Uploader.randomId());
         v.put("state", "queued");
         v.put("pcId", PcProfiles.activeId(ctx));
+        tag(v);
         long id = store.insert(v);
         submit(id);
         return id;
@@ -133,6 +378,7 @@ final class TransferHub {
         v.put("state", "queued");
         v.put("deleteSrc", 1);
         v.put("pcId", PcProfiles.activeId(ctx));
+        tag(v);
         long id = store.insert(v);
         submit(id);
         return id;
@@ -154,6 +400,7 @@ final class TransferHub {
         v.put("size", size);
         v.put("state", "queued");
         v.put("pcId", route.startsWith("cloud:") ? "" : PcProfiles.activeId(ctx));
+        tag(v);
         long id = store.insert(v);
         submit(id);
         return id;
@@ -743,8 +990,10 @@ final class TransferHub {
         JSONObject row = store.row(id);
         if (row == null) return;
         JSONObject e = event(row);
+        if (!row.optString("task", "").isEmpty()) try { e.put("task", row.optString("task")); } catch (Exception ignored) { }
         for (Listener l : listeners) l.onTransfer(e);
         notifyProgress(row, e);
+        publishTask(row);
     }
 
     private void createChannel() {
@@ -832,14 +1081,16 @@ final class TransferHub {
 
     private static final class Store extends SQLiteOpenHelper {
         Store(Context c) {
-            super(c, "transfers.db", null, 3);
+            super(c, "transfers.db", null, 4);
         }
 
         @Override
         public void onCreate(SQLiteDatabase db) {
             db.execSQL("CREATE TABLE t (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, name TEXT, srcKind TEXT, src TEXT, target TEXT, "
                     + "size INTEGER DEFAULT -1, uploadId TEXT, dest TEXT, etag TEXT, bytes INTEGER DEFAULT 0, state TEXT, error TEXT, "
-                    + "note TEXT, attempts INTEGER DEFAULT 0, created INTEGER, finished INTEGER DEFAULT 0, deleteSrc INTEGER DEFAULT 0, pcId TEXT DEFAULT '')");
+                    + "note TEXT, attempts INTEGER DEFAULT 0, created INTEGER, finished INTEGER DEFAULT 0, deleteSrc INTEGER DEFAULT 0, pcId TEXT DEFAULT '', "
+                    + "task TEXT DEFAULT '')");
+            db.execSQL("CREATE TABLE tk (id TEXT PRIMARY KEY, meta TEXT, started INTEGER)");
         }
 
         @Override
@@ -847,6 +1098,11 @@ final class TransferHub {
             if (from < 2) db.execSQL("ALTER TABLE t ADD COLUMN deleteSrc INTEGER DEFAULT 0");
             // Which saved PC a transfer is for: it waits for that PC instead of going to another one.
             if (from < 3) db.execSQL("ALTER TABLE t ADD COLUMN pcId TEXT DEFAULT ''");
+            // Transfers as tasks: each row belongs to one, and a task's own details are kept beside.
+            if (from < 4) {
+                db.execSQL("ALTER TABLE t ADD COLUMN task TEXT DEFAULT ''");
+                db.execSQL("CREATE TABLE tk (id TEXT PRIMARY KEY, meta TEXT, started INTEGER)");
+            }
         }
 
         synchronized List<Long> ids(String where) {
@@ -907,6 +1163,44 @@ final class TransferHub {
             try (Cursor c = getReadableDatabase().rawQuery("SELECT * FROM t WHERE id=?", new String[]{String.valueOf(id)})) {
                 return c.moveToFirst() ? toJson(c) : null;
             }
+        }
+
+        synchronized void putTask(String id, JSONObject meta) {
+            ContentValues v = new ContentValues();
+            long started = System.currentTimeMillis();
+            JSONObject old = taskMeta(id);
+            if (old != null) started = old.optLong("started", started);
+            try { meta.put("started", started); } catch (Exception ignored) { }
+            v.put("id", id);
+            v.put("meta", meta.toString());
+            v.put("started", started);
+            getWritableDatabase().insertWithOnConflict("tk", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+            // Keep the newest 80.
+            getWritableDatabase().execSQL("DELETE FROM tk WHERE id NOT IN (SELECT id FROM tk ORDER BY started DESC LIMIT 80)");
+        }
+
+        synchronized JSONObject taskMeta(String id) {
+            try (Cursor c = getReadableDatabase().rawQuery("SELECT meta FROM tk WHERE id=?", new String[]{id})) {
+                return c.moveToFirst() ? new JSONObject(c.getString(0)) : null;
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        synchronized List<JSONObject> rowsOf(String task) {
+            List<JSONObject> out = new ArrayList<>();
+            try (Cursor c = getReadableDatabase().rawQuery("SELECT * FROM t WHERE task=? ORDER BY id", new String[]{task})) {
+                while (c.moveToNext()) out.add(toJson(c));
+            }
+            return out;
+        }
+
+        synchronized List<String> recentTasks(int max) {
+            List<String> out = new ArrayList<>();
+            try (Cursor c = getReadableDatabase().rawQuery("SELECT id FROM tk ORDER BY started DESC LIMIT " + max, null)) {
+                while (c.moveToNext()) out.add(c.getString(0));
+            }
+            return out;
         }
 
         /** What the page lists: everything not finished, plus what finished in the last two minutes. */

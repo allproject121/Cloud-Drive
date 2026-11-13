@@ -390,22 +390,29 @@
   }
 
   // ---- the PC looking at this phone: this phone decides ----
-  const peer = { pc: '', name: '', scope: 'shared' };
+  const peer = { pc: '', name: '', scope: 'shared', write: true };
   function showPeerAsk(ev) {
     peer.pc = ev.pc || currentDeviceId();
     peer.name = ev.name || link.pcName || 'Your PC';
     peer.scope = 'shared';
+    // Both ways, like the phone's own PC suite: it may also add files and folders (untick to only let it look).
+    peer.write = true;
     setText('peer-title', peer.name + ' wants to see this phone\'s files');
     renderPeerScope();
     openSheet('peer-sheet');
   }
   function renderPeerScope() {
     document.querySelectorAll('[data-act="peer-scope"]').forEach(b => b.classList.toggle('on', b.dataset.s === peer.scope));
+    const w = $('peer-write');
+    if (w) w.checked = peer.write;
   }
   function peerAnswer(minutes) {
     closeSheet('peer-sheet');
     if (minutes < 0) { toast('Not allowed'); return; }
-    try { native.peerGrant(peer.pc, peer.scope, minutes); } catch (e) { return; }
+    try {
+      if (typeof native.peerGrantWrite === 'function') native.peerGrantWrite(peer.pc, peer.scope, minutes, !!peer.write);
+      else native.peerGrant(peer.pc, peer.scope, minutes);
+    } catch (e) { return; }
     toast(peer.name + ' may see ' + (peer.scope === 'all' ? 'this phone\'s storage' : 'photos, downloads and documents') + (minutes ? ' for an hour' : ''));
   }
 
@@ -419,20 +426,76 @@
     toast(r.ok ? 'Sent to ' + (link.pcName || 'the PC') + '\'s clipboard' : apiError(r, 'Could not send the clipboard'));
   }
 
-  /** Profile → Permissions: what this phone may do on the PC in use, with "Ask" for the rest. */
-  async function openPermissions() {
-    if (!pcHas('access')) { openSettings(); return; }
-    if (link.state !== 'online') { toast('Needs ' + (link.pcName || 'the PC') + ' · it is offline'); return; }
-    const r = await api('/api/access/mine', { noAsk: true });
-    if (!r.ok || !r.data) { toast(apiError(r, 'Could not load the permissions')); return; }
+  /*
+   * More → Permissions: every permission in one place.
+   *   1. what this phone may do on the PC in use (someone at the PC decides; "Ask" for the rest),
+   *   2. what that PC may do on this phone (this phone decides),
+   *   3. what Android lets this app do (files, notifications, running in the background).
+   */
+  let permAccess = null;      // the PC's answer (/api/access/mine) and which PC gave it
+  function permGroup(title, body, note) {
+    return `<div class="perm-group"><div class="perm-group-title">${esc(title)}</div>${body}${note ? `<div class="perm-group-note">${esc(note)}</div>` : ''}</div>`;
+  }
+  function permLine(name, sub, on, button) {
+    return `<div class="perm-row ${on ? 'on' : ''}">
+        <div class="perm-row-text"><div>${esc(name)}</div><div class="perm-row-sub">${esc(sub)}</div></div>
+        ${button || (on ? '<span class="settings-pill on">On</span>' : '')}
+      </div>`;
+  }
+  /** What Android lets this app do: {files: all|media|none, notifications, background}. */
+  function androidPerms() {
+    let st = {};
+    try { if (typeof native.permState === 'function') st = JSON.parse(native.permState() || '{}'); } catch (e) { }
+    if (!st.files) { try { st.files = native.getStorageAccess(); } catch (e) { st.files = 'none'; } }
+    return st;
+  }
+  function androidPermRows() {
+    const st = androidPerms();
+    const allow = (k) => `<button class="m3-tonal-btn" data-act="perm-android" data-k="${k}">Allow</button>`;
+    let rows = permLine('All files access', 'Shows every folder, documents and APKs', st.files === 'all', st.files === 'all' ? '' : allow('files'));
+    rows += permLine('Photos, videos and audio', 'For the Phone tab and camera backup', st.files !== 'none', st.files !== 'none' ? '' : allow('media'));
+    if ('notifications' in st) rows += permLine('Notifications', 'Transfer progress, and questions from the PC', !!st.notifications, st.notifications ? '' : allow('notifications'));
+    if ('background' in st) rows += permLine('Run in the background', 'Keeps the link to the PC while the screen is off', !!st.background, st.background ? '' : allow('background'));
+    if (typeof native.openAppSettings === 'function') {
+      rows += `<div class="perm-row perm-row-link" data-act="perm-android" data-k="settings" role="button" tabindex="0">
+        <div class="perm-row-text"><div>Open this app in Android Settings</div><div class="perm-row-sub">Every Android permission of Cloud-SSD</div></div>${SVG.chevron}</div>`;
+    }
+    return rows;
+  }
+  function renderPermissions() {
     const now = Date.now();
-    setText('perm-sub', 'What this phone may do on ' + (link.pcName || 'the PC'));
-    $('perm-list').innerHTML = (r.data.categories || []).map(c => `
-      <div class="perm-row ${c.allowed && c.switchOn ? 'on' : ''}">
-        <div class="perm-row-text"><div>${esc(DATA ? DATA.accessName(c.category) : c.name)}</div><div class="perm-row-sub">${esc(DATA ? DATA.grantText(c, now) : '')}</div></div>
-        ${!c.allowed && c.switchOn ? `<button class="m3-tonal-btn" data-act="perm-ask" data-c="${esc(c.category)}">Ask</button>` : ''}
-      </div>`).join('') + peerRow();
+    let html = '';
+    // 1. This phone on the PC.
+    let onPc;
+    if (link.state !== 'online') {
+      onPc = `<div class="perm-empty">${link.pcName ? 'The PC is not reachable right now. Its permissions show when it is back.' : 'No PC paired yet'}</div>`;
+    } else if (permAccess && permAccess.pc === currentDeviceId() && Array.isArray(permAccess.categories)) {
+      onPc = permAccess.categories.map(c => permLine(DATA ? DATA.accessName(c.category) : c.name, DATA ? DATA.grantText(c, now) : '', c.allowed && c.switchOn,
+        !c.allowed && c.switchOn ? `<button class="m3-tonal-btn" data-act="perm-ask" data-c="${esc(c.category)}">Ask</button>` : '')).join('');
+    } else {
+      // An older PC (no "Ask"), or its answer is on the way: the switches it sent with its status.
+      const perms = link.status && link.status.permissions;
+      onPc = perms ? PERMS.filter(([k]) => k in perms).map(([k, l]) => permLine(l, perms[k] ? 'Allowed' : 'Switched off on the PC', !!perms[k], perms[k] ? '' : '<span class="settings-pill off">Off</span>')).join('')
+        : '<div class="perm-empty">Loading…</div>';
+    }
+    html += permGroup('What this phone may do on the PC', onPc, 'Someone at the PC decides; it can take them back any time.');
+    // 2. The PC on this phone.
+    const peer = peerRow();
+    // Its other switches (this phone's numbers on the PC, removing things, ringing it) are one tap further.
+    const more = isApp ? `<div class="perm-row perm-row-link" data-act="open-settings-group" data-group="pcmay" role="button" tabindex="0">
+        <div class="perm-row-text"><div>More the PC may do</div><div class="perm-row-sub">Phone storage and RAM numbers, removing things, ringing this phone</div></div>${SVG.chevron}</div>` : '';
+    if (peer || more) html += permGroup('What the PC may do on this phone', peer + more, 'You decide this here, and can stop it any time.');
+    // 3. Android.
+    if (isApp) html += permGroup('Android permissions', androidPermRows(), '');
+    setText('perm-sub', link.pcName ? 'This phone and ' + link.pcName : 'This phone');
+    $('perm-list').innerHTML = html;
+  }
+  async function openPermissions() {
+    renderPermissions();
     openSheet('perm-sheet');
+    if (link.state !== 'online' || !pcHas('access')) return;
+    const r = await api('/api/access/mine', { noAsk: true });
+    if (r.ok && r.data) { permAccess = Object.assign({ pc: currentDeviceId() }, r.data); if (isOpen('perm-sheet')) renderPermissions(); }
   }
 
   /** The other direction, in the same sheet: what the PC may see on this phone (this phone decides). */
@@ -543,6 +606,8 @@
     const direct = Array.isArray(st.addresses) ? st.addresses.map(a => String(a.url || '')).filter(u => /^http:\/\//.test(u)) : [];
     if (JSON.stringify(direct) !== JSON.stringify(link.direct)) { link.direct = direct; ls.set('cloudssd_direct_urls', JSON.stringify(direct)); }
     link.kind = st.link || '';
+    // Tasks made on the phone say how it reaches the PC, and which PC.
+    if (isApp && DATA && typeof native.setLinkInfo === 'function') { try { native.setLinkInfo(DATA.taskLink(link.route, link.kind), link.pcName || ''); } catch (e) { } }
     // Files offered to this phone: the sheet comes up when there are new ones.
     if (typeof st.inbox === 'number') {
       if (st.inbox > (inbox.seen || 0)) refreshInbox(true);
@@ -952,7 +1017,7 @@
 
   // ------------------------------------------------------------------ sheets
   const SHEETS = ['connection-modal', 'file-actions-sheet', 'file-viewer-modal', 'ram-breakdown-modal', 'storage-modal', 'cloud-modal',
-    'drives-manager-modal', 'transfers-modal', 'sort-sheet', 'confirm-modal', 'settings-modal', 'details-sheet', 'choice-sheet'];
+    'drives-manager-modal', 'transfers-modal', 'history-sheet', 'sort-sheet', 'confirm-modal', 'settings-modal', 'details-sheet', 'choice-sheet'];
   const openSheets = [];
   function openSheet(id) {
     const el = $(id);
@@ -1409,8 +1474,23 @@
     if (isApp && typeof native.retryTransfer === 'function') { try { native.retryTransfer(id); } catch (e) { toast('Could not retry'); } }
     else toast('Send the file again');
   }
+  // ------------------------------------------------------------------ transfers as tasks (shown by transfers.js)
+  /** The transfers as tasks (an offer, a folder, a batch), newest first; the native side sends each change. */
+  let transferTasks = [];
+  function showTasks() { if (window.CSSD_renderTasks) { try { window.CSSD_renderTasks(transferTasks); } catch (e) { } } }
+  function onTask(t) {
+    transferTasks = DATA ? DATA.upsertTask(transferTasks, t) : [t].concat(transferTasks.filter(x => x.id !== t.id));
+    showTasks();
+  }
+  /** The tasks so far (the page just opened, or came back). */
+  function relistTasks() {
+    if (!isApp || typeof native.tasks !== 'function') return;
+    try { transferTasks = JSON.parse(native.tasks()) || []; } catch (e) { transferTasks = []; }
+    showTasks();
+  }
   /** Transfers the app kept going in the background (or that stopped while it was closed). */
   function relistTransfers() {
+    relistTasks();
     if (!isApp || typeof native.listTransfers !== 'function') return;
     try { JSON.parse(native.listTransfers()).forEach(t => { if (!transfers.has(t.id) || transfers.get(t.id).state !== t.state) onTransfer(t); }); } catch (e) { }
   }
@@ -1654,7 +1734,17 @@
     const files = o.items.map(it => ({ url: apiUrl('/api/share/file', { id: o.id, item: it.id }), name: it.name, size: it.size,
       folder: DATA ? DATA.shareSavePath(base, it.folder, renames) : base }));
     if (isApp && typeof native.receiveFiles === 'function') {
-      native.receiveFiles(JSON.stringify({ folder: base, files }));
+      // One task for the whole offer: who sent it, how it comes, where it is saved.
+      const tops = DATA ? DATA.offerSummary(o.items).folders : [];
+      const top = tops.length === 1 && o.items.every(it => String(it.folder || '').split('/')[0] === tops[0]) ? (renames[tops[0]] || tops[0]) : '';
+      const where = base + (top ? '/' + top : '');
+      const task = {
+        id: 'of-' + o.id, dir: o.fromPc ? 'toPhone' : 'fromDevice', device: o.from || link.pcName || 'PC',
+        link: o.fromPc ? (DATA ? DATA.taskLink(link.route, link.kind) : 'wifi') : 'relay',
+        kind: top ? 'folder' : 'files', folder: top, files: String(o.items.length), bytes: String(o.total || 0),
+        saveTo: 'Downloads › ' + where.split('/').join(' › '), openPath: 'Download/' + where
+      };
+      native.receiveFiles(JSON.stringify({ folder: base, files, task }));
     } else {
       files.forEach(f => { const a = document.createElement('a'); a.href = f.url; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); });
     }
@@ -1685,10 +1775,56 @@
         const o = await api('/api/share/offer', { method: 'POST', params: { to: d.id, items: JSON.stringify(items) } });
         if (!o.ok || !o.data || !o.data.offer) { toast(apiError(o, 'Could not send')); return; }
         const offer = o.data.offer;
+        if (typeof native.nextTask === 'function') native.nextTask(JSON.stringify({ device: d.name, saveTo: d.name }));
         native.sendToDevice(JSON.stringify({ offer: offer.id, items: offer.items.map((it, i) => ({ id: it.id, path: files[i].path })) }));
         toast(`Sending ${files.length === 1 ? files[0].name : files.length + ' files'} to ${d.name}`);
       }
     })));
+  }
+
+  // ------------------------------------------------------------------ sending chosen folders and files (Phone tab)
+  /**
+   * Folders and files chosen in the Phone tab go in one go: the phone walks the folders itself (no picker), keeps
+   * their tree and leaves out build output; to the PC (each folder gets a free name there) or to another device.
+   */
+  async function sendPaths(paths) {
+    let p;
+    try { p = JSON.parse(native.preparePaths(JSON.stringify({ paths }))); } catch (e) { p = { error: String(e) }; }
+    if (p.error) { toast('Could not send: ' + p.error); return; }
+    if (!p.count) { toast('Nothing to send'); return; }
+    const pcName = link.pcName || 'the PC';
+    if (link.state !== 'online') { toast('Needs ' + pcName + ' · it is offline'); return; }
+    const what = (p.folders.length ? p.folders.length + (p.folders.length === 1 ? ' folder' : ' folders') + ' · ' : '')
+      + p.count + (p.count === 1 ? ' file' : ' files') + ' · ' + fmtBytes(p.bytes);
+    const choices = [{
+      icon: SVG.pc, title: pcName, sub: 'Into its From phone folder',
+      fn: async () => {
+        const renames = {};
+        for (const top of p.folders) {
+          const r = await api('/api/upload/folder', { params: { name: top } });
+          if (!r.ok || !r.data || !r.data.name) { toast(apiError(r, 'Could not send')); return; }
+          renames[top] = r.data.name;
+        }
+        native.sendPreparedToPc(JSON.stringify(renames));
+        toast('Sending ' + what + ' to ' + pcName);
+      }
+    }];
+    if (pcHas('share')) {
+      const r = await api('/api/share/devices').catch(() => null);
+      if (r && r.ok && r.data && r.data.allowed) (r.data.devices || []).filter(d => d.canReceive).forEach(d => choices.push({
+        icon: d.kind === 'laptop' || d.kind === 'desktop' ? SVG.pc : (SVG.phone || SVG.share), title: d.name,
+        sub: (d.online ? 'Online now' : 'Gets it when it is back (within a day)') + ' · through ' + pcName,
+        fn: async () => {
+          const o = await api('/api/share/offer', { method: 'POST', params: { to: d.id }, body: JSON.stringify(p.items), timeout: 30000 });
+          if (!o.ok || !o.data || !o.data.offer) { toast(apiError(o, 'Could not send')); return; }
+          if (typeof native.nextTask === 'function') native.nextTask(JSON.stringify({ device: d.name, saveTo: d.name }));
+          native.sendFolderToDevice(o.data.offer.id, JSON.stringify(o.data.offer.items.map(it => it.id)));
+          toast('Sending ' + what + ' to ' + d.name);
+        }
+      }));
+    }
+    if (p.skipped && p.skipped.folders && p.skipped.folders.length) toast('Build output left out: ' + p.skipped.folders.slice(0, 4).join(', '));
+    choiceSheet('Send to', choices);
   }
 
   // ------------------------------------------------------------------ sending a folder (a project…)
@@ -1726,6 +1862,7 @@
           // The list goes in the body: thousands of names do not fit in an address.
           const o = await api('/api/share/offer', { method: 'POST', params: { to: d.id }, body: JSON.stringify(p.items), timeout: 30000 });
           if (!o.ok || !o.data || !o.data.offer) { toast(apiError(o, 'Could not send')); return; }
+          if (typeof native.nextTask === 'function') native.nextTask(JSON.stringify({ device: d.name, saveTo: d.name }));
           native.sendFolderToDevice(o.data.offer.id, JSON.stringify(o.data.offer.items.map(it => it.id)));
           toast('Sending ' + what + ' to ' + d.name);
         }
@@ -1759,6 +1896,7 @@
           const items = files.map(f => ({ name: f.name, size: f.size > 0 ? f.size : 0 }));
           const o = await api('/api/share/offer', { method: 'POST', params: { to: d.id, items: JSON.stringify(items) } });
           if (!o.ok || !o.data || !o.data.offer) { toast(apiError(o, 'Could not send')); return; }
+          if (typeof native.nextTask === 'function') native.nextTask(JSON.stringify({ device: d.name, saveTo: d.name }));
           native.shareInToDevice(o.data.offer.id, JSON.stringify(o.data.offer.items.map(it => it.id)));
           toast(`Sending ${label} to ${d.name}`);
         }
@@ -2294,8 +2432,10 @@
     box.className = grid ? 'thumb-grid' : 'phone-file-list';
     let html = '';
     folders.forEach((fo, i) => {
-      html += `<div class="phone-item-row" data-act="phone-folder" data-i="${i}">
-        <div class="phone-item-icon folder">${SVG.folder}</div>
+      // In select mode a folder can be chosen too: it goes whole, with everything in it.
+      const fsel = phone.selected.has('d' + i);
+      html += `<div class="phone-item-row ${fsel ? 'selected' : ''}" data-act="phone-folder" data-i="${i}">
+        <div class="phone-item-icon folder">${SVG.folder}<div class="row-check">${SVG.check}</div></div>
         <div class="phone-item-info">
           <div class="phone-item-name">${esc(fo.name)}</div>
           <div class="phone-item-meta">${fo.itemCount != null ? fo.itemCount + (fo.itemCount === 1 ? ' item' : ' items') : 'Folder'}</div>
@@ -2328,7 +2468,7 @@
     });
     if (d.truncated) html += '<div class="list-note">Showing the newest files only.</div>';
     box.innerHTML = html;
-    show('phone-select-btn', files.some(f => f.src === 'phone'));
+    show('phone-select-btn', files.some(f => f.src === 'phone') || (folders.length > 0 && phone.view && phone.view.type === 'dir'));
   }
   function renderSelectBar() {
     show('phone-select-bar', phone.selecting);
@@ -2343,7 +2483,8 @@
     path: '', root: '', cache: new Map(lists ? [] : Object.entries(ls.json('cloudssd_dircache', {}))), view: { folders: [], files: [] },
     level: 'devices',   // 'devices': the list of saved PCs (the tab starts here) · 'device': inside the active one
     seq: 0, grid: ls.get('cloudssd_layout') === 'grid', sort: ls.get('cloudssd_sort') || 'name-asc', localDrives: [], showAll: false,
-    selecting: false, selected: new Set(), suppressClick: 0
+    selecting: false, selected: new Set(), suppressClick: 0,
+    kind: ''            // a kind of file shown from the open folder and the folders inside it ('' = the folder itself)
   };
   const SORTS = [
     { key: 'name-asc', label: 'Name (A to Z)' }, { key: 'name-desc', label: 'Name (Z to A)' },
@@ -2378,6 +2519,40 @@
         ${pl.cloud ? SVG.cloud : pl.label === 'From phone' ? SVG.upload : SVG.pc}<span>${esc(pl.label)}${pl.mounted ? '' : ' · off'}</span>
       </button>`).join('');
     if (strip.dataset.html !== html) { strip.innerHTML = html; strip.dataset.html = html; }
+    renderSsdKinds();
+  }
+  // ---- kinds of file: photos, videos… of the folder that is open (the PC looks in the folders inside it too) ----
+  const SSD_KINDS = [['', 'All'], ['images', 'Photos'], ['videos', 'Videos'], ['audio', 'Audio'], ['documents', 'Documents'], ['apps', 'Apps and archives']];
+  function renderSsdKinds() {
+    const strip = $('ssd-kinds-strip');
+    if (!strip) return;
+    // Only a folder of a PC that is reachable now: Google Drive without the PC has no such search.
+    const can = !!ssd.path && link.state === 'online' && cloudSource() !== 'drive';
+    strip.style.display = can ? '' : 'none';
+    if (!can) return;
+    const html = SSD_KINDS.map(([k, name]) => `<button class="transfer-chip ssd-kind-chip ${ssd.kind === k ? 'active' : ''}" data-act="ssd-kind" data-kind="${k}">${name}</button>`).join('');
+    if (strip.dataset.html !== html) { strip.innerHTML = html; strip.dataset.html = html; }
+  }
+  async function loadSsdKind(kind) {
+    if (!ssd.path) return;
+    if (!kind) { loadSsd(ssd.path, true); return; }
+    endSsdSelect();
+    ssd.kind = kind;
+    renderSsdKinds();
+    const box = $('ssd-items-container');
+    const seq = ++ssd.seq;
+    box.className = 'ssd-items-container list-view';
+    box.innerHTML = skeleton(8);
+    try {
+      const r = await api('/api/files', { params: { path: ssd.path, category: kind }, timeout: 60000 });
+      if (seq !== ssd.seq) return;
+      const files = r.ok && r.data ? r.data.files || [] : null;
+      if (!files) box.innerHTML = emptyBlock(SVG.folder, apiError(r, 'Could not open this folder'), ssd.path, 'Try again', 'ssd-refresh');
+      else if (!files.length) box.innerHTML = emptyBlock(SVG.folder, 'No files of this kind here', 'Looked in this folder and the folders inside it.');
+      else renderSsd({ folders: [], files });
+    } catch (e) {
+      if (seq === ssd.seq) box.innerHTML = emptyBlock(SVG.pc, 'PC did not answer', 'The folder could not be loaded. Check the Wi-Fi and try again.', 'Try again', 'ssd-refresh');
+    }
   }
   async function loadDriveRoots() {
     const r = await cloudOp('roots', {});
@@ -2631,6 +2806,64 @@
       </div>`).join('');
   }
   function openProfile() { renderProfileMenu(); openSheet('profile-menu'); }
+
+  // ---- the More tab: sections like a phone's Settings — a section opens its page, or a list of rows that open theirs ----
+  function moreSections() {
+    const n = devicesList().length;
+    const state = ({ online: 'connected', offline: 'not reachable', paused: 'disconnected', unpaired: 'not paired', init: 'connecting…' })[link.state] || '';
+    const lookName = (LOOK_CARDS.find(l => l[0] === lookMode()) || LOOK_CARDS[0])[1];
+    const backup = isApp && typeof native.setBackupOptions === 'function' && typeof actions['backup-settings'] === 'function';
+    return [
+      {
+        key: 'devices', icon: SVG.devices, title: 'Devices and connection', sub: link.pcName ? `${link.pcName} · ${state}` : 'No PC paired yet',
+        rows: () => [
+          { icon: SVG.devices, title: 'Device list', sub: n ? `${n} ${n === 1 ? 'PC' : 'PCs and laptops'} paired with this phone` : 'No PC paired yet', fn: () => { closeSheet('more-sheet'); switchTab('ssd'); } },
+          { icon: SVG.add, title: 'Add device', sub: 'Pair another PC or laptop with its 6-digit code', fn: () => { closeSheet('more-sheet'); pair.purpose = 'add'; showPair(''); } },
+          { icon: SVG.wifi, title: 'Connection', sub: link.pcName ? `${link.pcName} · ${state}` : 'Address, Tailscale, find your PC', fn: () => { renderLink(); openSheet('connection-modal'); } },
+          { icon: SVG.cloud, title: 'Away from home', sub: 'Reach the PC on mobile data with Tailscale', fn: () => openSettings('away') },
+          { icon: SVG.person, title: 'Phones paired with the PC', sub: 'See them, or remove this phone from the PC', fn: () => openSettings('paired') }
+        ]
+      },
+      { key: 'perms', icon: SVG.lock, title: 'Permissions', sub: 'This phone on the PC, the PC on this phone, Android', fn: () => openPermissions() },
+      {
+        key: 'files', icon: SVG.share, title: 'Files and sharing', sub: inbox.offers.length ? `${inbox.offers.length} waiting for you` : 'Transfers, received files, offline files',
+        rows: () => [
+          { icon: SVG.upload, title: 'Transfers', sub: 'What is moving now and what finished today', fn: () => actions['open-transfers']() },
+          { icon: SVG.download, title: 'Files to receive', sub: inbox.offers.length ? `${inbox.offers.length} waiting for you` : 'Nothing is waiting', fn: () => { renderInbox(); openSheet('inbox-sheet'); } },
+          { icon: SVG.info, title: 'Transfer history', sub: 'Everything sent and received before', fn: () => actions['open-history']() },
+          { icon: SVG.pin, title: 'Offline files', sub: !canKeep() ? 'In the Cloud-SSD app' : kept.pins.length ? `${kept.pins.length} kept on this phone · ${fmtBytes(kept.used)}` : 'Keep folders on this phone to open them without the PC', fn: openOfflineSheet },
+          ...(backup ? [{ icon: SVG.cloud, title: 'Camera backup', sub: 'Which folders go to the cloud drive, and when', fn: () => actions['backup-settings']() }] : []),
+          ...(isApp && pcHas('clip') ? [{ icon: SVG.share, title: 'Send clipboard to PC', sub: 'The text you copied goes to ' + (link.pcName || 'the PC') + '\'s clipboard', fn: () => sendClipboard() }] : [])
+        ]
+      },
+      { key: 'look', icon: SVG.image, title: 'Look and language', sub: lookName + (I18N ? ' · ' + (I18N.LANGS[I18N.lang()] || '') : ''), plain: true, fn: () => openCustomize() },
+      { key: 'settings', icon: SVG.settings, title: 'Settings', sub: 'Space saver, app lock, Google Drive, about', fn: () => openSettings() }
+    ];
+  }
+  function moreRow(a, act, i) {
+    // A row's second line that is only names (the look, the language) is not translated.
+    return `<button class="more-row" data-act="${act}" data-i="${i}">
+        <span class="more-row-icon">${a.icon}</span>
+        <span class="more-row-text"><span class="more-row-title">${esc(a.title)}</span><span class="more-row-sub"${a.plain ? ' data-no-i18n' : ''}>${esc(a.plain && I18N ? a.sub.split(' · ').map(x => I18N.t(x)).join(' · ') : a.sub)}</span></span>
+        <span class="more-row-go">${SVG.chevron}</span>
+      </button>`;
+  }
+  let moreOpen = '';      // the section whose page is open
+  function renderMoreSheet() {
+    const sec = moreSections().find(x => x.key === moreOpen);
+    if (!sec || !sec.rows) return;
+    setText('more-sheet-title', sec.title);
+    $('more-sheet-list').innerHTML = sec.rows().map((a, i) => moreRow(a, 'more-item', i)).join('');
+  }
+  function renderMore() {
+    const name = meName();
+    setText('more-me-avatar', (name[0] || '?').toUpperCase());
+    setText('more-me-name', name);
+    setText('more-me-sub', isApp ? `This phone · Android ${appInfo.android || ''}` : 'This browser');
+    const list = $('more-list');
+    if (list) list.innerHTML = moreSections().map((a, i) => moreRow(a, 'more-open', i)).join('');
+    if (isOpen('more-sheet')) renderMoreSheet();
+  }
   /** This phone's name, as the PCs it pairs with from now on will show it. */
   async function editMe() {
     if (!window.CloudSsdFs || !window.CloudSsdFs.ask) return;
@@ -2639,6 +2872,7 @@
     const name = v.trim().slice(0, 60);
     if (isApp) { try { native.setMeName(name); } catch (e) { } refreshAppInfo(); } else if (name) ls.set('cloudssd_me_name', name); else ls.del('cloudssd_me_name');
     renderProfileMenu();
+    renderMore();
     renderLink();
     toast(name ? 'This phone is now called ' + name + ' (shown on PCs it pairs with from now on)' : 'Name reset');
   }
@@ -2717,6 +2951,7 @@
   async function loadSsd(path, force) {
     if (ssd.path !== path) endSsdSelect();
     ssd.path = path;
+    ssd.kind = '';
     ssd.showAll = false;
     renderCrumbs();
     if (isCloudId(path) && cloudSource() === 'drive') { loadDriveFolder(path); return; }
@@ -3308,13 +3543,30 @@
   ];
   /** Settings, scrolled to Find my phone (from the "listening for your PC" note: switching it off is there). */
   function openFindMyPhone() {
-    openSettings();
+    openSettings('pcmay');
     setTimeout(() => {
       const el = document.querySelector('[data-act="find-my-phone"]');
       if (el) el.closest('.settings-section').scrollIntoView({ block: 'center' });
     }, 700);
   }
-  async function openSettings() {
+  /*
+   * The settings are shown in parts, each opened from the section of More it belongs to:
+   *   app    — Settings: space saver, synced folders, app lock, Google Drive, about
+   *   paired — Devices and connection → Phones paired with the PC
+   *   away   — Devices and connection → Away from home (Tailscale)
+   *   pcmay  — Permissions → More the PC may do (its numbers, removing things, ringing this phone)
+   * "-" is not shown here at all: it has its own page (Look and language, Permissions).
+   */
+  const SETTINGS_GROUP = {
+    'Customize': '-', 'What this phone may do': '-',
+    'Paired phones': 'paired',
+    'Away from home': 'away', 'Tailscale on this phone': 'away',
+    'This phone on the PC': 'pcmay', 'Find my phone': 'pcmay'
+  };
+  const SETTINGS_TITLE = { app: 'Settings', paired: 'Phones paired with the PC', away: 'Away from home', pcmay: 'More the PC may do' };
+  let settingsGroup = 'app';
+  async function openSettings(group) {
+    settingsGroup = typeof group === 'string' && SETTINGS_TITLE[group] ? group : 'app';
     closeSheet('connection-modal');
     refreshDrive();
     renderSettings();
@@ -3326,27 +3578,24 @@
       } catch (e) { /* the parts known from the status stay */ }
     }
   }
-  function settingsSection(title, body) { return `<div class="settings-section"><div class="sheet-subtitle">${esc(title)}</div>${body}</div>`; }
+  function settingsSection(title, body) { return `<div class="settings-section" data-group="${SETTINGS_GROUP[title] || 'app'}"><div class="sheet-subtitle">${esc(title)}</div>${body}</div>`; }
   function settingsRow(label, value, extra) {
     return `<div class="settings-row"><div class="settings-row-text"><div>${esc(label)}</div>${extra ? `<div class="settings-row-sub">${esc(extra)}</div>` : ''}</div><div class="settings-row-val">${value}</div></div>`;
   }
   function onOff(on) { return `<span class="settings-pill ${on ? 'on' : 'off'}">${on ? 'On' : 'Off'}</span>`; }
-  function renderSettings() {
-    const s = settingsData && link.state === 'online' ? settingsData : null;
-    const st = link.status || {};
-    const online = link.state === 'online';
-    setText('settings-sub', online ? (link.pcName || 'PC') + (link.route === 'tailnet' ? ' · via Tailscale' : ' · home Wi-Fi') : 'This phone');
+  /** The app's looks: [saved key, name, what it is like]. The keys (ac, saaf, raat) are what is saved; only the names people see changed. */
+  const LOOK_CARDS = [
+    ['ac', 'Ocean', 'One calm blue, curved band'],
+    ['saaf', 'Colourful', 'Light page, colourful icons'],
+    ['raat', 'Midnight', 'Dark navy with teal'],
+    ['auto', 'Like the phone', 'Ocean by day, Midnight at night']
+  ];
+  /** Settings → Customize: everything about how the app looks, on one page. */
+  function renderCustomize() {
     let html = '';
-
     // The app's look: a card each with a small picture of its colours.
     const look = lookMode();
-    html += settingsSection('App look', `<div class="look-picker">${[
-      // The keys (ac, saaf, raat) are what is saved; only the names people see changed.
-      ['ac', 'Ocean', 'One calm blue, curved band'],
-      ['saaf', 'Colourful', 'Light page, colourful icons'],
-      ['raat', 'Midnight', 'Dark navy with teal'],
-      ['auto', 'Like the phone', 'Ocean by day, Midnight at night']
-    ].map(([k, name, sub]) => `<button class="look-card ${look === k ? 'active' : ''}" data-act="look" data-look="${k}" aria-pressed="${look === k}">
+    html += settingsSection('App look', `<div class="look-picker">${LOOK_CARDS.map(([k, name, sub]) => `<button class="look-card ${look === k ? 'active' : ''}" data-act="look" data-look="${k}" aria-pressed="${look === k}">
         <span class="look-swatch look-swatch-${k}" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="look-name">${name}</span><span class="look-sub">${sub}</span></button>`).join('')}</div>`);
     // The app's words: English, Hinglish or Hindi (i18n.js); the names stay as they are written.
@@ -3354,6 +3603,22 @@
       html += settingsSection('Language', `<div class="transfer-chips-row settings-chips" data-no-i18n>${Object.keys(I18N.LANGS).map(k =>
         `<button class="transfer-chip ${I18N.lang() === k ? 'active' : ''}" data-act="lang" data-lang="${k}">${I18N.LANGS[k]}</button>`).join('')}</div>`);
     }
+    $('customize-body').innerHTML = html;
+  }
+  function openCustomize() { renderCustomize(); openSheet('customize-modal'); }
+  function renderSettings() {
+    const s = settingsData && link.state === 'online' ? settingsData : null;
+    const st = link.status || {};
+    const online = link.state === 'online';
+    setText('settings-sub', online ? (link.pcName || 'PC') + (link.route === 'tailnet' ? ' · via Tailscale' : ' · home Wi-Fi') : 'This phone');
+    let html = '';
+
+    // How the app looks (look and language) is on its own page: one row here says what is chosen and opens it.
+    // "Like the phone" also says which look it is right now (Midnight at night, Ocean by day).
+    const lookName = (LOOK_CARDS.find(l => l[0] === lookMode()) || LOOK_CARDS[0])[1] + (lookMode() === 'auto' ? ' · ' + (phoneIsDark() ? 'Midnight' : 'Ocean') : '');
+    html += settingsSection('Customize', `<div class="settings-row" data-act="open-customize" role="button" tabindex="0">
+        <div class="settings-row-text"><div>Look and language</div><div class="settings-row-sub">${esc(lookName)}${I18N ? ' · ' + esc(I18N.LANGS[I18N.lang()] || '') : ''}</div></div>
+        <div class="settings-row-val" aria-hidden="true">›</div></div>`);
 
     if (online) {
       const p = (s && s.permissions) || st.permissions;
@@ -3462,7 +3727,13 @@
     html += settingsSection('About', settingsRow('Phone app', esc(isApp ? (appInfo.version || '—') : 'Browser')) +
       settingsRow('Cloud-SSD on the PC', esc(st.version || (s && s.version) || '—')) +
       (s ? settingsRow('This phone\'s key', esc(s.auth === 'legacy' ? 'Old shared key' : 'Its own key')) : ''));
-    $('settings-body').innerHTML = html;
+    // Only the part that was asked for; a part with nothing in it (the PC is away) says so.
+    setText('settings-title', SETTINGS_TITLE[settingsGroup]);
+    const body = $('settings-body');
+    body.innerHTML = html + '<div class="perm-empty settings-none" hidden>Nothing to show here while the PC is not reachable.</div>';
+    let shown = 0;
+    body.querySelectorAll('.settings-section').forEach(el => { el.hidden = el.dataset.group !== settingsGroup; if (!el.hidden) shown++; });
+    body.querySelector('.settings-none').hidden = shown > 0;
   }
   async function saveOffload() {
     const params = { enabled: $('set-offload-on').checked ? 'true' : 'false' };
@@ -3473,7 +3744,7 @@
     try {
       const r = await api('/api/storage/offload-config', { method: 'POST', params, timeout: 15000 });
       toast(r.ok ? 'Space saver updated on the PC' : apiError(r));
-      if (r.ok) { pollStatus(); openSettings(); }
+      if (r.ok) { pollStatus(); openSettings(settingsGroup); }
     } catch (e) { toast('PC did not answer'); }
   }
 
@@ -3619,6 +3890,7 @@
     else if (tab === 'browser') openPhoneTab();
     else if (tab === 'ssd') openSsdTab();
     else if (tab === 'gaming') { pollHud(); loadSaves(); }
+    else if (tab === 'more') renderMore();
     renderTransfers();
   }
   function openPhoneTab() {
@@ -3643,7 +3915,29 @@
     'device-wake': (el) => wakeDevice(el.dataset.id),
     'device-add': () => { closeSheet('profile-menu'); pair.purpose = 'add'; showPair(''); },
     'ssd-devices': () => showDevices(),
-    'open-profile': () => openProfile(),
+    // The round picture at the top right, and "More" in the bottom bar: the More tab.
+    'open-profile': () => switchTab('more'),
+    'more-open': (el) => {
+      const sec = moreSections()[+el.dataset.i];
+      if (!sec) return;
+      if (sec.rows) { moreOpen = sec.key; renderMoreSheet(); openSheet('more-sheet'); } else sec.fn();
+    },
+    'more-item': (el) => {
+      const sec = moreSections().find(x => x.key === moreOpen);
+      const it = sec && sec.rows()[+el.dataset.i];
+      if (it && it.fn) it.fn();
+    },
+    'perm-android': (el) => {
+      const k = el.dataset.k;
+      try {
+        if (k === 'files') actions['grant-storage']();
+        else if (k === 'background') native.askBatteryExemption();
+        else if (k === 'settings') native.openAppSettings();
+        else native.requestAllPermissions();
+      } catch (e) { }
+    },
+    'ssd-kind': (el) => loadSsdKind(el.dataset.kind || ''),
+    'open-settings-group': (el) => openSettings(el.dataset.group),
     'profile-edit': () => editMe(),
     'profile-item': (el) => { const it = profileItems()[+el.dataset.i]; closeSheet('profile-menu'); if (it && it.fn) it.fn(); },
     'access-ask': () => { if (access.ask) access.ask(); },
@@ -3652,6 +3946,7 @@
     'open-tethering': () => { try { native.openTetherSettings(); } catch (e) { toast('Open Settings → Hotspot & tethering → USB tethering'); } },
     'offline-remove': (el) => { const p = kept.pins[+el.dataset.i]; if (p) unkeep(p); },
     'peer-scope': (el) => { peer.scope = el.dataset.s; renderPeerScope(); },
+    'peer-write': (el) => { peer.write = !!el.checked; },
     'peer-deny': () => peerAnswer(-1),
     'peer-hour': () => peerAnswer(60),
     'peer-always': () => peerAnswer(0),
@@ -3688,18 +3983,21 @@
       onUnpaired();
     },
     'open-settings': () => openSettings(),
+    'open-customize': () => openCustomize(),
     'lang': (el) => {
       if (!I18N) return;
       I18N.setLang(el.dataset.lang);
       // The phone's own notes (ring, requests) follow the same choice.
       if (isApp && typeof native.setLanguage === 'function') { try { native.setLanguage(el.dataset.lang); } catch (e) { } }
       renderSettings();
+      if (isOpen('customize-modal')) renderCustomize();
     },
     'look': (el) => {
       ls.set('cloudssd_look', el.dataset.look);
       ls.del('cloudssd_theme');
       applyTheme();
       renderSettings();
+      if (isOpen('customize-modal')) renderCustomize();
     },
     'settings-offload-save': () => saveOffload(),
     'drive-add': () => { try { native.driveAddAccount(); toast('Opening Google sign-in…'); } catch (e) { toast('Update the Cloud-SSD app'); } },
@@ -3820,6 +4118,7 @@
     'open-cloud': () => { renderCloud(); openSheet('cloud-modal'); loadDrives(); },
     'open-drives': () => { renderDrives(); openSheet('drives-manager-modal'); loadDrives(); },
     'open-transfers': () => { renderHistory(); renderTransfers(); openSheet('transfers-modal'); refreshHistory(); },
+    'open-history': () => { renderHistory(); openSheet('history-sheet'); refreshHistory(); },
     'transfers-kind': (el) => {
       historyKind = el.dataset.kind;
       document.querySelectorAll('#transfers-kind-row .transfer-chip').forEach(c => c.classList.toggle('active', c === el));
@@ -3869,7 +4168,18 @@
       phone.stack = []; phone.view = null; phone.grid = null;
       phoneOpen({ type: 'dir', path: el.dataset.path || '', title: 'Internal storage' });
     },
-    'phone-folder': (el) => { const fo = phone.items.folders[+el.dataset.i]; if (fo) phoneOpen({ type: 'dir', path: fo.path, title: fo.name, titled: true }); },
+    'phone-folder': (el) => {
+      const i = +el.dataset.i, fo = phone.items.folders[i];
+      if (!fo) return;
+      if (phone.selecting) {
+        const k = 'd' + i;
+        if (phone.selected.has(k)) phone.selected.delete(k); else phone.selected.add(k);
+        el.classList.toggle('selected', phone.selected.has(k));
+        renderSelectBar();
+        return;
+      }
+      phoneOpen({ type: 'dir', path: fo.path, title: fo.name, titled: true });
+    },
     'phone-file': (el) => {
       const i = +el.dataset.i, f = phone.items.files[i];
       if (!f) return;
@@ -3886,9 +4196,13 @@
     'phone-select-cancel': () => { phone.selecting = false; phone.selected.clear(); renderSelectBar(); renderPhoneItems({}); },
     'send-folder': () => sendFolderStart(),
     'phone-select-send': () => {
-      const files = Array.from(phone.selected).map(i => phone.items.files[i]).filter(f => f && f.src === 'phone');
-      if (!files.length) { toast('Tap files to select them'); return; }
-      sendPhoneFiles(files);
+      const sel = Array.from(phone.selected);
+      const folders = sel.filter(k => typeof k === 'string' && k[0] === 'd').map(k => phone.items.folders[+k.slice(1)]).filter(Boolean);
+      const files = sel.filter(k => typeof k === 'number').map(i => phone.items.files[i]).filter(f => f && f.src === 'phone');
+      if (!files.length && !folders.length) { toast('Tap files to select them'); return; }
+      // Folders (or a mix): one task, the tree kept, to the PC or another device. Only files: as before.
+      if (folders.length && isApp && typeof native.preparePaths === 'function') sendPaths(folders.map(f => f.path).concat(files.map(f => f.path)));
+      else sendPhoneFiles(files);
       phone.selecting = false; phone.selected.clear(); renderSelectBar(); renderPhoneItems({});
     },
 
@@ -3897,9 +4211,9 @@
     'ssd-up': () => ssdUp(),
     'ssd-refresh': () => {
       if (cloudSource() === 'drive') { if (ssd.path) { ssd.cache.delete(ssd.path); loadSsd(ssd.path, true); } else openSsdTab(); if (link.state !== 'paused') pollStatus(); }
-      else if (link.state !== 'online') pollStatus(); else if (ssd.path) loadSsd(ssd.path, true); else openSsdTab();
+      else if (link.state !== 'online') pollStatus(); else if (ssd.path && ssd.kind) loadSsdKind(ssd.kind); else if (ssd.path) loadSsd(ssd.path, true); else openSsdTab();
     },
-    'ssd-layout': () => { ssd.grid = !ssd.grid; ls.set('cloudssd_layout', ssd.grid ? 'grid' : 'list'); const c = ssd.cache.get(ssd.path); if (c) renderSsd(c); },
+    'ssd-layout': () => { ssd.grid = !ssd.grid; ls.set('cloudssd_layout', ssd.grid ? 'grid' : 'list'); const c = ssd.kind ? { folders: [], files: ssd.view.files } : ssd.cache.get(ssd.path); if (c) renderSsd(c); },
     'ssd-sort': () => {
       $('sort-options').innerHTML = SORTS.map(s => `<div class="m3-sheet-row ${s.key === ssd.sort ? 'chosen' : ''}" data-act="ssd-sort-pick" data-key="${s.key}">${s.key === ssd.sort ? SVG.check : '<svg viewBox="0 0 24 24"></svg>'}<div class="m3-sheet-row-text">${s.label}</div></div>`).join('');
       openSheet('sort-sheet');
@@ -3982,6 +4296,7 @@
     try {
       switch (event) {
         case 'transfer': onTransfer(data); break;
+        case 'task': onTask(data); break;
         case 'folderPicked': onFolderPicked(data); break;
         case 'discovery': onDiscovery(data); break;
         case 'storage': onStorageReport(data); break;
@@ -4011,6 +4326,8 @@
           break;
         case 'mediaFolders': if (window.CloudSsdFs && window.CloudSsdFs.onMediaFolders) window.CloudSsdFs.onMediaFolders(data); break;
         case 'resume':
+          // Back from Android's own permission screens: the Permissions page shows what is allowed now.
+          if (isOpen('perm-sheet')) renderPermissions();
           if (data.storageAccess !== phone.access) {
             phone.access = data.storageAccess;
             renderPermBanner();

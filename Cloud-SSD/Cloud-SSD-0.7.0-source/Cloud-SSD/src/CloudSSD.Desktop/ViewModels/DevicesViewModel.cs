@@ -105,10 +105,10 @@ public sealed partial class DevicesViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void OpenMobileHub() => _navigate?.Invoke("Phone (Mobile Hub)");
+    private void OpenMobileHub() => _navigate?.Invoke("Add or connect");
 
     internal void ShowMessage(string text, string tone) => Say(text, tone);
-    internal void OpenPermissions() => _navigate?.Invoke("Phone (Mobile Hub)");
+    internal void OpenPermissions() => _navigate?.Invoke("Permissions");
 
     /// <summary>A line in the page's status bar, for what a card did.</summary>
     internal void Tell(string text, string tone) => Say(text, tone);
@@ -220,7 +220,9 @@ public sealed partial class DeviceCardViewModel : ObservableObject
     {
         var device = _page.Host.Settings.MobileBridge.PairedDevices.FirstOrDefault(d => d.Id == Id);
         if (device is null) return;
-        new Views.BrowsePhoneWindow(_page.Host, device) { Owner = Application.Current.MainWindow }.Show();
+        // In the app: the Phone files page, on this device (a window of its own only without the main window).
+        if (Application.Current.MainWindow?.DataContext is MainViewModel main) main.OpenPhoneFiles(Id);
+        else new Views.BrowsePhoneWindow(_page.Host, device) { Owner = Application.Current.MainWindow }.Show();
     }
 
     internal void Update(DeviceSnapshot d, DateTimeOffset now)

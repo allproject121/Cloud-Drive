@@ -136,6 +136,34 @@ internal static class Program
             Console.WriteLine("request state after closing unanswered: " + req.State);
             return 0;
         }
+        if (page == "customize")
+        {
+            // The sidebar's "Customize" opens Settings on its Customize tab (language, colours, glass). Nothing is changed:
+            // the theme and the language are saved in the real app folder, so this only looks.
+            var mvm = new MainViewModel(host);
+            var mw = new CloudSSD.Desktop.MainWindow { DataContext = mvm, Left = -3000, Top = 0, ShowInTaskbar = false };
+            app.MainWindow = mw;
+            mw.Show();
+            RemoteProbe.Pump(() => false, 800);
+            Render((FrameworkElement)mw.Content, Path.Combine(outDir, "customize-sidebar.png"), 1180);
+            var btn = Find<Button>(mw, b => b.Name == "BtnCustomize");
+            Console.WriteLine($"sidebar button: {btn != null}");
+            btn?.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            RemoteProbe.Pump(() => false, 1200);
+            var settings = mvm.Selected as SettingsViewModel;
+            Console.WriteLine($"page='{mvm.Selected.Title}' tab='{settings?.ActiveTab}' content={settings?.CurrentContent?.GetType().Name}");
+            var cv = Find<CustomizeView>(mw, _ => true);
+            Console.WriteLine($"customize view shown: {cv != null}");
+            if (cv != null)
+            {
+                var pills = FindAll<RadioButton>(cv).ToList();
+                Console.WriteLine($"options: {string.Join(" | ", pills.Select(p => (p.IsChecked == true ? "*" : "") + p.Content))}");
+                Console.WriteLine($"glass: {FindAll<CheckBox>(cv).FirstOrDefault()?.Content}");
+            }
+            Render((FrameworkElement)mw.Content, Path.Combine(outDir, "customize-page.png"), 1180);
+            mw.Close();
+            return 0;
+        }
         if (page == "bell")
         {
             // The bell (top right): a few notes, the list opened, then clicks on a request and on a page note.

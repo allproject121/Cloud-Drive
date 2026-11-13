@@ -531,10 +531,10 @@
     }
   }
 
-  /** What the PC may see on this phone ({scope, until} from the app), in words. */
+  /** What the PC may see on this phone ({scope, until, write} from the app), in words. */
   function peerText(st, now) {
     if (!st || !st.scope) return 'Not allowed';
-    const what = st.scope === 'all' ? 'Whole phone storage' : 'Photos, downloads, documents and music';
+    const what = (st.scope === 'all' ? 'Whole phone storage' : 'Photos, downloads, documents and music') + (st.write ? ' · can add files' : '');
     if (!st.until) return what + ' · until you stop it';
     if (st.until <= now) return 'Not allowed';
     const d = new Date(st.until);
@@ -573,6 +573,25 @@
     const all = tops.map(t => t + '/').concat(loose);
     const n = max || 4;
     return { folders: tops, text: all.slice(0, n).join(', ') + (all.length > n ? ` and ${all.length - n} more` : '') };
+  }
+
+  // ------------------------------------------------------------------ transfers as tasks
+
+  /** The model's link (wifi, usb, hotspot, tailscale) from how the page reaches the PC (route) and what the PC saw (kind). */
+  function taskLink(route, kind) {
+    if (route === 'tailnet' || kind === 'internet') return 'tailscale';
+    if (kind === 'usb' || kind === 'usb-adb') return 'usb';
+    if (kind === 'pc-hotspot' || kind === 'phone-hotspot') return 'hotspot';
+    return 'wifi';
+  }
+
+  /** The task list with this task in it (replaced when known, else first), newest first, at most max. */
+  function upsertTask(list, task, max) {
+    if (!task || !task.id) return list || [];
+    const out = (list || []).filter(t => t.id !== task.id);
+    out.unshift(task);
+    out.sort((a, b) => String(b.started || '').localeCompare(String(a.started || '')));
+    return out.slice(0, max || 40);
   }
 
   // ------------------------------------------------------------------ permissions on the PC
@@ -684,7 +703,7 @@
     covers, pinFor, sameCopy, fmtSize, pinStatus, keptListing,
     linkLabel, sameSubnet, accessName, grantText, safeFolder, peerText,
     friendlyPath, syncStatus, wakeHint,
-    TRANSFER_KINDS, transferKind, groupTransfers, shareSavePath, offerSummary
+    TRANSFER_KINDS, transferKind, groupTransfers, shareSavePath, offerSummary, taskLink, upsertTask
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

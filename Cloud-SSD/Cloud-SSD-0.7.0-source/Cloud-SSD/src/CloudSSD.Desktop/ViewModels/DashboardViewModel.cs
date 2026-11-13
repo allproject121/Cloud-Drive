@@ -13,7 +13,7 @@ public sealed partial class DashboardViewModel : PageViewModel
 {
     private readonly Action<string> _navigate;
 
-    public DashboardViewModel(AppHost host, Action<string> navigate) : base(host, "Dashboard", "") 
+    public DashboardViewModel(AppHost host, Action<string> navigate) : base(host, "Home", "") 
     {
         _navigate = navigate;
         // The storage auto mode tells what it did in a note, so nobody has to open a page to see that it worked.
@@ -128,7 +128,7 @@ public sealed partial class DashboardViewModel : PageViewModel
             new("rclone available", Host.Rclone != null, "Bundled with Cloud Drive"),
             new("Cloud account connected", Host.Remotes.Count > 0, "Cloud Drives → Connect Google Drive"),
             new("Drive connected", mounted > 0, "Cloud Drives → Add drive"),
-            new("Game added", games.Count > 0, "Game Library → Add game"),
+            new("Game added", games.Count > 0, "Games → Add game"),
         ]);
         SetupComplete = Setup.All(s => s.Done);
         OnMetrics(Host.Metrics.Latest);

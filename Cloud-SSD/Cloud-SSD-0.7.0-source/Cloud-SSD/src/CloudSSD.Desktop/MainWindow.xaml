@@ -19,7 +19,12 @@
         <DataTemplate DataType="{x:Type vm:SmartCacheViewModel}"><v:SmartCacheView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:PerformanceViewModel}"><v:PerformanceView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><v:SettingsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CustomizeViewModel}"><v:CustomizeView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:DiagnosticsViewModel}"><v:DiagnosticsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:HubViewModel}"><v:HubView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:TabsViewModel}"><v:TabsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:PhoneFoldersViewModel}"><v:PhoneFoldersView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:PhoneFilesPageViewModel}"><v:PhoneFilesPageView /></DataTemplate>
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -32,7 +37,7 @@
         </Grid.RowDefinitions>
 
         <!-- Sidebar -->
-        <Border Grid.RowSpan="2" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+        <Border Grid.RowSpan="2" Background="{DynamicResource SidebarBg}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Margin="22,24,16,22" Orientation="Horizontal">
                     <Border Width="40" Height="40" CornerRadius="20" Background="{DynamicResource AccentSoft}">
@@ -46,19 +51,11 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Bottom" Margin="18,0,18,14">
-                    <StackPanel Orientation="Horizontal" Margin="2,0,0,6">
-                        <TextBlock Text="&#xE774;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <TextBlock Text="Language / भाषा" FontSize="11.5" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <ComboBox x:Name="CmbLanguage" Height="28" FontSize="12" SelectionChanged="OnLanguageSelectionChanged" />
-                    <StackPanel Orientation="Horizontal" Margin="2,10,0,6">
-                        <TextBlock Text="&#xE706;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <TextBlock Text="Theme / रंग" FontSize="11.5" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <ComboBox x:Name="CmbTheme" Height="28" FontSize="12" SelectionChanged="OnThemeSelectionChanged" ToolTip="Dark, Light, ya Windows ki setting jaisa" />
-                    <TextBlock Text="{Binding Version}" Foreground="{DynamicResource Dim}" FontSize="10.5" Margin="2,8,0,0" />
+                    <!-- Language, colours and glass are in Settings → Look and language. -->
+                    <TextBlock Text="{Binding Version}" Foreground="{DynamicResource Dim}" FontSize="10.5" Margin="6,0,0,0" />
                 </StackPanel>
-                <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0"
+                <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedTop}" Background="Transparent" BorderThickness="0"
+                         PreviewMouseLeftButtonUp="OnNavClick"
                          ItemContainerStyle="{StaticResource NavItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -91,13 +88,15 @@
                                       AutomationProperties.Name="Notifications">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="Bg" CornerRadius="20" Background="Transparent">
+                                    <!-- The bell sits in a box (rounded square, thin border), like the other apps' notification buttons. -->
+                                    <Border x:Name="Bg" CornerRadius="12" Background="{DynamicResource BandHover}"
+                                            BorderBrush="{DynamicResource BandText}" BorderThickness="1" Opacity="0.95">
                                         <TextBlock Text="&#xEA8F;" FontFamily="{StaticResource IconFont}" FontSize="18"
-                                                   Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                   Foreground="{DynamicResource BandText}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
                                     <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bg" Property="Background" Value="{DynamicResource OnAccentMuted}" /></Trigger>
-                                        <Trigger Property="IsChecked" Value="True"><Setter TargetName="Bg" Property="Background" Value="{DynamicResource OnAccentMuted}" /></Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bg" Property="BorderThickness" Value="2" /></Trigger>
+                                        <Trigger Property="IsChecked" Value="True"><Setter TargetName="Bg" Property="BorderThickness" Value="2" /></Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </ToggleButton.Template>
@@ -160,8 +159,14 @@
                         </Popup>
                     </Grid>
                     <ProgressBar DockPanel.Dock="Right" Width="120" IsIndeterminate="True" VerticalAlignment="Center"
-                                 Foreground="{DynamicResource OnAccent}" Background="{DynamicResource OnAccentMuted}"
+                                 Foreground="{DynamicResource BandText}" Background="{DynamicResource BandTextMuted}"
                                  Visibility="{Binding Selected.Busy, Converter={StaticResource Vis}}" />
+                    <!-- A page opened from inside a section: back to the section it sits in. -->
+                    <Button DockPanel.Dock="Left" Command="{Binding BackCommand}" Visibility="{Binding CanGoBack, Converter={StaticResource Vis}}"
+                            ToolTip="Back" AutomationProperties.Name="Back" Width="36" Height="36" Padding="0" Margin="0,0,10,0"
+                            Background="Transparent" BorderThickness="0" Cursor="Hand" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE72B;" FontFamily="{StaticResource IconFont}" FontSize="16" Foreground="{DynamicResource BandText}" />
+                    </Button>
                     <TextBlock Text="{Binding Selected.Title}" Style="{StaticResource BandTitle}" />
                 </DockPanel>
             </Border>
@@ -174,7 +179,7 @@
         </Grid>
 
         <!-- Status bar -->
-        <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource SidebarBg}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal" Margin="32,0" VerticalAlignment="Center">
                 <TextBlock Text="&#xE8CE;" FontFamily="{StaticResource IconFont}" FontSize="11" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" Margin="0,0,6,0" />
                 <TextBlock Text="{Binding DrivesStatus}" Foreground="{DynamicResource Muted}" FontSize="11.5" />

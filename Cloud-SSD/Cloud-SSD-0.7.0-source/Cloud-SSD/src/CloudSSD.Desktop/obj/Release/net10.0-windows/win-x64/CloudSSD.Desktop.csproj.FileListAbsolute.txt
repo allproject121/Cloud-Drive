@@ -366,3 +366,8 @@ C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-sour
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\looks.css
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\pages.css
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\pages.js
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\transfers.js
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Release\net10.0-windows\win-x64\Views\PhoneFoldersView.baml
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Release\net10.0-windows\win-x64\Views\TransferHistoryView.baml
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Release\net10.0-windows\win-x64\Views\PhoneFoldersView.g.cs
+C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\obj\Release\net10.0-windows\win-x64\Views\TransferHistoryView.g.cs

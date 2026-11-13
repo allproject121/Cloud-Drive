@@ -14,7 +14,7 @@ public sealed partial class MobileHubViewModel : PageViewModel
 {
     private readonly Action<string>? _navigate;
 
-    public MobileHubViewModel(AppHost host, Action<string>? navigate = null) : base(host, "Phone (Mobile Hub)", "\uE8EA")
+    public MobileHubViewModel(AppHost host, Action<string>? navigate = null) : base(host, "Devices", "\uE8EA")
     {
         _navigate = navigate;
         UploadDirectory = host.Settings.MobileBridge.UploadDirectory

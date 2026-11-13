@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\CloudSSD.IntegrationTests.csproj": {}
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\CloudSSD.IntegrationTests.csproj": {}
   },
   "projects": {
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj",
         "projectName": "CloudSSD.App",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
@@ -27,29 +27,29 @@
             "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj"
               }
             }
           }
@@ -86,7 +86,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -364,17 +364,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj",
         "projectName": "CloudSSD.Cache",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
@@ -387,8 +387,8 @@
             "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               }
             }
           }
@@ -425,7 +425,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -703,17 +703,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj",
         "projectName": "CloudSSD.Core",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -766,7 +766,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -1044,17 +1044,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj",
         "projectName": "CloudSSD.Diagnostics",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
@@ -1067,8 +1067,8 @@
             "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               }
             }
           }
@@ -1115,7 +1115,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -1393,17 +1393,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj",
         "projectName": "CloudSSD.GameStream",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\CloudSSD.GameStream.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.GameStream\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
@@ -1416,8 +1416,8 @@
             "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               }
             }
           }
@@ -1468,7 +1468,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -1746,17 +1746,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj",
         "projectName": "CloudSSD.Games",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
@@ -1769,20 +1769,20 @@
             "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj"
               }
             }
           }
@@ -1825,7 +1825,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -2103,17 +2103,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj",
         "projectName": "CloudSSD.Mount",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
@@ -2126,11 +2126,11 @@
             "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
               }
             }
           }
@@ -2167,7 +2167,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -2445,17 +2445,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj",
         "projectName": "CloudSSD.Providers",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
@@ -2468,11 +2468,11 @@
             "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
               }
             }
           }
@@ -2509,7 +2509,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -2787,17 +2787,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj",
         "projectName": "CloudSSD.SimCloud",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -2810,8 +2810,8 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               }
             }
           }
@@ -2848,7 +2848,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -3126,17 +3126,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj",
         "projectName": "CloudSSD.Streaming",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -3149,8 +3149,8 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               }
             }
           }
@@ -3193,7 +3193,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -3471,17 +3471,17 @@
         }
       }
     },
-    "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\CloudSSD.IntegrationTests.csproj": {
-      "version": "0.7.0",
+    "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\CloudSSD.IntegrationTests.csproj": {
+      "version": "0.9.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\CloudSSD.IntegrationTests.csproj",
+        "projectUniqueName": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\CloudSSD.IntegrationTests.csproj",
         "projectName": "CloudSSD.IntegrationTests",
-        "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\CloudSSD.IntegrationTests.csproj",
-        "packagesPath": "C:\\Users\\rosha\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\obj\\",
+        "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\CloudSSD.IntegrationTests.csproj",
+        "packagesPath": "C:\\Users\\Roshan\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\tests\\CloudSSD.IntegrationTests\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\rosha\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roshan\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
@@ -3494,32 +3494,32 @@
             "framework": "net10.0-windows7.0",
             "targetAlias": "net10.0-windows",
             "projectReferences": {
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.App\\CloudSSD.App.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Cache\\CloudSSD.Cache.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Core\\CloudSSD.Core.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Diagnostics\\CloudSSD.Diagnostics.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Games\\CloudSSD.Games.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Mount\\CloudSSD.Mount.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Providers\\CloudSSD.Providers.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.SimCloud\\CloudSSD.SimCloud.csproj"
               },
-              "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
-                "projectPath": "C:\\Users\\rosha\\Downloads\\Project's\\PC AI\\Clude SSD\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj"
+              "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj": {
+                "projectPath": "C:\\Users\\Roshan\\Downloads\\Cloud-Drive\\Cloud-Drive\\Cloud-SSD\\Cloud-SSD-0.7.0-source\\Cloud-SSD\\src\\CloudSSD.Streaming\\CloudSSD.Streaming.csproj"
               }
             }
           }
@@ -3574,7 +3574,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\rosha\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.403/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Users\\Roshan\\AppData\\Local\\Microsoft\\dotnet\\sdk\\10.0.404/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

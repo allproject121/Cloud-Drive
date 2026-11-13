@@ -343,6 +343,10 @@ public sealed partial class SettingsViewModel : PageViewModel
     public AcceleratorViewModel Accelerator { get; }
     public PerformanceViewModel Performance { get; }
     public DiagnosticsViewModel Diagnostics { get; }
+    /// <summary>The Customize tab (language, colours, glass); its view does the work.</summary>
+    public CustomizeViewModel Customize { get; } = new();
+    /// <summary>The Folders tab: where files from phones are saved (set by the main window; the phone section owns the values).</summary>
+    public PhoneFoldersViewModel? Folders { get; init; }
 
     [ObservableProperty] private string _activeTab = "General";
     [ObservableProperty] private object? _currentContent;
@@ -361,11 +365,15 @@ public sealed partial class SettingsViewModel : PageViewModel
         ActiveTab = tab;
         CurrentContent = tab switch
         {
+            "Customize" => Customize,
             "Speed" => Accelerator,
             "Performance" => Performance,
             "Advanced" => Diagnostics,
+            "Folders" => Folders,
             _ => null
         };
+        // The folders are the phone section's values: read as when that section opens.
+        if (tab == "Folders") Folders?.Hub.OnShown();
 
         if (tab == "Speed") Accelerator.OnShown();
         else if (tab == "Performance") Performance.OnShown();
@@ -580,3 +588,6 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
 
     [RelayCommand] private void Refresh() => OnShown();
 }
+
+/// <summary>Settings → Customize: how the app looks. Shown by Views.CustomizeView, which reads and sets the language and theme.</summary>
+public sealed class CustomizeViewModel;

@@ -19,6 +19,8 @@
   <link rel="stylesheet" href="app.css?v=0.12.0">
   <!-- The app looks (Settings → App look): A+C, Saaf, Raat. After app.css so its rules win. -->
   <link rel="stylesheet" href="looks.css?v=0.12.0">
+  <!-- Every sheet opens as a full page with a back bar; the compact sizes. -->
+  <link rel="stylesheet" href="pages.css?v=0.12.0">
 </head>
 <body>
 
@@ -175,20 +177,23 @@
       </div>
     </div>
 
-    <!-- Quick Action Shortcut Chips -->
+    <!-- Send to the PC: photos, any files, a whole folder -->
     <div class="section-container">
-      <div class="quick-action-strip">
-        <button class="quick-chip-btn primary" data-act="send" data-kind="photos">
-          <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-          <span>Send Photos to PC</span>
+      <div class="section-header">
+        <div class="section-title">Send to PC</div>
+      </div>
+      <div class="send-tiles">
+        <button class="send-tile" data-act="send" data-kind="photos">
+          <span class="send-tile-icon"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></span>
+          <span class="send-tile-name">Photos</span>
         </button>
-        <button class="quick-chip-btn" data-act="send" data-kind="all">
-          <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-          <span>Send Any File</span>
+        <button class="send-tile" data-act="send" data-kind="all">
+          <span class="send-tile-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span>
+          <span class="send-tile-name">Files</span>
         </button>
-        <button class="quick-chip-btn" data-act="tab" data-tab="ssd">
-          <svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
-          <span>Browse Cloud SSD</span>
+        <button class="send-tile" data-act="send-folder">
+          <span class="send-tile-icon"><svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></span>
+          <span class="send-tile-name">Folder</span>
         </button>
       </div>
     </div>
@@ -200,9 +205,8 @@
         <div class="section-action" data-act="open-transfers">See all</div>
       </div>
       <div id="transfers-active" class="transfers-active-list"></div>
-      <div id="transfers-recent" class="transfers-history-cards">
-        <div class="recent-empty-card">Nothing sent yet. Use "Send Any File" to send something to the PC.</div>
-      </div>
+      <div id="home-xfer-now"></div>
+      <div id="home-xfer-done"></div>
     </div>
     <!-- PC connection card -->
     <div class="section-container">
@@ -324,6 +328,10 @@
             <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
             <span>Starred</span><span class="phone-quick-meta" id="cat-stat-starred">—</span>
           </button>
+          <button class="phone-quick-btn" data-act="send-folder">
+            <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6 11v-3h-4v-4h4V7l5 5-5 5z"/></svg>
+            <span>Send a folder</span>
+          </button>
         </div>
       </div>
 
@@ -417,6 +425,7 @@
         </div>
       </div>
     </div>
+    <div class="ssd-kinds-strip" id="ssd-kinds-strip"></div>
     <div class="ssd-drive-note" id="ssd-drive-note" style="display: none;">PC is off — your files come straight from Google Drive</div>
     <!-- The PC is away: the saved list from last time, and when it was saved -->
     <div class="offline-banner" id="offline-banner" style="display: none;">
@@ -512,6 +521,25 @@
     <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
   </button>
 
+  <!-- ============================================================= -->
+  <!-- TAB 5: MORE (sections, each with its own page)                -->
+  <!-- ============================================================= -->
+  <main id="tab-more" class="tab-screen">
+    <div class="section-container">
+      <div class="more-me">
+        <div class="more-me-avatar" id="more-me-avatar">?</div>
+        <div class="more-me-who">
+          <div class="more-me-name" id="more-me-name" data-no-i18n></div>
+          <div class="more-me-sub" id="more-me-sub"></div>
+        </div>
+        <button class="drive-btn browse" data-act="profile-edit">Edit</button>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="more-list" id="more-list"></div>
+    </div>
+  </main>
+
   <!-- Hidden file inputs (used only in a web browser; the app uses Android's picker) -->
   <input type="file" id="file-uploader" style="display: none;" multiple>
   <input type="file" id="photo-uploader" accept="image/*,video/*" style="display: none;" multiple>
@@ -533,6 +561,11 @@
     <button class="nav-tab" id="nav-gaming" data-act="tab" data-tab="gaming">
       <div class="nav-icon-indicator"><svg viewBox="0 0 24 24"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></div>
       <span class="nav-label">Gaming</span>
+    </button>
+    <!-- More: the sections that are needed now and then (devices, permissions, files, look, settings) -->
+    <button class="nav-tab" id="nav-more" data-act="tab" data-tab="more">
+      <div class="nav-icon-indicator"><svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></div>
+      <span class="nav-label">More</span>
     </button>
   </nav>
 
@@ -578,6 +611,16 @@
         <button class="drive-btn browse" data-act="profile-edit">Edit</button>
       </div>
       <div id="profile-menu-list"></div>
+    </div>
+  </div>
+
+  <div id="more-sheet" class="m3-bottom-sheet-backdrop" data-act="sheet-close">
+    <div class="m3-bottom-sheet">
+      <div class="m3-drag-handle"></div>
+      <div class="access-head">
+        <div class="access-title" id="more-sheet-title"></div>
+      </div>
+      <div class="more-list" id="more-sheet-list"></div>
     </div>
   </div>
 
@@ -847,12 +890,41 @@
           <div class="conn-modal-title">Transfers</div>
           <div class="conn-modal-sub" id="transfers-sub">Between this phone and the PC</div>
         </div>
+        <button class="drive-btn browse transfers-clear-btn" data-act="open-history">History</button>
+        <button class="conn-modal-close" data-act="sheet-close-btn">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <!-- What is moving now (transfers.js), what finished today; the full history is its own page. -->
+      <div class="transfer-chips-row xt-tabs">
+        <button class="transfer-chip active" data-xt-filter="all">All</button>
+        <button class="transfer-chip" data-xt-filter="toPc">To PC</button>
+        <button class="transfer-chip" data-xt-filter="toPhone">To phone</button>
+      </div>
+      <div class="xt-section">Now</div>
+      <div id="xfer-now"></div>
+      <div id="transfers-modal-active" class="transfers-active-list"></div>
+      <div class="xt-section">Done today</div>
+      <div id="xfer-done"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- PAGE: the full transfer history                               -->
+  <!-- ============================================================= -->
+  <div id="history-sheet" class="modal-backdrop sheet" data-act="sheet-close">
+    <div class="connection-modal-sheet">
+      <div class="m3-drag-handle"></div>
+      <div class="conn-modal-header">
+        <div class="conn-modal-header-info">
+          <div class="conn-modal-title">History</div>
+          <div class="conn-modal-sub">Everything sent and saved before</div>
+        </div>
         <button class="drive-btn browse transfers-clear-btn" data-act="transfers-clear">Clear</button>
         <button class="conn-modal-close" data-act="sheet-close-btn">
           <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
-      <div id="transfers-modal-active" class="transfers-active-list"></div>
       <div class="transfer-chips-row" id="transfers-filter-row">
         <button class="transfer-chip active" data-act="transfers-filter" data-filter="all">All</button>
         <button class="transfer-chip" data-act="transfers-filter" data-filter="upload">Sent to PC</button>
@@ -933,6 +1005,8 @@
         <button class="peer-scope on" data-act="peer-scope" data-s="shared"><strong>Photos, downloads, documents and music</strong><span>DCIM, Pictures, Movies, Music, Download, Documents</span></button>
         <button class="peer-scope" data-act="peer-scope" data-s="all"><strong>Whole phone storage</strong><span>Everything except other apps' private data</span></button>
       </div>
+      <!-- Both ways: the PC may also put files and folders into those folders. -->
+      <label class="peer-write-row"><input type="checkbox" id="peer-write" data-act="peer-write" checked> <span>Let it add files and folders too</span></label>
       <div class="access-actions">
         <button class="m3-tonal-btn" data-act="peer-deny">Deny</button>
         <button class="m3-tonal-btn" data-act="peer-hour">For 1 hour</button>
@@ -967,7 +1041,6 @@
         <div class="access-text" id="perm-sub"></div>
       </div>
       <div class="perm-list" id="perm-list"></div>
-      <div class="offline-note">Someone at the PC decides; it can take them back any time.</div>
     </div>
   </div>
 
@@ -993,7 +1066,7 @@
           <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
         </div>
         <div class="conn-modal-header-info">
-          <div class="conn-modal-title">Settings</div>
+          <div class="conn-modal-title" id="settings-title">Settings</div>
           <div class="conn-modal-sub" id="settings-sub">This phone and the PC</div>
         </div>
         <button class="conn-modal-close" data-act="sheet-close-btn">
@@ -1001,6 +1074,28 @@
         </button>
       </div>
       <div id="settings-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SHEET: Settings → Customize (the app's look and language)      -->
+  <!-- ============================================================= -->
+  <div id="customize-modal" class="modal-backdrop sheet" data-act="sheet-close">
+    <div class="connection-modal-sheet">
+      <div class="m3-drag-handle"></div>
+      <div class="conn-modal-header">
+        <div class="conn-modal-icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+        </div>
+        <div class="conn-modal-header-info">
+          <div class="conn-modal-title">Customize</div>
+          <div class="conn-modal-sub">Look and language</div>
+        </div>
+        <button class="conn-modal-close" data-act="sheet-close-btn">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div id="customize-body"></div>
     </div>
   </div>
 
@@ -1051,5 +1146,7 @@
   <script src="space.js?v=0.12.0"></script>
   <script src="stream.js?v=0.12.0"></script>
   <script src="app.js?v=0.12.0"></script>
+  <script src="pages.js?v=0.12.0"></script>
+  <script src="transfers.js?v=0.12.0"></script>
 </body>
 </html>

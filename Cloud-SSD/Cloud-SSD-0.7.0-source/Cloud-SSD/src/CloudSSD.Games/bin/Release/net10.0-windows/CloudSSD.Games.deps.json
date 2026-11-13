@@ -6,13 +6,13 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v10.0": {
-      "CloudSSD.Games/0.7.0": {
+      "CloudSSD.Games/0.9.0": {
         "dependencies": {
-          "CloudSSD.Cache": "0.7.0",
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Diagnostics": "0.7.0",
-          "CloudSSD.Mount": "0.7.0",
-          "CloudSSD.Streaming": "0.7.0",
+          "CloudSSD.Cache": "0.9.0",
+          "CloudSSD.Core": "0.9.0",
+          "CloudSSD.Diagnostics": "0.9.0",
+          "CloudSSD.Mount": "0.9.0",
+          "CloudSSD.Streaming": "0.9.0",
           "System.Diagnostics.EventLog": "10.0.12"
         },
         "runtime": {
@@ -275,69 +275,69 @@
           }
         }
       },
-      "CloudSSD.Cache/0.7.0": {
+      "CloudSSD.Cache/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0"
+          "CloudSSD.Core": "0.9.0"
         },
         "runtime": {
           "CloudSSD.Cache.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Core/0.7.0": {
+      "CloudSSD.Core/0.9.0": {
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "10.0.12"
         },
         "runtime": {
           "CloudSSD.Core.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Diagnostics/0.7.0": {
+      "CloudSSD.Diagnostics/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
+          "CloudSSD.Core": "0.9.0",
           "Microsoft.Extensions.Logging": "10.0.12",
           "System.Security.Cryptography.ProtectedData": "10.0.12"
         },
         "runtime": {
           "CloudSSD.Diagnostics.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Mount/0.7.0": {
+      "CloudSSD.Mount/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Diagnostics": "0.7.0"
+          "CloudSSD.Core": "0.9.0",
+          "CloudSSD.Diagnostics": "0.9.0"
         },
         "runtime": {
           "CloudSSD.Mount.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Streaming/0.7.0": {
+      "CloudSSD.Streaming/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
+          "CloudSSD.Core": "0.9.0",
           "Microsoft.Data.Sqlite": "10.0.12"
         },
         "runtime": {
           "CloudSSD.Streaming.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       }
     }
   },
   "libraries": {
-    "CloudSSD.Games/0.7.0": {
+    "CloudSSD.Games/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
@@ -440,27 +440,27 @@
       "path": "system.security.cryptography.protecteddata/10.0.12",
       "hashPath": "system.security.cryptography.protecteddata.10.0.12.nupkg.sha512"
     },
-    "CloudSSD.Cache/0.7.0": {
+    "CloudSSD.Cache/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Core/0.7.0": {
+    "CloudSSD.Core/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Diagnostics/0.7.0": {
+    "CloudSSD.Diagnostics/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Mount/0.7.0": {
+    "CloudSSD.Mount/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Streaming/0.7.0": {
+    "CloudSSD.Streaming/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

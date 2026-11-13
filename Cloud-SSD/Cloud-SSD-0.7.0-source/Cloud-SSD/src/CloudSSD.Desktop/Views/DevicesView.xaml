@@ -21,8 +21,8 @@
         <Border DockPanel.Dock="Top" Background="{DynamicResource Surface2}" CornerRadius="14" Padding="12,10" Margin="0,0,0,12"
                 BorderBrush="{DynamicResource Warning}" BorderThickness="1" Visibility="{Binding BridgeOff, Converter={StaticResource Vis}}">
             <DockPanel>
-                <Button DockPanel.Dock="Right" Content="Phone (Mobile Hub)" Command="{Binding OpenMobileHubCommand}" Padding="10,4" Margin="10,0,0,0" />
-                <TextBlock Text="The phone bridge is off, so no device can connect. Turn it on in Phone (Mobile Hub)."
+                <Button DockPanel.Dock="Right" Content="Add or connect" Command="{Binding OpenMobileHubCommand}" Padding="10,4" Margin="10,0,0,0" />
+                <TextBlock Text="The phone bridge is off, so no device can connect. Turn it on in Devices → Add or connect."
                            TextWrapping="Wrap" VerticalAlignment="Center" Foreground="{DynamicResource Warning}" />
             </DockPanel>
         </Border>

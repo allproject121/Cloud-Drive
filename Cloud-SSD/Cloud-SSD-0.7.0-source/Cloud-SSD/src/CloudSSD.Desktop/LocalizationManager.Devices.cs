@@ -75,7 +75,7 @@ public static partial class LocalizationManager
         ["Close"] = "Band karo",
         ["Paired devices now have their own page: who is online and what they are doing."] = "Jude hue devices ka ab alag page hai: kaun online hai aur kya kar raha hai, sab wahan.",
         ["Open Devices"] = "Devices kholo",
-        ["The phone bridge is off, so no device can connect. Turn it on in Phone (Mobile Hub)."] = "Phone bridge band hai, isliye koi device connect nahi ho sakta. Phone (Mobile Hub) me chalu karo.",
+        ["The phone bridge is off, so no device can connect. Turn it on in Devices → Add or connect."] = "Phone bridge band hai, isliye koi device connect nahi ho sakta. Devices → Jodo ya connect karo me chalu karo.",
     };
 
     public static readonly IReadOnlyDictionary<string, string> DeviceTextsHindi = new Dictionary<string, string>
@@ -149,7 +149,7 @@ public static partial class LocalizationManager
         ["Close"] = "बंद करें",
         ["Paired devices now have their own page: who is online and what they are doing."] = "जुड़े हुए डिवाइस का अब अलग पेज है: कौन ऑनलाइन है और क्या कर रहा है।",
         ["Open Devices"] = "डिवाइस खोलें",
-        ["The phone bridge is off, so no device can connect. Turn it on in Phone (Mobile Hub)."] = "फ़ोन ब्रिज बंद है, इसलिए कोई डिवाइस नहीं जुड़ सकता। फ़ोन (मोबाइल हब) में चालू करें।",
+        ["The phone bridge is off, so no device can connect. Turn it on in Devices → Add or connect."] = "फ़ोन ब्रिज बंद है, इसलिए कोई डिवाइस नहीं जुड़ सकता। Devices → जोड़ें या कनेक्ट करें में चालू करें।",
     };
 
     /// <summary>Adds the extra texts to the main dictionaries (an existing entry there wins).</summary>

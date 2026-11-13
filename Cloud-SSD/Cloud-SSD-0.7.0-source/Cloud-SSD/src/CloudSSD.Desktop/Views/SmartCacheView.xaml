@@ -7,14 +7,14 @@
             <Border Style="{StaticResource Card}" Margin="0,0,0,14" BorderBrush="{DynamicResource Accent}" BorderThickness="1.5">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,10">
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="16,0,0,0">
                             <Button Content="⚡ Move Files to Cloud Drive Now" Style="{StaticResource Primary}"
                                     Command="{Binding OffloadNowCommand}" Padding="14,6" Margin="0,0,8,0" />
                             <Button Content="Save Settings" Command="{Binding SaveOffloadSettingsCommand}" Padding="12,6" />
                         </StackPanel>
                         <StackPanel>
                             <TextBlock Text="⚡ SMART SPACE SAVER &amp; AUTO CLOUD OFFLOAD" Style="{StaticResource H2}" Foreground="{DynamicResource Accent}" />
-                            <TextBlock Text="When laptop storage drops below your limit, local files automatically switch to Cloud Drive (Z:)." Style="{StaticResource Caption}" />
+                            <TextBlock Text="When laptop storage drops below your limit, local files automatically switch to Cloud Drive (Z:)." Style="{StaticResource Caption}" TextWrapping="Wrap" />
                         </StackPanel>
                     </DockPanel>
 
@@ -26,7 +26,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="{Binding OffloadStatusText}" FontWeight="Bold" FontSize="13" Foreground="{Binding OffloadStatusTone, Converter={StaticResource Tone}}" />
+                                <TextBlock Text="{Binding OffloadStatusText}" FontWeight="Bold" FontSize="13" TextWrapping="Wrap" Foreground="{Binding OffloadStatusTone, Converter={StaticResource Tone}}" />
                                 <TextBlock Text="{Binding LaptopDiskSummary}" FontSize="12" Foreground="{DynamicResource Muted}" Margin="0,3,0,0" />
                                 <ProgressBar Height="6" Maximum="100" Value="{Binding LaptopDiskPercent}" Margin="0,6,0,0" Foreground="{DynamicResource Accent}" Background="{DynamicResource Bg}" />
                             </StackPanel>

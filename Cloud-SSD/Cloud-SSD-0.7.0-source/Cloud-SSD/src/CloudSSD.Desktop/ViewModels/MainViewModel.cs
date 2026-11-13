@@ -10,19 +10,37 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel(AppHost host)
     {
         Host = host;
+        // Seven sections, each built like the Files page (chips at the top, one part below), nothing in two places:
+        //   Home · Files (Phone storage, Cloud SSD, Transfers) · Devices (Phones, Add or connect, Permissions,
+        //   Other PCs) · Cloud Drives · PC care (Storage saver, RAM, Space and clean-up) · Games ·
+        //   Settings (General, Look and language, Speed, Performance, Folders, Logs).
+        Devices = new DevicesViewModel(host, Navigate);
+        Hub = new MobileHubViewModel(host, Navigate);
+        OtherPcs = new RemotePcsViewModel(host);
+        PhoneFiles = new PhoneFilesPageViewModel(host);
+        var care = new TabsViewModel(host, "PC care", "\uE7F8",
+            new TabEntry("Storage saver", new SmartCacheViewModel(host)),
+            new TabEntry("RAM", new MemoryViewModel(host)),
+            new TabEntry("Space and clean-up", new SpaceViewModel(host)));
+        var settings = new SettingsViewModel(host) { Folders = new PhoneFoldersViewModel(Hub) };
         Pages = new ObservableCollection<PageViewModel>
         {
             new DashboardViewModel(host, Navigate),
+            PhoneFiles,
+            Hub,
             new CloudDrivesViewModel(host),
-            new MobileHubViewModel(host, Navigate),
-            new DevicesViewModel(host, Navigate),
-            new RemotePcsViewModel(host),
+            care,
             new GameLibraryViewModel(host),
-            new MemoryViewModel(host),
-            new SpaceViewModel(host),
-            new SmartCacheViewModel(host),
-            new SettingsViewModel(host),
+            settings,
         };
+        _all = new List<PageViewModel>();
+        void Collect(PageViewModel p)
+        {
+            _all.Add(p);
+            if (p is HubViewModel h) foreach (var i in h.Items) Collect(i.Page);
+            if (p is TabsViewModel t) foreach (var e in t.Tabs) { _all.Add(e.Page); _tabOf[e.Page] = t; }
+        }
+        foreach (var p in Pages) Collect(p);
         _selected = Pages[0];
         host.StateChanged += () => Ui(() =>
         {
@@ -32,6 +50,7 @@ public sealed partial class MainViewModel : ObservableObject
         host.Metrics.Updated += m => Ui(() =>
         {
             Selected.OnMetrics(m);
+            if (Selected is MobileHubViewModel) { Devices.OnMetrics(m); OtherPcs.OnMetrics(m); }
             UpdateStatus(m);
         });
 
@@ -139,13 +158,68 @@ public sealed partial class MainViewModel : ObservableObject
         Navigate("Devices");
         var device = Host.Settings.MobileBridge.PairedDevices.FirstOrDefault(d => d.Id == deviceId);
         if (device is null) return true;   // removed since: the Devices page is the place
-        new Views.DevicePermissionsWindow(Host, device, justPaired: false, () => Navigate("Phone (Mobile Hub)"))
+        new Views.DevicePermissionsWindow(Host, device, justPaired: false, () => Navigate("Permissions"))
         { Owner = System.Windows.Application.Current?.MainWindow }.ShowDialog();
         return true;
     }
 
     public AppHost Host { get; }
+
+    /// <summary>The sidebar's pages. Pages inside a hub ("More") are not here; <see cref="_all"/> has every page.</summary>
     public ObservableCollection<PageViewModel> Pages { get; }
+    private readonly List<PageViewModel> _all;
+    /// <summary>A page that is a tab of a section ("PC Memory (RAM)" in "PC care") and the section it is in.</summary>
+    private readonly Dictionary<PageViewModel, TabsViewModel> _tabOf = new();
+
+    /// <summary>The "Devices" section: pairing, permissions; its values also feed Files → History and Settings → Folders.</summary>
+    public MobileHubViewModel Hub { get; }
+    /// <summary>The list of paired devices: shown as the "Phones" tab of Devices.</summary>
+    public DevicesViewModel Devices { get; }
+    /// <summary>Other PCs this one uses: shown as a tab of Devices.</summary>
+    public RemotePcsViewModel OtherPcs { get; }
+    public PhoneFilesPageViewModel PhoneFiles { get; }
+
+    /// <summary>The tab Devices should show next ("Devices", "Connect", "Permissions", "Other PCs"); its view takes it and clears it.</summary>
+    public string? HubTab { get; set; }
+    public event Action? HubTabRequested;
+
+    private static PageViewModel TopOf(PageViewModel p)
+    {
+        while (p.Parent is { } up) p = up;
+        return p;
+    }
+
+    /// <summary>The sidebar's selection: the section the shown page belongs to. Picking one opens that section.</summary>
+    public PageViewModel SelectedTop
+    {
+        get => TopOf(Selected);
+        set { if (value != null && value != TopOf(Selected)) Selected = value; }
+    }
+
+    /// <summary>The shown page sits inside a section: the title bar shows a back arrow.</summary>
+    public bool CanGoBack => Selected.Parent != null;
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void Back()
+    {
+        if (Selected.Parent is { } up) Selected = up;
+    }
+
+    /// <summary>A click on the section already chosen in the sidebar, from a page inside it: back to the section.</summary>
+    public void OpenTop(PageViewModel top)
+    {
+        if (Selected != top) Selected = top;
+    }
+
+    /// <summary>A phone's storage, in the app (from "Browse files" on its card).</summary>
+    public void OpenPhoneFiles(string deviceId)
+    {
+        PhoneFiles.WantedDeviceId = deviceId;
+        Selected = PhoneFiles;
+        PhoneFilesRequested?.Invoke();
+    }
+
+    public event Action? PhoneFilesRequested;
 
     [ObservableProperty] private PageViewModel _selected;
     [ObservableProperty] private string _storageSummary = "";
@@ -158,6 +232,9 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnSelectedChanged(PageViewModel value)
     {
         value?.OnShown();
+        if (value is MobileHubViewModel) Devices.OnShown();
+        OnPropertyChanged(nameof(SelectedTop));
+        OnPropertyChanged(nameof(CanGoBack));
         Ui(() => LocalizationManager.TranslateTree(System.Windows.Application.Current.MainWindow));
         // The page's own view is made after this (when it is laid out): its words are translated once it is there.
         LocalizationManager.TranslateSoon(System.Windows.Application.Current?.MainWindow);
@@ -165,19 +242,57 @@ public sealed partial class MainViewModel : ObservableObject
 
     public void Navigate(string title)
     {
+        // Parts of the Devices section, by the names they had as pages or tabs.
+        string? hubTab = title.ToLowerInvariant() switch
+        {
+            "devices" or "phones" => "Devices",
+            "phone (mobile hub)" or "connect phone" or "add or connect" => "Connect",
+            "permissions" => "Permissions",
+            "other pcs" => "Other PCs",
+            _ => null,
+        };
+        if (hubTab != null)
+        {
+            HubTab = hubTab;
+            Selected = Hub;
+            HubTabRequested?.Invoke();
+            return;
+        }
+        if (title.Equals("Transfers", StringComparison.OrdinalIgnoreCase))
+        {
+            // What is moving now, and its history: a part of Files.
+            PhoneFiles.WantedDeviceId = "transfers";
+            Selected = PhoneFiles;
+            PhoneFilesRequested?.Invoke();
+            return;
+        }
+        if (title.Equals("Game Library", StringComparison.OrdinalIgnoreCase)) title = "Games";
+        if (title.Equals("Dashboard", StringComparison.OrdinalIgnoreCase)) title = "Home";
+        if (title.Equals("Customize", StringComparison.OrdinalIgnoreCase))
+        {
+            // Settings → Customize: language, colours, glass.
+            var s = _all.OfType<SettingsViewModel>().FirstOrDefault();
+            if (s != null)
+            {
+                s.SwitchSubTab("Customize");
+                Selected = s;
+                return;
+            }
+        }
         if (title.Contains("Cache", StringComparison.OrdinalIgnoreCase) || title.Contains("Storage", StringComparison.OrdinalIgnoreCase))
         {
             // Storage is a page of its own in the sidebar, like PC Memory.
-            var s = Pages.OfType<SmartCacheViewModel>().FirstOrDefault();
+            var s = _all.OfType<SmartCacheViewModel>().FirstOrDefault();
             if (s != null)
             {
-                Selected = s;
+                if (_tabOf.TryGetValue(s, out var care)) { care.Select(s); Selected = care; }
+                else Selected = s;
                 return;
             }
         }
         if (title.Contains("Accelerator", StringComparison.OrdinalIgnoreCase) || title.Contains("Speed", StringComparison.OrdinalIgnoreCase))
         {
-            var s = Pages.OfType<SettingsViewModel>().FirstOrDefault();
+            var s = _all.OfType<SettingsViewModel>().FirstOrDefault();
             if (s != null)
             {
                 s.SwitchSubTab("Speed");
@@ -187,7 +302,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         if (title.Contains("Performance", StringComparison.OrdinalIgnoreCase))
         {
-            var s = Pages.OfType<SettingsViewModel>().FirstOrDefault();
+            var s = _all.OfType<SettingsViewModel>().FirstOrDefault();
             if (s != null)
             {
                 s.SwitchSubTab("Performance");
@@ -197,7 +312,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         if (title.Contains("Diagnostics", StringComparison.OrdinalIgnoreCase) || title.Contains("Log", StringComparison.OrdinalIgnoreCase))
         {
-            var s = Pages.OfType<SettingsViewModel>().FirstOrDefault();
+            var s = _all.OfType<SettingsViewModel>().FirstOrDefault();
             if (s != null)
             {
                 s.SwitchSubTab("Advanced");
@@ -205,8 +320,16 @@ public sealed partial class MainViewModel : ObservableObject
                 return;
             }
         }
-        var p = Pages.FirstOrDefault(x => x.Title.Equals(title, StringComparison.OrdinalIgnoreCase) || x.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
-        if (p != null) Selected = p;
+        var p = _all.FirstOrDefault(x => x.Title.Equals(title, StringComparison.OrdinalIgnoreCase))
+            ?? _all.FirstOrDefault(x => x.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+        if (p is null) return;
+        // A page that is a tab of a section: the section opens on that tab.
+        if (_tabOf.TryGetValue(p, out var section))
+        {
+            section.Select(p);
+            Selected = section;
+        }
+        else Selected = p;
     }
 
     private void UpdateStatus(EngineMetrics m)

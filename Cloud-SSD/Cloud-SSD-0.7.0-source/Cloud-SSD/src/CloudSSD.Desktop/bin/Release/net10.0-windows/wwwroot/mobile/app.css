@@ -2011,6 +2011,16 @@ body {
   gap: 12px;
   margin-top: 6px;
 }
+/* "RAM" and "Storage": the two parts of Home's System & Storage section. */
+.hw-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--md-sys-color-primary);
+  margin: 6px 2px 2px;
+}
+.hw-group-title + .hardware-widgets-grid { margin-bottom: 14px; }
 
 .hw-widget-card {
   background: var(--md-sys-color-surface);
@@ -4180,7 +4190,7 @@ html { touch-action: manipulation; }
 }
 .xfer-card.waiting { opacity: 0.85; }
 .xfer-card.waiting .xfer-sub { color: var(--warn); }
-.transfers-clear-btn { min-height: 32px; padding: 0 12px; margin-right: 6px; flex-shrink: 0; }
+.transfers-clear-btn { min-height: 32px; padding: 0 12px; margin-right: 6px; flex: 0 0 auto; }
 
 /* Cloud SSD: thumbnails, selection, Google Drive note */
 .explorer-item .item-icon { position: relative; overflow: hidden; }
@@ -4283,3 +4293,205 @@ label.settings-row { cursor: pointer; }
 
 /* the backup settings and choice sheets sit above the transfer pill and FAB */
 #settings-modal, #details-sheet, #choice-sheet, #backup-settings { z-index: 1200; }
+
+/* ---- "last time" data: the PC is away, the saved list is shown (0.11) ---- */
+.offline-banner {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 16px 10px; padding: 10px 12px; border-radius: 14px;
+  background: rgb(253 214 99 / 0.12); border: 1px solid rgb(253 214 99 / 0.35);
+  color: var(--md-sys-color-on-surface);
+}
+:root[data-theme="light"] .offline-banner { background: rgb(122 89 0 / 0.08); border-color: rgb(122 89 0 / 0.30); }
+.offline-banner-icon { width: 22px; height: 22px; flex: 0 0 auto; color: var(--warning); }
+.offline-banner-icon svg { width: 22px; height: 22px; fill: currentColor; }
+.offline-banner-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.offline-banner-text strong { font-size: 13px; font-weight: 600; color: var(--warning); }
+.offline-banner-text span { font-size: 12px; color: var(--md-sys-color-on-surface-variant); line-height: 1.35; }
+.offline-banner-btn {
+  flex: 0 0 auto; border: 0; border-radius: 16px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 600;
+  background: rgb(var(--ink) / 0.10); color: var(--md-sys-color-on-surface); cursor: pointer;
+}
+.offline-inline-note {
+  margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; font-size: 12.5px;
+  background: rgb(253 214 99 / 0.12); color: var(--warning);
+}
+.ssd-new-badge {
+  display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 8px; vertical-align: 1px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em;
+  background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
+}
+.ssd-items-container.saved-mode .file-item .item-icon img { opacity: 0.85; }
+.m3-sheet-row.needs-pc { opacity: 0.55; }
+.m3-sheet-row.needs-pc .m3-sheet-row-sub { color: var(--warning); }
+.hw-badge.stale, .stale { opacity: 0.75; font-style: italic; }
+/* ---- devices list (Cloud SSD tab start), device header, profile menu (0.11) ---- */
+.ssd-devices .section-container { padding-top: 4px; }
+.device-list { display: flex; flex-direction: column; gap: 10px; }
+.device-row {
+  display: flex; align-items: center; gap: 14px; padding: 14px 10px 14px 14px; border-radius: 18px; cursor: pointer;
+  background: var(--md-sys-color-surface-container); border: 1px solid rgb(var(--ink) / 0.06);
+  transition: background 0.15s ease;
+}
+.device-row:active { background: rgb(var(--ink) / 0.08); }
+.device-row.active { border-color: color-mix(in srgb, var(--md-sys-color-primary) 55%, transparent); }
+/* Wake-on-LAN on an offline PC's row: a small chip that never squeezes the name. */
+.device-row .device-wake { flex: none; padding: 5px 12px; margin-right: -6px; }
+.device-row-icon {
+  width: 46px; height: 46px; flex: 0 0 auto; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); position: relative;
+}
+.device-row-icon svg { width: 24px; height: 24px; fill: currentColor; }
+.device-row-icon.live::after {
+  content: ''; position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--success); border: 2px solid var(--md-sys-color-surface-container);
+}
+.device-row-text { flex: 1; min-width: 0; }
+.device-row-name { font-size: 15.5px; font-weight: 600; color: var(--md-sys-color-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.device-row-sub { margin-top: 3px; font-size: 12.5px; color: var(--dim); display: flex; align-items: center; gap: 6px; line-height: 1.3; }
+.device-row-sub.warn { color: var(--warning); }
+.device-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.device-dot.live { background: var(--success); box-shadow: 0 0 0 3px rgb(109 213 140 / 0.18); }
+.device-dot.off { background: transparent; border: 1.5px solid var(--dim); }
+.device-current-tag {
+  display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 8px; font-size: 10.5px; font-weight: 700; vertical-align: 2px;
+  background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
+}
+.device-list-note { margin: 12px 4px 0; font-size: 12px; color: var(--dim); line-height: 1.4; }
+.device-header {
+  display: flex; align-items: center; gap: 12px; margin: 2px 16px 10px; padding: 10px 6px 10px 6px;
+}
+.device-header .device-row-icon { width: 40px; height: 40px; border-radius: 12px; }
+.device-header .device-row-icon svg { width: 21px; height: 21px; }
+.device-header-text { flex: 1; min-width: 0; }
+.device-back-btn {
+  width: 40px; height: 40px; flex: 0 0 auto; border: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgb(var(--ink) / 0.06); color: var(--md-sys-color-on-surface); cursor: pointer;
+}
+.device-back-btn svg { width: 22px; height: 22px; fill: currentColor; }
+
+.profile-menu-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 1300; background: rgb(0 0 0 / 0.35);
+  align-items: flex-start; justify-content: flex-end; padding: 74px 12px 0;
+}
+.profile-menu-backdrop.active { display: flex; }
+.profile-menu-card {
+  width: min(360px, calc(100vw - 24px)); max-height: calc(100vh - 100px); overflow-y: auto; border-radius: 22px; padding: 8px 0 8px;
+  background: var(--md-sys-color-surface); box-shadow: 0 10px 30px var(--shadow); animation: profile-in 0.16s ease-out;
+}
+@keyframes profile-in { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
+.profile-menu-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px 14px; border-bottom: 1px solid var(--divider); margin-bottom: 6px; }
+.profile-menu-avatar {
+  width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  font-size: 19px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #4285F4, #9B72CB);
+}
+.profile-menu-who { flex: 1; min-width: 0; }
+.profile-menu-name { font-size: 15.5px; font-weight: 600; color: var(--md-sys-color-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-menu-sub { font-size: 12px; color: var(--dim); margin-top: 2px; }
+#profile-menu-list .m3-sheet-row { padding-left: 18px; padding-right: 16px; }
+/* 0.11 fixes: menu buttons on device rows, the profile Edit button, no upload button on the device list */
+.device-row .item-more-btn, .device-header .item-more-btn {
+  width: 40px; height: 40px; flex: 0 0 auto; border: 0; border-radius: 50%; padding: 0;
+  display: flex; align-items: center; justify-content: center; background: transparent; color: var(--dim); cursor: pointer;
+}
+.device-row .item-more-btn svg, .device-header .item-more-btn svg { width: 22px; height: 22px; fill: currentColor; }
+.device-row .item-more-btn:active, .device-header .item-more-btn:active { background: rgb(var(--ink) / 0.08); }
+.profile-menu-head .drive-btn { flex: 0 0 auto; width: auto; padding: 7px 16px; font-size: 13px; }
+body.ssd-at-devices[data-tab="ssd"] .material-fab { display: none; }
+.device-row-name { display: flex; align-items: center; gap: 8px; }
+.device-row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device-row-name .device-current-tag { flex: 0 0 auto; margin-left: 0; }
+.device-header .device-row-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.device-header .device-row-sub { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ---- "Offline rakho": folders and files kept on this phone ---- */
+.ssd-pin-badge {
+  display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 8px; vertical-align: 1px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em;
+  background: var(--cat-safe-bg); color: var(--cat-safe-fg);
+}
+.ssd-pin-badge.pending { opacity: 0.6; }
+.offline-list { display: flex; flex-direction: column; gap: 8px; padding: 4px 16px 8px; max-height: 50vh; overflow-y: auto; }
+.offline-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--md-sys-color-surface-container); }
+.offline-row.is-error .offline-row-sub { color: var(--error); }
+.offline-row-icon {
+  width: 36px; height: 36px; flex: none; display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: var(--cat-safe-bg); color: var(--cat-safe-fg);
+}
+.offline-row-icon svg { width: 20px; height: 20px; fill: currentColor; }
+.offline-row-text { flex: 1; min-width: 0; }
+.offline-row-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.offline-row-sub { font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 2px; }
+.offline-row-btn { flex: none; padding: 6px 12px; font-size: 12px; }
+.offline-empty { padding: 18px 8px; color: var(--md-sys-color-on-surface-variant); font-size: 14px; line-height: 1.45; text-align: center; }
+.offline-mobile-row { margin: 4px 8px 0; }
+.offline-switch {
+  flex: none; width: 40px; height: 22px; border-radius: 11px; position: relative; margin-left: auto;
+  background: var(--md-sys-color-surface-variant); border: 1px solid var(--md-sys-color-outline); transition: background 0.15s;
+}
+.offline-switch::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--md-sys-color-on-surface-variant); transition: left 0.15s;
+}
+.offline-switch.on { background: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); }
+.offline-switch.on::after { left: 21px; background: var(--on-primary); }
+.offline-note { padding: 6px 20px 18px; font-size: 12px; color: var(--dim); }
+
+/* ---- USB cable without tethering ---- */
+.usb-tether-hint {
+  display: flex; flex-direction: column; gap: 10px; margin: 10px 0 4px; padding: 12px 14px; border-radius: 14px;
+  background: var(--md-sys-color-surface-container); font-size: 13px; line-height: 1.45; color: var(--md-sys-color-on-surface-variant);
+}
+.usb-tether-hint .m3-tonal-btn { align-self: flex-start; padding: 8px 18px; }
+
+/* ---- asking the PC for access, and what this phone may do ---- */
+.access-head { padding: 4px 20px 10px; }
+.access-title { font-size: 18px; font-weight: 700; color: var(--md-sys-color-on-surface); }
+.access-text { font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; line-height: 1.45; }
+.access-list { display: flex; flex-direction: column; gap: 6px; padding: 4px 20px; }
+.access-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--md-sys-color-surface-container); font-size: 14px; }
+.access-item svg { width: 18px; height: 18px; flex: none; fill: var(--md-sys-color-primary); }
+.access-status { min-height: 20px; padding: 10px 20px 0; font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
+.access-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 20px 20px; }
+.access-actions button { padding: 9px 18px; }
+.perm-list { display: flex; flex-direction: column; gap: 6px; padding: 0 16px 6px; max-height: 60vh; overflow-y: auto; }
+.perm-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--md-sys-color-surface-container); }
+.perm-row-text { flex: 1; min-width: 0; font-size: 14px; }
+.perm-row-sub { font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 2px; }
+.perm-row.on .perm-row-sub { color: var(--success); }
+.perm-row .m3-tonal-btn { flex: none; padding: 6px 14px; font-size: 12px; }
+
+/* ---- files offered to this phone ---- */
+.inbox-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px 6px; max-height: 60vh; overflow-y: auto; }
+.inbox-card { padding: 12px 14px; border-radius: 16px; background: var(--md-sys-color-surface-container); }
+.inbox-from { display: flex; align-items: center; gap: 12px; }
+.inbox-from svg { width: 22px; height: 22px; flex: none; fill: var(--md-sys-color-primary); }
+.inbox-title { font-size: 15px; font-weight: 600; color: var(--md-sys-color-on-surface); }
+.inbox-via { font-size: 12px; font-weight: 400; color: var(--dim); }
+.inbox-meta { font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 2px; }
+.inbox-names { font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin: 8px 0 0 34px; word-break: break-word; }
+.inbox-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+.inbox-actions button { padding: 8px 18px; }
+
+/* ---- the PC asks to see this phone's files ---- */
+.peer-scope {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left;
+  padding: 12px 14px; border-radius: 14px; border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); font: inherit;
+}
+.peer-scope span { font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+.peer-scope.on { border-color: var(--md-sys-color-primary); background: var(--md-sys-color-secondary-container); }
+
+/* Phone tab: "Internal storage" and "Starred" as one slim row under the kinds of file. */
+.phone-quick-row { display: flex; gap: 10px; margin-top: 12px; }
+.phone-quick-btn {
+  flex: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border-radius: 16px;
+  border: 1px solid var(--divider); background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface);
+  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left;
+}
+.phone-quick-btn svg { width: 20px; height: 20px; fill: var(--md-sys-color-primary); flex: none; }
+.phone-quick-meta { margin-left: auto; color: var(--md-sys-color-on-surface-variant); font-size: 12px; font-weight: 400; }
+.storage-legend-row[hidden] { display: none; }
+/* Transfer history: the title of each kind of file ("Photos · 12"). */
+.history-group-title { font-size: 12px; font-weight: 600; letter-spacing: 0.3px; color: var(--md-sys-color-primary); margin: 14px 4px 6px; }
+.history-group-title:first-child { margin-top: 4px; }
+.phone-quick-btn > span { white-space: nowrap; }
+.phone-quick-meta { overflow: hidden; text-overflow: ellipsis; min-width: 0; }

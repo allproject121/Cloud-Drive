@@ -531,10 +531,10 @@
     }
   }
 
-  /** What the PC may see on this phone ({scope, until} from the app), in words. */
+  /** What the PC may see on this phone ({scope, until, write} from the app), in words. */
   function peerText(st, now) {
     if (!st || !st.scope) return 'Not allowed';
-    const what = st.scope === 'all' ? 'Whole phone storage' : 'Photos, downloads, documents and music';
+    const what = (st.scope === 'all' ? 'Whole phone storage' : 'Photos, downloads, documents and music') + (st.write ? ' · can add files' : '');
     if (!st.until) return what + ' · until you stop it';
     if (st.until <= now) return 'Not allowed';
     const d = new Date(st.until);
@@ -545,6 +545,53 @@
   function safeFolder(name) {
     const s = String(name || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').replace(/^[. ]+|[. ]+$/g, '').slice(0, 40).trim();
     return s && s !== '..' ? s : 'PC';
+  }
+
+  // ------------------------------------------------------------------ folders sent (a project…)
+
+  /**
+   * Where one file of an offer is saved, inside Downloads: the base ("Cloud-SSD/Received/DESKTOP") plus its place in the
+   * folder that was sent ("MyApp/src"), with the top folder renamed when one of that name was there ("MyApp (2)").
+   * Every part is cleaned and ".." is dropped: the sender never picks where outside the base a file lands.
+   */
+  function shareSavePath(base, folder, renames) {
+    const parts = String(folder || '').replace(/\\/g, '/').split('/')
+      .map(p => p.replace(/[:*?"<>|\u0000-\u001f]/g, '_').replace(/^[. ]+|[. ]+$/g, '').trim())
+      .filter(p => p && p !== '..');
+    if (!parts.length) return base;
+    if (renames && renames[parts[0]]) parts[0] = renames[parts[0]];
+    return base + '/' + parts.slice(0, 24).join('/');
+  }
+
+  /** "MyApp/ and 2 files" style summary of an offer's items: folders sent once by name, loose files by name. */
+  function offerSummary(items, max) {
+    const tops = [], loose = [];
+    (items || []).forEach(it => {
+      const top = String(it.folder || '').split('/')[0];
+      if (top) { if (!tops.includes(top)) tops.push(top); } else loose.push(it.name);
+    });
+    const all = tops.map(t => t + '/').concat(loose);
+    const n = max || 4;
+    return { folders: tops, text: all.slice(0, n).join(', ') + (all.length > n ? ` and ${all.length - n} more` : '') };
+  }
+
+  // ------------------------------------------------------------------ transfers as tasks
+
+  /** The model's link (wifi, usb, hotspot, tailscale) from how the page reaches the PC (route) and what the PC saw (kind). */
+  function taskLink(route, kind) {
+    if (route === 'tailnet' || kind === 'internet') return 'tailscale';
+    if (kind === 'usb' || kind === 'usb-adb') return 'usb';
+    if (kind === 'pc-hotspot' || kind === 'phone-hotspot') return 'hotspot';
+    return 'wifi';
+  }
+
+  /** The task list with this task in it (replaced when known, else first), newest first, at most max. */
+  function upsertTask(list, task, max) {
+    if (!task || !task.id) return list || [];
+    const out = (list || []).filter(t => t.id !== task.id);
+    out.unshift(task);
+    out.sort((a, b) => String(b.started || '').localeCompare(String(a.started || '')));
+    return out.slice(0, max || 40);
   }
 
   // ------------------------------------------------------------------ permissions on the PC
@@ -656,7 +703,7 @@
     covers, pinFor, sameCopy, fmtSize, pinStatus, keptListing,
     linkLabel, sameSubnet, accessName, grantText, safeFolder, peerText,
     friendlyPath, syncStatus, wakeHint,
-    TRANSFER_KINDS, transferKind, groupTransfers
+    TRANSFER_KINDS, transferKind, groupTransfers, shareSavePath, offerSummary, taskLink, upsertTask
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

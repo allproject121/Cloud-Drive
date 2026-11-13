@@ -6,9 +6,9 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v10.0": {
-      "Cloud-SSD/0.7.0": {
+      "Cloud-SSD/0.9.0": {
         "dependencies": {
-          "CloudSSD.App": "0.7.0",
+          "CloudSSD.App": "0.9.0",
           "CommunityToolkit.Mvvm": "8.4.2",
           "Microsoft.Extensions.DependencyInjection": "10.0.12"
         },
@@ -326,127 +326,127 @@
           }
         }
       },
-      "CloudSSD.App/0.7.0": {
+      "CloudSSD.App/0.9.0": {
         "dependencies": {
-          "CloudSSD.Cache": "0.7.0",
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Diagnostics": "0.7.0",
-          "CloudSSD.GameStream": "0.7.0",
-          "CloudSSD.Games": "0.7.0",
-          "CloudSSD.Mount": "0.7.0",
-          "CloudSSD.Providers": "0.7.0",
-          "CloudSSD.Streaming": "0.7.0"
+          "CloudSSD.Cache": "0.9.0",
+          "CloudSSD.Core": "0.9.0",
+          "CloudSSD.Diagnostics": "0.9.0",
+          "CloudSSD.GameStream": "0.9.0",
+          "CloudSSD.Games": "0.9.0",
+          "CloudSSD.Mount": "0.9.0",
+          "CloudSSD.Providers": "0.9.0",
+          "CloudSSD.Streaming": "0.9.0"
         },
         "runtime": {
           "CloudSSD.App.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Cache/0.7.0": {
+      "CloudSSD.Cache/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0"
+          "CloudSSD.Core": "0.9.0"
         },
         "runtime": {
           "CloudSSD.Cache.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Core/0.7.0": {
+      "CloudSSD.Core/0.9.0": {
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "10.0.12"
         },
         "runtime": {
           "CloudSSD.Core.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Diagnostics/0.7.0": {
+      "CloudSSD.Diagnostics/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
+          "CloudSSD.Core": "0.9.0",
           "Microsoft.Extensions.Logging": "10.0.12"
         },
         "runtime": {
           "CloudSSD.Diagnostics.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Games/0.7.0": {
+      "CloudSSD.Games/0.9.0": {
         "dependencies": {
-          "CloudSSD.Cache": "0.7.0",
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Diagnostics": "0.7.0",
-          "CloudSSD.Mount": "0.7.0",
-          "CloudSSD.Streaming": "0.7.0"
+          "CloudSSD.Cache": "0.9.0",
+          "CloudSSD.Core": "0.9.0",
+          "CloudSSD.Diagnostics": "0.9.0",
+          "CloudSSD.Mount": "0.9.0",
+          "CloudSSD.Streaming": "0.9.0"
         },
         "runtime": {
           "CloudSSD.Games.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.GameStream/0.7.0": {
+      "CloudSSD.GameStream/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
+          "CloudSSD.Core": "0.9.0",
           "Microsoft.Extensions.Logging.Abstractions": "10.0.12",
           "Vortice.Direct3D11": "3.8.3",
           "Vortice.MediaFoundation": "3.8.3"
         },
         "runtime": {
           "CloudSSD.GameStream.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Mount/0.7.0": {
+      "CloudSSD.Mount/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Diagnostics": "0.7.0"
+          "CloudSSD.Core": "0.9.0",
+          "CloudSSD.Diagnostics": "0.9.0"
         },
         "runtime": {
           "CloudSSD.Mount.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Providers/0.7.0": {
+      "CloudSSD.Providers/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
-          "CloudSSD.Mount": "0.7.0"
+          "CloudSSD.Core": "0.9.0",
+          "CloudSSD.Mount": "0.9.0"
         },
         "runtime": {
           "CloudSSD.Providers.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       },
-      "CloudSSD.Streaming/0.7.0": {
+      "CloudSSD.Streaming/0.9.0": {
         "dependencies": {
-          "CloudSSD.Core": "0.7.0",
+          "CloudSSD.Core": "0.9.0",
           "Microsoft.Data.Sqlite": "10.0.12"
         },
         "runtime": {
           "CloudSSD.Streaming.dll": {
-            "assemblyVersion": "0.7.0.0",
-            "fileVersion": "0.7.0.0"
+            "assemblyVersion": "0.9.0.0",
+            "fileVersion": "0.9.0.0"
           }
         }
       }
     }
   },
   "libraries": {
-    "Cloud-SSD/0.7.0": {
+    "Cloud-SSD/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
@@ -591,47 +591,47 @@
       "path": "vortice.mediafoundation/3.8.3",
       "hashPath": "vortice.mediafoundation.3.8.3.nupkg.sha512"
     },
-    "CloudSSD.App/0.7.0": {
+    "CloudSSD.App/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Cache/0.7.0": {
+    "CloudSSD.Cache/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Core/0.7.0": {
+    "CloudSSD.Core/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Diagnostics/0.7.0": {
+    "CloudSSD.Diagnostics/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Games/0.7.0": {
+    "CloudSSD.Games/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.GameStream/0.7.0": {
+    "CloudSSD.GameStream/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Mount/0.7.0": {
+    "CloudSSD.Mount/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Providers/0.7.0": {
+    "CloudSSD.Providers/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "CloudSSD.Streaming/0.7.0": {
+    "CloudSSD.Streaming/0.9.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

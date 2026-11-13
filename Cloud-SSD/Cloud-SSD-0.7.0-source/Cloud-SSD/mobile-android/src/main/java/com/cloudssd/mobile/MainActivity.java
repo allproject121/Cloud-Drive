@@ -139,7 +139,35 @@ public class MainActivity extends Activity {
             return value.length;
         }
     };
-    private final TransferHub.Listener transferListener = t -> emit("transfer", t);
+    private final TransferHub.Listener transferListener = new TransferHub.Listener() {
+        @Override
+        public void onTransfer(JSONObject t) { emit("transfer", t); }
+
+        @Override
+        public void onTask(JSONObject task) { emit("task", task); }
+    };
+    /** What the page said about the next batch (device, saveTo…), taken by the next one that starts. */
+    private volatile JSONObject nextTaskMeta;
+
+    /** Starts a task for a batch: the defaults here, with what the page told before (native.nextTask) on top. */
+    private String startTask(JSONObject defaults) {
+        TransferHub hub = TransferHub.get(this);
+        JSONObject meta = defaults;
+        JSONObject told = nextTaskMeta;
+        nextTaskMeta = null;
+        try {
+            if (!meta.has("device")) meta.put("device", hub.pcName);
+            if (!meta.has("link")) meta.put("link", hub.linkKind);
+            if (told != null) for (java.util.Iterator<String> k = told.keys(); k.hasNext(); ) { String key = k.next(); meta.put(key, told.get(key)); }
+        } catch (Exception ignored) { }
+        return hub.beginTask(meta);
+    }
+
+    private static JSONObject meta(String... kv) {
+        JSONObject o = new JSONObject();
+        try { for (int i = 0; i + 1 < kv.length; i += 2) o.put(kv[i], kv[i + 1]); } catch (Exception ignored) { }
+        return o;
+    }
     private final OfflinePins.Listener offlineListener = ev -> emit("offline", ev);
     private final PeerLink.Listener peerListener = (pc, name) -> {
         try {
@@ -402,7 +430,14 @@ public class MainActivity extends Activity {
         /** Lets that PC see this phone's files: scope shared|all, for minutes (0 = until taken back). */
         @JavascriptInterface
         public void peerGrant(String pcId, String scope, int minutes) {
-            PeerLink.Grants.set(MainActivity.this, pcId, scope, minutes);
+            peerGrantWrite(pcId, scope, minutes, PeerLink.Grants.get(MainActivity.this, pcId) != null
+                    && PeerLink.Grants.get(MainActivity.this, pcId).write);
+        }
+
+        /** The same, saying whether that PC may also add files and folders to this phone. */
+        @JavascriptInterface
+        public void peerGrantWrite(String pcId, String scope, int minutes, boolean write) {
+            PeerLink.Grants.set(MainActivity.this, pcId, scope, minutes, write);
             android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) nm.cancel(PeerLink.NOTE_ID);
             // Keeps answering with the app closed for as long as it is allowed.
@@ -516,6 +551,56 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** The transfers as tasks, newest first (the page asks when it opens; then 'task' events follow). */
+        @JavascriptInterface
+        public String tasks() {
+            return TransferHub.get(MainActivity.this).tasks().toString();
+        }
+
+        @JavascriptInterface
+        public void taskCancel(String id) {
+            TransferHub.get(MainActivity.this).taskCancel(id);
+        }
+
+        @JavascriptInterface
+        public void taskRetry(String id) {
+            TransferHub.get(MainActivity.this).taskRetry(id);
+        }
+
+        /** What the page knows about the next batch it starts (device, saveTo, kind…); taken by that batch. */
+        @JavascriptInterface
+        public void nextTask(String json) {
+            try { nextTaskMeta = new JSONObject(json); } catch (Exception e) { nextTaskMeta = null; }
+        }
+
+        /** How the phone reaches the PC now (wifi, usb, hotspot, tailscale) and the PC's name, for the tasks made here. */
+        @JavascriptInterface
+        public void setLinkInfo(String kind, String pcName) {
+            TransferHub hub = TransferHub.get(MainActivity.this);
+            if (kind != null && !kind.isEmpty()) hub.linkKind = kind;
+            if (pcName != null && !pcName.isEmpty()) hub.pcName = pcName;
+        }
+
+        /** Opens a folder inside the phone's storage ("Download/Cloud-SSD/Received/PC") in the Files app. */
+        @JavascriptInterface
+        public void openFolder(String path) {
+            runOnUiThread(() -> {
+                String p = path == null ? "" : path.replaceAll("^/+|/+$", "");
+                try {
+                    Uri u = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:" + p);
+                    Intent i = new Intent(Intent.ACTION_VIEW).setDataAndType(u, DocumentsContract.Document.MIME_TYPE_DIR)
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(i);
+                } catch (Exception e) {
+                    try {
+                        startActivity(new Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS));
+                    } catch (Exception e2) {
+                        toast(Tr.t(MainActivity.this, "Cannot share: {0}", String.valueOf(e2.getMessage())));
+                    }
+                }
+            });
+        }
+
         /** Picks a folder to send (a project, photos…); the page hears "folderPicked" with what is in it. */
         @JavascriptInterface
         public void pickFolderToSend(boolean everything) {
@@ -531,16 +616,68 @@ public class MainActivity extends Activity {
             });
         }
 
+        /**
+         * Folders and files chosen in the Phone tab: {paths: [...], everything?}. Walked here (no picker); returns what
+         * goes (count, bytes, folders at the top, items {name, size, folder} for an offer, what was left out).
+         */
+        @JavascriptInterface
+        public String preparePaths(String json) {
+            try {
+                JSONObject o = new JSONObject(json);
+                return walkPaths(o.getJSONArray("paths"), o.optBoolean("everything", false)).toString();
+            } catch (Exception e) {
+                try { return new JSONObject().put("error", String.valueOf(e.getMessage())).put("count", 0).toString(); } catch (Exception e2) { return "{}"; }
+            }
+        }
+
+        /**
+         * What preparePaths found goes to the PC as one task: each folder into the name the PC gave it ({"MyApp": "MyApp (2)"}),
+         * loose files into its upload folder.
+         */
+        @JavascriptInterface
+        public void sendPreparedToPc(String renamesJson) {
+            java.util.List<String[]> files = sendFolderFiles;
+            if (files == null || files.isEmpty()) return;
+            TransferHub hub = TransferHub.get(MainActivity.this);
+            JSONObject renames;
+            try { renames = new JSONObject(renamesJson == null ? "{}" : renamesJson); } catch (Exception e) { renames = new JSONObject(); }
+            java.util.LinkedHashSet<String> tops = new java.util.LinkedHashSet<>();
+            boolean loose = false;
+            for (String[] f : files) { if (f[3].isEmpty()) loose = true; else tops.add(f[3].split("/")[0]); }
+            boolean oneFolder = tops.size() == 1 && !loose;
+            String first = tops.isEmpty() ? "" : renames.optString(tops.iterator().next(), tops.iterator().next());
+            startTask(meta("dir", "toPc", "kind", oneFolder ? "folder" : "files", "folder", oneFolder ? first : "",
+                    "saveTo", hub.pcName + " › Uploads" + (oneFolder ? " › " + first : "")));
+            try {
+                for (String[] f : files) {
+                    String target = "";
+                    if (!f[3].isEmpty()) {
+                        int slash = f[3].indexOf('/');
+                        String top = slash < 0 ? f[3] : f[3].substring(0, slash);
+                        target = "pcfolder:" + renames.optString(top, top) + (slash < 0 ? "" : f[3].substring(slash));
+                    }
+                    hub.enqueueUpload(f[1], Long.parseLong(f[2]), srcKindOf(f), f[0], target);
+                }
+            } finally {
+                hub.endTask();
+            }
+        }
+
         /** The picked folder goes to the PC, into the folder it named for it ("MyApp" or "MyApp (2)"). */
         @JavascriptInterface
         public void sendFolderToPc(String top) {
             java.util.List<String[]> files = sendFolderFiles;
             if (files == null || top == null || top.isEmpty()) return;
             TransferHub hub = TransferHub.get(MainActivity.this);
-            for (String[] f : files) {
-                int slash = f[3].indexOf('/');
-                String place = top + (slash < 0 ? "" : f[3].substring(slash));
-                hub.enqueueUpload(f[1], Long.parseLong(f[2]), "uri", f[0], "pcfolder:" + place);
+            startTask(meta("dir", "toPc", "kind", "folder", "folder", top, "saveTo", hub.pcName + " › Uploads › " + top));
+            try {
+                for (String[] f : files) {
+                    int slash = f[3].indexOf('/');
+                    String place = top + (slash < 0 ? "" : f[3].substring(slash));
+                    hub.enqueueUpload(f[1], Long.parseLong(f[2]), srcKindOf(f), f[0], "pcfolder:" + place);
+                }
+            } finally {
+                hub.endTask();
             }
         }
 
@@ -552,9 +689,15 @@ public class MainActivity extends Activity {
             try {
                 JSONArray ids = new JSONArray(idsJson);
                 TransferHub hub = TransferHub.get(MainActivity.this);
-                for (int i = 0; i < files.size() && i < ids.length(); i++) {
-                    String[] f = files.get(i);
-                    hub.enqueueUpload(f[1], Long.parseLong(f[2]), "uri", f[0], "share:" + offer + ":" + ids.optString(i));
+                String top = files.isEmpty() ? "" : files.get(0)[3].split("/")[0];
+                startTask(meta("id", "rl-" + offer, "dir", "toDevice", "kind", "folder", "folder", top, "link", "relay"));
+                try {
+                    for (int i = 0; i < files.size() && i < ids.length(); i++) {
+                        String[] f = files.get(i);
+                        hub.enqueueUpload(f[1], Long.parseLong(f[2]), srcKindOf(f), f[0], "share:" + offer + ":" + ids.optString(i));
+                    }
+                } finally {
+                    hub.endTask();
                 }
             } catch (Exception e) {
                 toast("The files could not be sent");
@@ -746,8 +889,16 @@ public class MainActivity extends Activity {
             final List<Uri> uris = takeShareIn();
             try {
                 final JSONArray ids = new JSONArray(itemIdsJson);
+                final JSONObject told = nextTaskMeta;
+                nextTaskMeta = null;
                 worker.execute(() -> {
-                    for (int i = 0; i < uris.size() && i < ids.length(); i++) uploadUri(uris.get(i), "share:" + offerId + ":" + ids.optString(i), false);
+                    nextTaskMeta = told;
+                    startTask(meta("id", "rl-" + offerId, "dir", "toDevice", "link", "relay"));
+                    try {
+                        for (int i = 0; i < uris.size() && i < ids.length(); i++) uploadUri(uris.get(i), "share:" + offerId + ":" + ids.optString(i), false);
+                    } finally {
+                        TransferHub.get(MainActivity.this).endTask();
+                    }
                 });
             } catch (JSONException e) {
                 toast("The files could not be sent");
@@ -931,6 +1082,30 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** What Android lets this app do, for the Permissions page: {files: all|media|none, notifications, background}. */
+        @JavascriptInterface
+        public String permState() {
+            JSONObject o = new JSONObject();
+            try {
+                o.put("files", storageAccess());
+                o.put("notifications", Build.VERSION.SDK_INT < 33 || hasPermission("android.permission.POST_NOTIFICATIONS"));
+                o.put("background", batteryUnrestricted());
+            } catch (Exception ignored) { }
+            return o.toString();
+        }
+
+        /** Opens this app's page in Android's Settings: every permission of the app is there. */
+        @JavascriptInterface
+        public void openAppSettings() {
+            runOnUiThread(() -> {
+                try {
+                    startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName())));
+                } catch (Exception e) {
+                    toast("Open Settings > Apps > Cloud-SSD");
+                }
+            });
+        }
+
         @JavascriptInterface
         public boolean hasStoragePermission() {
             return !"none".equals(storageAccess());
@@ -1011,11 +1186,18 @@ public class MainActivity extends Activity {
                 JSONObject o = new JSONObject(json);
                 String folder = o.optString("folder", "");
                 JSONArray a = o.getJSONArray("files");
-                for (int i = 0; i < a.length(); i++) {
-                    JSONObject f = a.getJSONObject(i);
-                    // A file of a sent folder (a project…) has its own place: "Cloud-SSD/Received/PC/MyApp/src".
-                    TransferHub.get(MainActivity.this).enqueueDownload(routeOf(f.optString("url")), f.optString("name", "file"), f.optLong("size", -1),
-                            f.optString("folder", folder));
+                // One task for the offer (the page tells who sent it, where it goes, how it came).
+                JSONObject t = o.optJSONObject("task");
+                startTask(t != null ? t : meta("dir", "toPhone", "saveTo", "Downloads › " + folder.replace("/", " › "), "openPath", "Download/" + folder));
+                try {
+                    for (int i = 0; i < a.length(); i++) {
+                        JSONObject f = a.getJSONObject(i);
+                        // A file of a sent folder (a project…) has its own place: "Cloud-SSD/Received/PC/MyApp/src".
+                        TransferHub.get(MainActivity.this).enqueueDownload(routeOf(f.optString("url")), f.optString("name", "file"), f.optLong("size", -1),
+                                f.optString("folder", folder));
+                    }
+                } finally {
+                    TransferHub.get(MainActivity.this).endTask();
                 }
             } catch (Exception e) {
                 toast("The files could not be saved");
@@ -1049,11 +1231,16 @@ public class MainActivity extends Activity {
                 JSONObject o = new JSONObject(json);
                 String offer = o.getString("offer");
                 JSONArray a = o.getJSONArray("items");
-                for (int i = 0; i < a.length(); i++) {
-                    JSONObject it = a.getJSONObject(i);
-                    File f = new File(it.getString("path"));
-                    if (!f.isFile()) continue;
-                    TransferHub.get(MainActivity.this).enqueueUpload(f.getName(), f.length(), "file", f.getAbsolutePath(), "share:" + offer + ":" + it.getString("id"));
+                startTask(meta("id", "rl-" + offer, "dir", "toDevice", "link", "relay"));
+                try {
+                    for (int i = 0; i < a.length(); i++) {
+                        JSONObject it = a.getJSONObject(i);
+                        File f = new File(it.getString("path"));
+                        if (!f.isFile()) continue;
+                        TransferHub.get(MainActivity.this).enqueueUpload(f.getName(), f.length(), "file", f.getAbsolutePath(), "share:" + offer + ":" + it.getString("id"));
+                    }
+                } finally {
+                    TransferHub.get(MainActivity.this).endTask();
                 }
             } catch (Exception e) {
                 toast("The files could not be sent");
@@ -1492,7 +1679,67 @@ public class MainActivity extends Activity {
     private static final int REQ_SYNC_TREE = 3201;
     private static final int REQ_SEND_TREE = 3202;
     /** The folder picked to send (a project…): its files, waiting for the page to say where they go. */
-    private volatile java.util.List<String[]> sendFolderFiles;   // {uri, name, size, folder}
+    private volatile java.util.List<String[]> sendFolderFiles;   // {uri or path, name, size, folder[, "file"]}
+
+    /** "file" for a path found by walking the phone's storage, else a content address from the picker. */
+    private static String srcKindOf(String[] f) {
+        return f.length > 4 ? f[4] : "uri";
+    }
+
+    /**
+     * Every file under the chosen paths (folders walked with All files access, no picker), each with its place:
+     * a folder "MyApp" gives "MyApp", "MyApp/src"…; a chosen file has none. Build output and junk are left out
+     * unless everything; links are not followed; at most 5000 files.
+     */
+    private JSONObject walkPaths(JSONArray paths, boolean everything) throws Exception {
+        java.util.List<String[]> files = new java.util.ArrayList<>();
+        java.util.TreeSet<String> skippedFolders = new java.util.TreeSet<>();
+        java.util.LinkedHashSet<String> tops = new java.util.LinkedHashSet<>();
+        long[] skipped = {0, 0};
+        for (int i = 0; i < paths.length(); i++) {
+            File f = new File(paths.getString(i));
+            if (f.isDirectory()) {
+                String top = TransferHub.cleanFolder(f.getName().replace('/', '_'));
+                if (top.isEmpty()) top = "Folder";
+                tops.add(top);
+                java.util.ArrayDeque<Object[]> todo = new java.util.ArrayDeque<>();
+                todo.add(new Object[]{f, top});
+                while (!todo.isEmpty()) {
+                    Object[] d = todo.poll();
+                    File dirF = (File) d[0];
+                    File[] kids = dirF.listFiles();
+                    if (kids == null) continue;
+                    java.util.Arrays.sort(kids, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+                    for (File k : kids) {
+                        String name = k.getName();
+                        // A link to elsewhere is not followed (it could loop or leave the folder).
+                        if (!k.getCanonicalPath().equals(k.getAbsolutePath()) && !k.getCanonicalFile().getParentFile().equals(dirF.getCanonicalFile())) continue;
+                        if (k.isDirectory()) {
+                            if (!everything && SKIP_FOLDERS.contains(name.toLowerCase(Locale.US))) { skippedFolders.add(name); continue; }
+                            todo.add(new Object[]{k, d[1] + "/" + TransferHub.cleanFolder(name.replace('/', '_'))});
+                        } else if (k.isFile()) {
+                            boolean junk = name.equals("Thumbs.db") || name.equals("desktop.ini") || name.equals(".DS_Store")
+                                    || name.endsWith(".part") || name.endsWith(".tmp") || name.startsWith("~$");
+                            if ((!everything && junk) || files.size() >= 5000) { skipped[0]++; skipped[1] += k.length(); continue; }
+                            files.add(new String[]{k.getAbsolutePath(), name, String.valueOf(k.length()), (String) d[1], "file"});
+                        }
+                    }
+                }
+            } else if (f.isFile() && files.size() < 5000) {
+                files.add(new String[]{f.getAbsolutePath(), f.getName(), String.valueOf(f.length()), "", "file"});
+            }
+        }
+        sendFolderFiles = files;
+        JSONArray items = new JSONArray();
+        long bytes = 0;
+        for (String[] x : files) {
+            items.put(new JSONObject().put("name", x[1]).put("size", Long.parseLong(x[2])).put("folder", x[3]));
+            bytes += Long.parseLong(x[2]);
+        }
+        return new JSONObject().put("count", files.size()).put("bytes", bytes).put("items", items)
+                .put("folders", new JSONArray(tops)).put("loose", files.stream().filter(x -> x[3].isEmpty()).count())
+                .put("skipped", new JSONObject().put("files", skipped[0]).put("bytes", skipped[1]).put("folders", new JSONArray(skippedFolders)));
+    }
     private volatile boolean sendFolderEverything;
     /** Left out unless "everything" (made again by a build or a package manager), as the PC does. */
     private static final java.util.Set<String> SKIP_FOLDERS = new java.util.HashSet<>(java.util.Arrays.asList(
@@ -2436,7 +2683,13 @@ public class MainActivity extends Activity {
      * @param target    the cloud folder ("&lt;drive&gt;:&lt;folder&gt;") to save into, or "" for the PC's upload folder
      */
     private void uploadUris(List<Uri> uris, final String target, boolean persisted) {
-        for (final Uri uri : uris) uploadUri(uri, target, persisted);
+        // Several files at once are one task; one file gets a task of its own anyway.
+        if (uris.size() > 1) startTask(meta("dir", "toPc", "saveTo", target.isEmpty() ? TransferHub.get(this).pcName + " › Uploads" : target));
+        try {
+            for (final Uri uri : uris) uploadUri(uri, target, persisted);
+        } finally {
+            TransferHub.get(this).endTask();
+        }
     }
 
     /** {name, size} of a shared file (size -1 when the app that shared it does not say and it cannot be measured). */

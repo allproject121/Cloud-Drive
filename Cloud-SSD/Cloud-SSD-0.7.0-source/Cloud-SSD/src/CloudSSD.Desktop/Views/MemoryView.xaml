@@ -47,7 +47,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="Game mode acts for a game started from the Game Library and for an Android emulator in front (BlueStacks and the like). Each app is asked to close the normal way, so one with unsaved work stays open and asks you." Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                    <TextBlock Text="Game mode acts for a game started from Games and for an Android emulator in front (BlueStacks and the like). Each app is asked to close the normal way, so one with unsaved work stays open and asks you." Style="{StaticResource Caption}" Margin="0,4,0,0" />
                 </StackPanel>
             </Border>
 

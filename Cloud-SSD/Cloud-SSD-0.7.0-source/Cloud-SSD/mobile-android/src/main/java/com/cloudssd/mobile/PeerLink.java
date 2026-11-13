@@ -208,6 +208,12 @@ final class PeerLink {
                 answerJson(server, token, id, new JSONObject().put("ok", true));
                 return;
             }
+            if ("fs.pullEnd".equals(kind)) {
+                String task = args == null ? "" : args.optString("task", "");
+                if (!task.isEmpty()) TransferHub.get(ctx).externalFinish(task);
+                answerJson(server, token, id, new JSONObject().put("ok", true));
+                return;
+            }
             Grants.Grant g = Grants.get(ctx, pc);
             if (g == null) {
                 // Through the PC, another of its devices (a laptop) may be the one asking: say who.
@@ -231,6 +237,60 @@ final class PeerLink {
                     else answerFile(server, token, id, f);
                     break;
                 }
+                case "fs.cats": {
+                    // How many photos, videos… the PC may see, and how big they are.
+                    answerJson(server, token, id, cats(g, args != null && "1".equals(args.optString("refresh"))));
+                    break;
+                }
+                case "fs.cat": {
+                    answerJson(server, token, id, cat(g, args == null ? "" : args.optString("cat", "")));
+                    break;
+                }
+                case "fs.tree": {
+                    // Everything under a folder, for "Save to PC" of a whole folder.
+                    File dir = resolve(g, path);
+                    if (dir == null || !dir.isDirectory()) answer(server, token, id, "denied", "Not allowed or not there: " + path);
+                    else answerJson(server, token, id, tree(dir));
+                    break;
+                }
+                case "fs.mkdir":
+                case "fs.pull": {
+                    // Adding to this phone: only when its owner said so ("May add files").
+                    if (!g.write) {
+                        ask(pc, args == null ? "" : args.optString("asker", ""), true);
+                        answer(server, token, id, "needs-permission", "write");
+                        break;
+                    }
+                    if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) {
+                        answer(server, token, id, "error", "Turn on All files access for Cloud-SSD on this phone first.");
+                        break;
+                    }
+                    File dir = resolve(g, path);
+                    String sub = args == null ? "" : args.optString("sub", "");
+                    if (dir != null && !sub.isEmpty()) dir = resolve(g, (path.isEmpty() ? "" : path + "/") + sub);
+                    if (dir == null) {
+                        answer(server, token, id, "denied", "Not allowed here: " + path);
+                        break;
+                    }
+                    if (!dir.isDirectory() && !dir.mkdirs()) {
+                        answer(server, token, id, "error", "Could not make the folder " + relOf(dir));
+                        break;
+                    }
+                    if ("fs.mkdir".equals(kind)) {
+                        String name = safeName(args == null ? "" : args.optString("name", ""));
+                        if (name.isEmpty()) {
+                            answerJson(server, token, id, new JSONObject().put("path", relOf(dir)));
+                            break;
+                        }
+                        File made = resolve(g, relOf(new File(dir, name)));
+                        if (made == null) answer(server, token, id, "denied", "Not allowed here.");
+                        else if (!made.isDirectory() && !made.mkdirs()) answer(server, token, id, "error", "Could not make the folder.");
+                        else answerJson(server, token, id, new JSONObject().put("path", relOf(made)).put("name", made.getName()));
+                        break;
+                    }
+                    answerJson(server, token, id, pullAsTask(server, token, pc, g, dir, args));
+                    break;
+                }
                 default:
                     answer(server, token, id, "error", "This phone does not know " + kind);
             }
@@ -240,6 +300,253 @@ final class PeerLink {
                 answer(server, token, id, "error", String.valueOf(e.getMessage()));
             } catch (Exception ignored) {
             }
+        }
+    }
+
+    // ---- kinds of files (Photos, Videos, Audio, Documents, Apps, Archives) -------------------------------------------
+
+    static final String[] CATS = {"photos", "videos", "audio", "docs", "apks", "archives"};
+    private static final String[][] CAT_EXT = {
+            {"jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp"},
+            {"mp4", "mkv", "mov", "avi", "webm", "3gp", "m4v"},
+            {"mp3", "m4a", "aac", "wav", "flac", "ogg", "opus", "amr"},
+            {"pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "rtf", "odt", "md"},
+            {"apk", "apks", "xapk"},
+            {"zip", "rar", "7z", "tar", "gz", "tgz", "bz2"}};
+    private static final java.util.HashMap<String, Integer> EXT_CAT = new java.util.HashMap<>();
+
+    static {
+        for (int i = 0; i < CAT_EXT.length; i++) for (String e : CAT_EXT[i]) EXT_CAT.put(e, i);
+    }
+
+    /** The kind of a file by its name's ending: an index into CATS, or -1. */
+    static int catOf(String name) {
+        int dot = name.lastIndexOf('.');
+        if (dot < 0 || dot == name.length() - 1) return -1;
+        Integer c = EXT_CAT.get(name.substring(dot + 1).toLowerCase(java.util.Locale.ROOT));
+        return c == null ? -1 : c;
+    }
+
+    private static final class CatFile {
+        final String path, name;
+        final long size, modified;
+        final int cat;
+
+        CatFile(String path, String name, long size, long modified, int cat) {
+            this.path = path;
+            this.name = name;
+            this.size = size;
+            this.modified = modified;
+            this.cat = cat;
+        }
+    }
+
+    /** The last walk of the storage, kept a minute (per scope) so opening one kind after the counts costs nothing. */
+    private static java.util.ArrayList<CatFile> catCache;
+    private static String catCacheScope = "";
+    private static long catCacheAt;
+    private static final int MAX_CAT_WALK = 300000, MAX_CAT_LIST = 3000;
+
+    private static synchronized java.util.ArrayList<CatFile> catFiles(Grants.Grant g, boolean refresh) {
+        long now = System.currentTimeMillis();
+        if (!refresh && catCache != null && catCacheScope.equals(g.scope) && now - catCacheAt < 60000) return catCache;
+        java.util.ArrayList<CatFile> out = new java.util.ArrayList<>();
+        java.util.ArrayDeque<File> todo = new java.util.ArrayDeque<>();
+        if ("all".equals(g.scope)) todo.add(storageRoot());
+        else for (String s : SHARED) todo.add(new File(storageRoot(), s));
+        int seen = 0;
+        while (!todo.isEmpty() && seen < MAX_CAT_WALK) {
+            File d = todo.poll();
+            File[] items = d.listFiles();
+            if (items == null) continue;
+            for (File f : items) {
+                String n = f.getName();
+                if (n.startsWith(".")) continue;
+                if (f.isDirectory()) {
+                    // Other apps' data stays out, as everywhere.
+                    if (d.equals(storageRoot()) && n.equals("Android")) continue;
+                    todo.add(f);
+                    continue;
+                }
+                seen++;
+                int c = catOf(n);
+                if (c >= 0) out.add(new CatFile(relOf(f), n, f.length(), f.lastModified(), c));
+            }
+        }
+        catCache = out;
+        catCacheScope = g.scope;
+        catCacheAt = now;
+        return out;
+    }
+
+    /** Files changed (the PC added some): the kinds are counted again next time. */
+    static synchronized void forgetCats() {
+        catCache = null;
+    }
+
+    private static JSONObject cats(Grants.Grant g, boolean refresh) throws JSONException {
+        int[] count = new int[CATS.length];
+        long[] bytes = new long[CATS.length];
+        for (CatFile f : catFiles(g, refresh)) {
+            count[f.cat]++;
+            bytes[f.cat] += f.size;
+        }
+        JSONArray a = new JSONArray();
+        for (int i = 0; i < CATS.length; i++) a.put(new JSONObject().put("key", CATS[i]).put("count", count[i]).put("bytes", bytes[i]));
+        return new JSONObject().put("cats", a);
+    }
+
+    /** The files of one kind, newest first (at most MAX_CAT_LIST). */
+    private static JSONObject cat(Grants.Grant g, String key) throws JSONException {
+        int want = Arrays.asList(CATS).indexOf(key);
+        java.util.ArrayList<CatFile> mine = new java.util.ArrayList<>();
+        for (CatFile f : catFiles(g, false)) if (f.cat == want) mine.add(f);
+        java.util.Collections.sort(mine, (a, b) -> Long.compare(b.modified, a.modified));
+        JSONArray files = new JSONArray();
+        for (int i = 0; i < mine.size() && i < MAX_CAT_LIST; i++) {
+            CatFile f = mine.get(i);
+            files.put(new JSONObject().put("name", f.name).put("path", f.path).put("size", f.size).put("modified", f.modified));
+        }
+        return new JSONObject().put("cat", key).put("files", files).put("total", mine.size()).put("truncated", mine.size() > MAX_CAT_LIST);
+    }
+
+    /** Most entries fs.tree lists (a whole project folder fits; past this the PC says some were left out). */
+    private static final int MAX_TREE = 20000;
+
+    /** Every file under a folder (not hidden ones), with its path inside that folder, for saving the folder whole. */
+    private static JSONObject tree(File top) throws JSONException {
+        JSONArray files = new JSONArray(), folders = new JSONArray();
+        java.util.ArrayDeque<File> todo = new java.util.ArrayDeque<>();
+        todo.add(top);
+        String base = top.getAbsolutePath();
+        long bytes = 0;
+        int n = 0;
+        boolean truncated = false;
+        while (!todo.isEmpty()) {
+            File d = todo.poll();
+            File[] items = d.listFiles();
+            if (items == null) continue;
+            Arrays.sort(items, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+            for (File f : items) {
+                if (f.getName().startsWith(".")) continue;
+                if (++n > MAX_TREE) {
+                    truncated = true;
+                    todo.clear();
+                    break;
+                }
+                String rel = f.getAbsolutePath().substring(base.length() + 1).replace(File.separatorChar, '/');
+                if (f.isDirectory()) {
+                    folders.put(rel);
+                    todo.add(f);
+                } else {
+                    files.put(new JSONObject().put("rel", rel).put("path", relOf(f)).put("size", f.length()).put("modified", f.lastModified()));
+                    bytes += f.length();
+                }
+            }
+        }
+        return new JSONObject().put("path", relOf(top)).put("name", top.getName()).put("folders", folders).put("files", files)
+                .put("bytes", bytes).put("truncated", truncated);
+    }
+
+    /** A file or folder name the PC asked for, without folders or characters a phone folder cannot hold. */
+    private static String safeName(String name) {
+        String n = name == null ? "" : name.replaceAll("[\\\\/:*?\"<>|\\u0000-\\u001f]", "_").trim();
+        if (n.equals(".") || n.equals("..") || n.startsWith(".")) n = n.replaceFirst("^\\.+", "_");
+        return n.length() > 180 ? n.substring(0, 180) : n;
+    }
+
+    /**
+     * fs.pull: the PC staged a file; fetch it (one-time url on the same PC) into the folder. onClash: keep (a free name
+     * "a (2).jpg"), replace, or skip when the name is taken.
+     */
+    private JSONObject pull(String server, String token, Grants.Grant g, File dir, JSONObject args) throws IOException, JSONException {
+        String name = safeName(args.optString("name", ""));
+        String url = args.optString("url", "");
+        String onClash = args.optString("onClash", "keep");
+        if (name.isEmpty() || !url.startsWith("/api/peer/blob")) throw new IOException("Bad file to add.");
+        File target = new File(dir, name);
+        if (resolve(g, relOf(target)) == null) throw new IOException("Not allowed here.");
+        if (target.exists()) {
+            if ("skip".equals(onClash)) return new JSONObject().put("path", relOf(target)).put("name", name).put("skipped", true);
+            if (!"replace".equals(onClash) || target.isDirectory()) target = freeFile(dir, name);
+        }
+        File part = new File(dir, ".cssd-part-" + Long.toHexString(System.nanoTime()));
+        HttpURLConnection c = open(server + url, token, "GET", 10 * 60 * 1000);
+        try {
+            int code = c.getResponseCode();
+            if (code >= 400) throw new IOException("The PC answered HTTP " + code);
+            try (InputStream in = c.getInputStream(); OutputStream out = new java.io.FileOutputStream(part)) {
+                byte[] buf = new byte[64 * 1024];
+                for (int k; (k = in.read(buf)) > 0; ) out.write(buf, 0, k);
+            }
+        } catch (IOException e) {
+            //noinspection ResultOfMethodCallIgnored
+            part.delete();
+            throw e;
+        } finally {
+            c.disconnect();
+        }
+        long modified = args.optLong("modified", 0);
+        if (target.exists() && !target.delete()) {
+            //noinspection ResultOfMethodCallIgnored
+            part.delete();
+            throw new IOException("Could not replace " + name);
+        }
+        if (!part.renameTo(target)) {
+            //noinspection ResultOfMethodCallIgnored
+            part.delete();
+            throw new IOException("Could not save " + name);
+        }
+        if (modified > 0) //noinspection ResultOfMethodCallIgnored
+            target.setLastModified(modified);
+        forgetCats();
+        // The gallery and other apps see it at once.
+        try {
+            android.media.MediaScannerConnection.scanFile(ctx, new String[]{target.getAbsolutePath()}, null, null);
+        } catch (Exception ignored) {
+        }
+        return new JSONObject().put("path", relOf(target)).put("name", target.getName()).put("skipped", false);
+    }
+
+    /**
+     * fs.pull as part of the PC's run (args.task = its id): the phone's Transfers page shows the run as one task —
+     * files and size from the PC, each file as it lands, ended with the last one (args.last) or fs.pullEnd.
+     */
+    private JSONObject pullAsTask(String server, String token, String pc, Grants.Grant g, File dir, JSONObject args) throws IOException, JSONException {
+        String task = args.optString("task", "");
+        if (task.isEmpty()) return pull(server, token, g, dir, args);
+        JSONObject rec = PcProfiles.get(ctx, pc);
+        String pcName = rec == null ? "" : rec.optString("label", rec.optString("name", ""));
+        String top = args.optString("path", "");
+        JSONObject meta = new JSONObject().put("id", task).put("dir", "toPhone")
+                .put("kind", args.optString("folder", "").isEmpty() ? "files" : "folder").put("folder", args.optString("folder", ""))
+                .put("device", pcName.isEmpty() ? "PC" : pcName)
+                .put("files", args.optInt("files", 1)).put("bytes", args.optLong("bytes", 0))
+                .put("saveTo", "Phone storage" + (top.isEmpty() ? "" : " › " + top.replace("/", " › ")))
+                .put("openPath", new File(storageRoot(), top).getAbsolutePath());
+        TransferHub hub = TransferHub.get(ctx);
+        hub.external(meta);
+        String name = args.optString("name", "");
+        try {
+            JSONObject r = pull(server, token, g, dir, args);
+            hub.externalFile(task, name, args.optLong("size", 0), true, "");
+            return r;
+        } catch (IOException e) {
+            String m = String.valueOf(e.getMessage());
+            hub.externalFile(task, name, 0, false, m.contains("space") || m.contains("ENOSPC") ? "space" : "network");
+            throw e;
+        } finally {
+            if ("1".equals(args.optString("last", ""))) hub.externalFinish(task);
+        }
+    }
+
+    /** "a.jpg" taken: "a (2).jpg", "a (3).jpg"… */
+    private static File freeFile(File dir, String name) {
+        int dot = name.lastIndexOf('.');
+        String stem = dot > 0 ? name.substring(0, dot) : name, ext = dot > 0 ? name.substring(dot) : "";
+        for (int i = 2; ; i++) {
+            File f = new File(dir, stem + " (" + i + ")" + ext);
+            if (!f.exists()) return f;
         }
     }
 
@@ -399,8 +706,12 @@ final class PeerLink {
 
     // ---- asking this phone's owner -----------------------------------------------------------------------------------
 
-    /** Once a minute at most: the page (when open) and a note with Allow / Deny. */
     private void ask(String pc, String asker) {
+        ask(pc, asker, false);
+    }
+
+    /** Once a minute at most: the page (when open) and a note with Allow / Deny. write: the PC wants to add files. */
+    private void ask(String pc, String asker, boolean write) {
         long now = System.currentTimeMillis();
         if (now - lastAsk < 60000) return;
         lastAsk = now;
@@ -411,10 +722,10 @@ final class PeerLink {
         if (asker != null && !asker.trim().isEmpty() && !asker.trim().equals(name)) name = asker.trim() + " via " + name;
         Listener l = listener;
         if (l != null) l.onAsk(pc, name);
-        notifyAsk(pc, name);
+        notifyAsk(pc, name, write);
     }
 
-    private void notifyAsk(String pc, String name) {
+    private void notifyAsk(String pc, String name, boolean write) {
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
         if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null)
@@ -422,14 +733,17 @@ final class PeerLink {
         Intent open = new Intent(ctx, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
         PendingIntent content = PendingIntent.getActivity(ctx, 0, open, flags);
+        Grants.Grant had = Grants.get(ctx, pc);
         PendingIntent allow = PendingIntent.getBroadcast(ctx, 1, new Intent(ctx, PeerDecisionReceiver.class)
-                .putExtra("pc", pc).putExtra("minutes", 60).putExtra("scope", "shared"), flags);
+                .putExtra("pc", pc).putExtra("minutes", 60).putExtra("scope", had == null ? "shared" : had.scope)
+                .putExtra("write", write || (had != null && had.write)), flags);
         PendingIntent deny = PendingIntent.getBroadcast(ctx, 2, new Intent(ctx, PeerDecisionReceiver.class)
                 .putExtra("pc", pc).putExtra("minutes", -1), flags);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(ctx, CHANNEL) : new Notification.Builder(ctx);
         b.setSmallIcon(android.R.drawable.ic_menu_view)
-                .setContentTitle(Tr.t(ctx, "{0} wants to see this phone's files", name))
-                .setContentText(Tr.t(ctx, "Allow only if you are at that PC. Photos, Downloads and Documents for 1 hour."))
+                .setContentTitle(write ? Tr.t(ctx, "{0} wants to add files to this phone", name) : Tr.t(ctx, "{0} wants to see this phone's files", name))
+                .setContentText(write ? Tr.t(ctx, "Allow only if you are at that PC. It can add files and folders for 1 hour.")
+                        : Tr.t(ctx, "Allow only if you are at that PC. Photos, Downloads and Documents for 1 hour."))
                 .setContentIntent(content)
                 .setAutoCancel(true);
         Notification.Action.Builder allowAction = new Notification.Action.Builder(null, Tr.t(ctx, "Allow 1 hour"), allow);
@@ -451,10 +765,13 @@ final class PeerLink {
         static final class Grant {
             final String scope;
             final long until;
+            /** The PC may add files and folders (fs.mkdir, fs.pull), not only look. */
+            final boolean write;
 
-            Grant(String scope, long until) {
+            Grant(String scope, long until, boolean write) {
                 this.scope = scope;
                 this.until = until;
+                this.write = write;
             }
         }
 
@@ -474,18 +791,24 @@ final class PeerLink {
                     p.edit().remove(key(pc)).apply();
                     return null;
                 }
-                return new Grant("all".equals(o.optString("scope")) ? "all" : "shared", until);
+                return new Grant("all".equals(o.optString("scope")) ? "all" : "shared", until, o.optBoolean("write", false));
             } catch (JSONException e) {
                 return null;
             }
         }
 
-        /** minutes 0 = until taken back. */
+        /** minutes 0 = until taken back. Keeps whether the PC may add files. */
         static void set(Context c, String pc, String scope, int minutes) {
+            Grant had = get(c, pc);
+            set(c, pc, scope, minutes, had != null && had.write);
+        }
+
+        static void set(Context c, String pc, String scope, int minutes, boolean write) {
             try {
                 long until = minutes > 0 ? System.currentTimeMillis() + minutes * 60_000L : 0;
                 c.getSharedPreferences("cloudssd", Context.MODE_PRIVATE).edit()
-                        .putString(key(pc), new JSONObject().put("scope", "all".equals(scope) ? "all" : "shared").put("until", until).toString()).apply();
+                        .putString(key(pc), new JSONObject().put("scope", "all".equals(scope) ? "all" : "shared").put("until", until)
+                                .put("write", write).toString()).apply();
             } catch (JSONException ignored) {
             }
         }
@@ -498,7 +821,7 @@ final class PeerLink {
             JSONObject o = new JSONObject();
             Grant g = get(c, pc);
             try {
-                if (g != null) o.put("scope", g.scope).put("until", g.until);
+                if (g != null) o.put("scope", g.scope).put("until", g.until).put("write", g.write);
             } catch (JSONException ignored) {
             }
             return o;

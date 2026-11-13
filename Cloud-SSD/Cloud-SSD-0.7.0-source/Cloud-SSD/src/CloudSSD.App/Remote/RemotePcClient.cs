@@ -292,7 +292,8 @@ public sealed class RemotePcClient : IDisposable
     /// <summary>A question to one of that PC's phones (fs.roots / fs.list): its status, answer and error.</summary>
     public async Task<(string Status, JsonElement? Data, string? Error)> AskPhoneAsync(string url, string token, string phoneId, string kind, string? path, CancellationToken ct)
     {
-        var route = (kind == "fs.roots" ? "/api/peer/fs/roots" : "/api/peer/fs/list") + "?device=" + Q(phoneId) + (path is null ? "" : "&path=" + Q(path));
+        var route = (kind switch { "fs.roots" => "/api/peer/fs/roots", "fs.tree" => "/api/peer/fs/tree", _ => "/api/peer/fs/list" })
+            + "?device=" + Q(phoneId) + (path is null ? "" : "&path=" + Q(path));
         var o = await GetJsonAsync(url, route, token, ct, TimeSpan.FromSeconds(30));
         return (o.TryGetProperty("status", out var s) ? s.GetString() ?? "error" : "error",
             o.TryGetProperty("data", out var d) && d.ValueKind == JsonValueKind.Object ? d.Clone() : null,

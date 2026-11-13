@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCopyrightAttribute("Cloud-SSD contributors")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Cloud-SSD - High-Speed Cloud-to-SSD Virtual Drive Engine")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.9.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.9.0+49cec377f2b1fd3449487ac522201674a6bfc3f0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.9.0+1d4c34ddf7e3621d71940ebd3c0dd00b0254bdf1")]
 [assembly: System.Reflection.AssemblyProductAttribute("Cloud-SSD")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Cloud-SSD")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.9.0.0")]

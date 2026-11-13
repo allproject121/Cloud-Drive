@@ -109,6 +109,10 @@ public sealed partial class LocalMobileBridgeService
                 }
                 return true;
             }
+            case "/api/peer/blob":
+                // A file this PC staged for this device to fetch (fs.pull: adding a file to the phone's folder).
+                await HandleBlobAsync(me, q, headers, stream, caller.Ip, ct);
+                return true;
             case "/api/peer/pairback" when method == "POST":
                 await HandlePairBackAsync(me, headers, stream, caller.Ip, ct);
                 return true;
@@ -157,7 +161,7 @@ public sealed partial class LocalMobileBridgeService
             }, ct);
             return true;
         }
-        if (p is "/api/peer/fs/roots" or "/api/peer/fs/list" or "/api/peer/fs/read")
+        if (p is "/api/peer/fs/roots" or "/api/peer/fs/list" or "/api/peer/fs/read" or "/api/peer/fs/tree")
         {
             await HandleRelayAsync(me, p, q, headers, stream, caller.Ip, ct);
             return true;
@@ -167,7 +171,7 @@ public sealed partial class LocalMobileBridgeService
     }
 
     /// <summary>
-    /// /api/peer/fs/{roots,list,read}?device=&lt;phone&gt;: a laptop seeing a phone's files through this PC. The phone is
+    /// /api/peer/fs/{roots,list,tree,read}?device=&lt;phone&gt;: a laptop seeing a phone's files through this PC. The phone is
     /// asked as for this PC, with who is asking; it answers only as far as it allows this PC.
     /// </summary>
     private async Task HandleRelayAsync(PairedDevice me, string route, Dictionary<string, string> q, Dictionary<string, string> headers,
@@ -179,7 +183,7 @@ public sealed partial class LocalMobileBridgeService
             await SendJsonAsync(stream, 404, "Not Found", new { error = "No such phone on this PC." }, ct);
             return;
         }
-        var kind = route.EndsWith("/roots") ? "fs.roots" : route.EndsWith("/list") ? "fs.list" : "fs.read";
+        var kind = route.EndsWith("/roots") ? "fs.roots" : route.EndsWith("/list") ? "fs.list" : route.EndsWith("/tree") ? "fs.tree" : "fs.read";
         var args = new Dictionary<string, string> { ["asker"] = me.Name };
         if (q.GetValueOrDefault("path") is { } p) args["path"] = p;
         var r = await AskDeviceAsync(phone.Id, kind, args, kind == "fs.read" ? TimeSpan.FromMinutes(15) : TimeSpan.FromSeconds(20), ct);

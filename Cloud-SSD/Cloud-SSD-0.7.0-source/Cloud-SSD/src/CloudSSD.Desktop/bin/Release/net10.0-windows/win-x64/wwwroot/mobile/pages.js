@@ -83,11 +83,29 @@
     }
   }
 
+  /*
+   * A page opened from another page lies on top of it: each page that opens takes a place above the ones already
+   * open (the style sheets gave each sheet a fixed height from when they were small sheets, so "Look and language"
+   * opened behind Settings). The "Are you sure?" box (1300) and the toast (1400) stay above every page.
+   */
+  const STACK_BASE = 1210;
+  function syncStack(roots) {
+    let top = STACK_BASE;
+    roots.forEach((r) => { if (r.classList.contains('active') && r.dataset.z) top = Math.max(top, +r.dataset.z); });
+    roots.forEach((r) => {
+      if (r.id === 'confirm-modal') return;
+      const open = r.classList.contains('active');
+      if (open && !r.dataset.z) { top += 1; r.dataset.z = String(top); r.style.zIndex = String(top); }
+      else if (!open && r.dataset.z) { delete r.dataset.z; r.style.zIndex = ''; }
+    });
+  }
+
   function setup() {
     const roots = document.querySelectorAll('.modal-backdrop.sheet, .m3-bottom-sheet-backdrop, .profile-menu-backdrop, #file-viewer-modal');
     roots.forEach((r) => { if (r.id !== 'confirm-modal') makePage(r); });
     // A page opens or closes (its class "active"), or the look changes (data-look on <html>).
-    const mo = new MutationObserver(syncBars);
+    const mo = new MutationObserver(() => { syncStack(roots); syncBars(); });
+    syncStack(roots);
     roots.forEach((r) => mo.observe(r, { attributes: true, attributeFilter: ['class'] }));
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-look'] });
   }

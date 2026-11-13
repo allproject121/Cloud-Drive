@@ -39,7 +39,7 @@ public sealed class DevicePermissionsWindow : Window
         panel.Children.Add(head);
         panel.Children.Add(Caption(justPaired
             ? T("It just paired with this PC. Untick what it should not do; it can ask later, and you answer here.")
-            : T("Ticked = allowed. A switch that is off in Phone (Mobile Hub) stops it for every device."), new Thickness(0, 0, 0, 12)));
+            : T("Ticked = allowed. A switch that is off in Devices → Permissions stops it for every device."), new Thickness(0, 0, 0, 12)));
 
         foreach (var c in AccessCategories.All)
         {
