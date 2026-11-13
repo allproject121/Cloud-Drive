@@ -15,9 +15,13 @@ public static class Notifier
     private static readonly TimeSpan Stay = TimeSpan.FromSeconds(8);
     private static Window? _current;
 
-    /// <summary>Safe to call from any thread; does nothing when the app is shutting down.</summary>
-    public static void Show(string title, string text)
+    /// <summary>
+    /// Safe to call from any thread; does nothing when the app is shutting down. The note is also kept in the list behind
+    /// the bell (top right); a click on either opens <paramref name="target"/> (see <see cref="NotificationCenter"/>).
+    /// </summary>
+    public static void Show(string title, string text, string? target = null, string kind = "info")
     {
+        NotificationCenter.Add(title, text, target, kind);
         var app = Application.Current;
         if (app is null) return;
         app.Dispatcher.BeginInvoke(() =>
@@ -41,7 +45,13 @@ public static class Notifier
                 note.Left = area.Right - note.ActualWidth - 16;
                 note.Top = area.Bottom - note.ActualHeight - 16;
             };
-            note.MouseLeftButtonUp += (_, _) => note.Close();
+            note.MouseLeftButtonUp += (_, _) =>
+            {
+                note.Close();
+                // Off to the place it is about (its line in the list is read then).
+                if (target != null && NotificationCenter.OpenTarget(target)) NotificationCenter.MarkRead(target);
+            };
+            if (target != null) note.Cursor = System.Windows.Input.Cursors.Hand;
             note.Closed += (_, _) =>
             {
                 timer.Stop();

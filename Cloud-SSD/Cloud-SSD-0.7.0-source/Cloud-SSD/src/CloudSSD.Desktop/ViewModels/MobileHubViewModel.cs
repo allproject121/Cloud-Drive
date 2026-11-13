@@ -12,8 +12,11 @@ namespace CloudSSD.Desktop.ViewModels;
 
 public sealed partial class MobileHubViewModel : PageViewModel
 {
-    public MobileHubViewModel(AppHost host) : base(host, "Phone (Mobile Hub)", "\uE8EA")
+    private readonly Action<string>? _navigate;
+
+    public MobileHubViewModel(AppHost host, Action<string>? navigate = null) : base(host, "Phone (Mobile Hub)", "\uE8EA")
     {
+        _navigate = navigate;
         UploadDirectory = host.Settings.MobileBridge.UploadDirectory
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Cloud Drive_Uploads");
 
@@ -201,6 +204,10 @@ public sealed partial class MobileHubViewModel : PageViewModel
             PairedDevices.Add(new PairedDeviceItem(d, this));
         }
     }
+
+    /// <summary>Paired devices have their own page now (cards, online now, what they are doing).</summary>
+    [RelayCommand]
+    private void OpenDevices() => _navigate?.Invoke("Devices");
 
     [RelayCommand]
     private void ToggleServer()
@@ -436,9 +443,44 @@ public sealed partial class MobileHubViewModel : PageViewModel
                 }
             }
 
+            if (SelectedCategory != "All" && TransferCategories.Of(item.FileName) != SelectedCategory) continue;
             FilteredTransfers.Add(item);
         }
+        // Grouped by kind of file (photos, videos…), each group newest first, in a fixed order — not one mixed list.
+        TransferGroups.Clear();
+        foreach (var g in FilteredTransfers.GroupBy(t => TransferCategories.Of(t.FileName))
+                     .OrderBy(g => TransferCategories.Order.ToList().IndexOf(g.Key)))
+            TransferGroups.Add(new TransferGroup(g.Key, g));
+        HasTransfers = FilteredTransfers.Count > 0;
+        // How many of each kind (for the chips), counting the direction and search chosen.
+        CategoryCounts.Clear();
+        foreach (var c in TransferCategories.Order)
+            CategoryCounts[c] = AllTransfers.Count(t => TransferCategories.Of(t.FileName) == c && PassesDirection(t, filter));
+        OnPropertyChanged(nameof(CategoryCounts));
     }
+
+    private static bool PassesDirection(TransferRecordViewModel t, string filter) => filter switch
+    {
+        "Received" => t.Direction == "upload",
+        "Sent" => t.Direction == "download",
+        "Streamed" => t.Direction == "stream",
+        "Offload" => t.Direction == "offload",
+        _ => true
+    };
+
+    /// <summary>The history in groups of one kind of file each (what the list shows).</summary>
+    public ObservableCollection<TransferGroup> TransferGroups { get; } = new();
+
+    /// <summary>All, or one kind of file: Photos, Videos, Music, Documents, Apps &amp; archives, Others.</summary>
+    [ObservableProperty] private string _selectedCategory = "All";
+    [ObservableProperty] private bool _hasTransfers;
+
+    public Dictionary<string, int> CategoryCounts { get; } = new();
+
+    partial void OnSelectedCategoryChanged(string value) => ApplyTransferFilter();
+
+    [RelayCommand]
+    private void SetCategory(string category) => SelectedCategory = category;
 
     [RelayCommand]
     private void ClearTransferHistory()

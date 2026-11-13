@@ -25,7 +25,7 @@ public class TransferService extends Service {
     }
 
     static void stopIfIdle(Context c) {
-        if (TransferHub.get(c).busy()) return;
+        if (TransferHub.get(c).busy() || OfflinePins.get(c).busy()) return;
         try {
             c.stopService(new Intent(c, TransferService.class));
         } catch (Exception ignored) {
@@ -34,7 +34,7 @@ public class TransferService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Notification n = TransferHub.get(this).builder("Cloud-SSD", "Moving files between this phone and the PC…",
+        Notification n = TransferHub.get(this).builder("Cloud-SSD", Tr.t(this, "Moving files between this phone and the PC…"),
                 android.R.drawable.stat_sys_upload).setOngoing(true).build();
         try {
             if (Build.VERSION.SDK_INT >= 29) startForeground(TransferHub.SUMMARY_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);

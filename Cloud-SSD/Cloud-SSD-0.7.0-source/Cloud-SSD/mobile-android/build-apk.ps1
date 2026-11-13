@@ -1,13 +1,35 @@
 param(
     # A debug build lets the page be inspected over USB (chrome://inspect); a normal build does not.
-    [switch]$Debug
+    [switch]$Debug,
+    # Android SDK folder (build-tools 35.0.0 + platforms\android-36). Found by itself when left out.
+    [string]$Sdk = "",
+    # JDK 17 folder (the one that contains bin\javac.exe). Found by itself when left out.
+    [string]$Jdk = "",
+    # Build somewhere else (a scratch folder): the APK and the build folder in the project are left as they are.
+    [string]$OutDir = ""
 )
 $ErrorActionPreference = "Stop"
 
-$sdk = "$env:LOCALAPPDATA\Android\Sdk"
+function FirstExisting([string[]]$paths, [string]$probe) {
+    foreach ($p in $paths) { if ($p -and (Test-Path (Join-Path $p $probe))) { return $p } }
+    return $null
+}
+
+$sdk = if ($Sdk) { $Sdk } else {
+    FirstExisting @($env:ANDROID_HOME, $env:ANDROID_SDK_ROOT, "$env:LOCALAPPDATA\Android\Sdk", "C:\Android\Sdk") "build-tools\35.0.0"
+}
+if (-not $sdk) { throw "Android SDK not found. Pass -Sdk <folder> (needs build-tools 35.0.0 and platforms\android-36)." }
+
+$jdkCandidates = @($env:JAVA_HOME)
+foreach ($base in @("$env:LOCALAPPDATA\Programs", "C:\Program Files\Eclipse Adoptium", "C:\Program Files\Java", "C:\Program Files\Microsoft")) {
+    if (Test-Path $base) { $jdkCandidates += Get-ChildItem $base -Directory -Recurse -Depth 1 -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'jdk-?17' } | ForEach-Object { $_.FullName } }
+}
+$jdkHome = if ($Jdk) { $Jdk } else { FirstExisting $jdkCandidates "bin\javac.exe" }
+if (-not $jdkHome) { throw "JDK 17 not found. Install one (for example Eclipse Temurin 17) or pass -Jdk <folder>." }
+Write-Host "Android SDK: $sdk  |  JDK: $jdkHome" -ForegroundColor DarkGray
+
 $bt = "$sdk\build-tools\35.0.0"
 $jar = "$sdk\platforms\android-36\android.jar"
-$jdkHome = "$env:LOCALAPPDATA\Programs\jdk-17\jdk-17.0.20.1+1"
 $env:JAVA_HOME = $jdkHome
 $env:PATH = "$jdkHome\bin;$env:PATH"
 $jdk = "$jdkHome\bin"
@@ -20,7 +42,8 @@ $keytool = "$jdk\keytool.exe"
 $jarTool = "$jdk\jar.exe"
 
 $root = $PSScriptRoot
-$build = Join-Path $root "build"
+$outRoot = if ($OutDir) { New-Item -ItemType Directory -Force $OutDir | Out-Null; (Resolve-Path $OutDir).Path } else { $root }
+$build = Join-Path $outRoot "build"
 
 if (Test-Path $build) { Remove-Item -Recurse -Force $build }
 New-Item -ItemType Directory -Force (Join-Path $build "compiled_res") | Out-Null
@@ -87,7 +110,9 @@ if ($LASTEXITCODE -ne 0) { throw "AAPT2 link failed" }
 
 Write-Host "3. Compiling Java sources..." -ForegroundColor Cyan
 $javaSources = Get-ChildItem "$build\gen", "$root\src\main\java" -Recurse -Filter "*.java" | ForEach-Object { $_.FullName }
-& $javac -source 1.8 -target 1.8 -encoding UTF-8 -classpath $jar -d "$build\classes" @javaSources
+# -Xlint:-options: no "bootstrap class path not set" warning. android.jar cannot be the boot class path (its
+# LambdaMetafactory is a stub javac cannot build lambdas against), and D8 checks the result against Android anyway.
+& $javac -source 1.8 -target 1.8 -Xlint:-options -encoding UTF-8 -classpath $jar -d "$build\classes" @javaSources
 if ($LASTEXITCODE -ne 0) { throw "javac failed" }
 
 Write-Host "4. Dexing classes with D8..." -ForegroundColor Cyan
@@ -111,7 +136,7 @@ if (-not (Test-Path $keystore)) {
     & $keytool -genkey -v -keystore $keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=CloudSSD,O=CloudSSD,C=US"
 }
 
-$outputApk = Join-Path $root "Cloud-SSD-Mobile.apk"
+$outputApk = Join-Path $outRoot "Cloud-SSD-Mobile.apk"
 & $apksigner sign --ks $keystore --ks-pass pass:android --key-pass pass:android --out $outputApk "$build\app-aligned.apk"
 if ($LASTEXITCODE -ne 0) { throw "apksigner failed" }
 

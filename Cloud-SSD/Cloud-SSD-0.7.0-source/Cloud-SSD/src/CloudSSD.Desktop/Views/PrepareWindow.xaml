@@ -22,7 +22,7 @@
             <ProgressBar x:Name="PrefetchBar" Maximum="1" />
             <TextBlock x:Name="PrefetchText" Style="{StaticResource Caption}" Margin="0,4,0,0" />
         </StackPanel>
-        <Border x:Name="ResultBox" Visibility="Collapsed" CornerRadius="8" BorderThickness="1" Padding="14,10" Background="{StaticResource Surface}" Margin="0,6,0,0">
+        <Border x:Name="ResultBox" Visibility="Collapsed" CornerRadius="14" BorderThickness="1" Padding="14,10" Background="{DynamicResource Surface}" Margin="0,6,0,0">
             <StackPanel>
                 <TextBlock x:Name="ResultTitle" FontSize="15" FontWeight="SemiBold" />
                 <TextBlock x:Name="ResultText" Style="{StaticResource Caption}" Margin="0,4,0,0" />

@@ -183,11 +183,23 @@ public sealed class MobileBridgeSettings
 
     public List<PairedDevice> PairedDevices { get; set; } = new();
 
+    /// <summary>Shows a note on this PC when a device pairs or comes back online.</summary>
+    public bool NotifyDeviceConnections { get; set; } = true;
+    /// <summary>After a new device pairs, the PC asks what it may do (the defaults below are ticked).</summary>
+    public bool AskOnPairing { get; set; } = true;
+    /// <summary>
+    /// What a newly paired device may do until the PC says otherwise (category names, see AccessCategories).
+    /// Null = everything the switches allow, as before per-device permissions existed.
+    /// </summary>
+    public List<string>? NewDeviceDefaults { get; set; }
+
     /// <summary>
     /// Lets a paired phone play the game running on this PC: the phone sees the screen and hears the game, and its
     /// touches reach the emulator. Only on the home network, only with a per-phone key, only while an emulator is in front.
     /// </summary>
     public bool AllowGameStream { get; set; } = true;
+    /// <summary>Devices may send files to each other through this PC (held here at most three days).</summary>
+    public bool AllowDeviceToDevice { get; set; } = true;
 
     public GameStreamSettings GameStream { get; set; } = new();
 }
@@ -222,6 +234,44 @@ public sealed class PairedDevice
     public string? TokenHash { get; set; }
     /// <summary>A random id the phone app keeps for its install, so re-pairing updates this entry instead of adding one.</summary>
     public string? InstallId { get; set; }
+
+    /// <summary>phone | tablet | laptop | desktop | browser. Null for devices paired before v0.8 (shown as a phone).</summary>
+    public string? Kind { get; set; }
+    /// <summary>"Android 14", "Windows 11"… as the device reported it; shown only.</summary>
+    public string? Platform { get; set; }
+    /// <summary>Version of the Cloud-SSD app on the device, as it reported it.</summary>
+    public string? AppVersion { get; set; }
+    /// <summary>How it last reached this PC: wifi | lan | hotspot | usb | internet.</summary>
+    public string? LastLink { get; set; }
+
+    /// <summary>Bytes this PC sent to the device (downloads, playing) and received from it (uploads), all time.</summary>
+    public long BytesToDevice { get; set; }
+    public long BytesFromDevice { get; set; }
+    /// <summary>The name was changed on this PC: the device pairing again does not overwrite it.</summary>
+    public bool NameSetOnPc { get; set; }
+    /// <summary>The device is itself a Cloud-SSD PC (a laptop): its own bridge id, name and port, for pairing back later.</summary>
+    public string? PeerPcId { get; set; }
+    public string? PeerName { get; set; }
+    public int? PeerPort { get; set; }
+    /// <summary>
+    /// What this device may do, on top of the PC-wide switches (a switch that is off wins). Null for a device paired
+    /// before per-device permissions: it may do everything the switches allow, as it always could.
+    /// </summary>
+    public List<AccessGrant>? Grants { get; set; }
+    /// <summary>A guest: paired with a one-time guest code, it may do only what the code allowed and is removed at this time.</summary>
+    public DateTimeOffset? GuestUntil { get; set; }
+}
+
+/// <summary>One thing a device may do: always, until a time, or until the Cloud-SSD app on the PC restarts.</summary>
+public sealed class AccessGrant
+{
+    public string Category { get; set; } = "";
+    /// <summary>always | timed | session</summary>
+    public string Mode { get; set; } = "always";
+    public DateTimeOffset? ExpiresAt { get; set; }
+    /// <summary>For "session": the run of the app it was given in.</summary>
+    public string? Session { get; set; }
+    public DateTimeOffset GrantedAt { get; set; } = DateTimeOffset.Now;
 }
 
 public sealed class SmartOffloadSettings

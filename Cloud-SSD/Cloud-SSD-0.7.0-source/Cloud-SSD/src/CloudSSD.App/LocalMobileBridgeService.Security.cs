@@ -33,7 +33,8 @@ public sealed partial class LocalMobileBridgeService
     internal IReadOnlyList<string> Features() =>
     [
         "device-tokens", "media-url", "settings", "save-restore", "pc-control", "upload-resume", "download-range",
-        "fs-search", "fs-details", "tailnet", "pair-link", "space", "space-phone", "game-stream",
+        "fs-search", "fs-details", "tailnet", "pair-link", "space", "space-phone", "game-stream", "hello-proof",
+        "device-kind", "presence", "ping", "read-purpose", "fs-local-roots", "links", "access", "share", "peer", "ring", "clip", "vitals", "relay", "pairback", "wol",
         .. (ThumbnailFactory != null ? new[] { "fs-thumb" } : Array.Empty<string>())
     ];
 
@@ -43,6 +44,21 @@ public sealed partial class LocalMobileBridgeService
 
     private static bool SameText(string a, string b) =>
         CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(a), Encoding.UTF8.GetBytes(b));
+
+    /// <summary>
+    /// True when the token is a blocked device's. Only that device holds it, so telling it lets it keep its key and
+    /// wait to be unblocked, instead of taking "not paired" to mean it was removed.
+    /// </summary>
+    private bool IsBlockedToken(string? token)
+    {
+        if (string.IsNullOrEmpty(token)) return false;
+        var hash = HashToken(token);
+        bool blocked = false;
+        lock (_devicesLock)
+            foreach (var d in _host.Settings.MobileBridge.PairedDevices)
+                if (d.TokenHash is { Length: 64 } h && SameText(h, hash)) blocked = d.IsBlocked;   // no early exit, as above
+        return blocked;
+    }
 
     /// <summary>The phone a token belongs to, or null. A blocked or removed phone gets null whatever address it uses.</summary>
     private Caller? Authenticate(string? token, string ip, NetRoute route)
@@ -55,7 +71,8 @@ public sealed partial class LocalMobileBridgeService
             PairedDevice? match = null;
             foreach (var d in bridge.PairedDevices)
                 if (d.TokenHash is { Length: 64 } h && SameText(h, hash)) match = d; // no early exit: same time for every token
-            if (match != null) return match.IsBlocked ? null : new Caller(match, false, ip, route);
+            // A guest whose time is up is not let in, even before the sweep removes it.
+            if (match != null) return match.IsBlocked || match.GuestUntil is { } until && until <= Now() ? null : new Caller(match, false, ip, route);
 
             if (bridge.LegacyTokenAccepted == true && TokenMatches(token))
             {
@@ -67,11 +84,22 @@ public sealed partial class LocalMobileBridgeService
         return null;
     }
 
+    /// <summary>What a device says about itself when it pairs (all optional; older apps send none of it).</summary>
+    internal sealed record DeviceInfo(string Kind, string? Platform, string? AppVersion, string? HubPcId, string? HubName, int? HubPort, bool KindSent);
+
+    /// <summary>Text from a device for display only: control characters removed, trimmed, at most <paramref name="max"/> characters.</summary>
+    internal static string? CleanLabel(string? s, int max)
+    {
+        if (s is null) return null;
+        var clean = new string(s.Where(c => !char.IsControl(c)).ToArray()).Trim();
+        return clean.Length == 0 ? null : clean[..Math.Min(max, clean.Length)];
+    }
+
     /// <summary>
     /// Adds (or updates) a phone and gives it a token of its own. The token is returned once and only its hash is kept.
-    /// The same install re-pairing replaces its old entry, so one phone never shows up twice.
+    /// The same install re-pairing replaces its old entry, so one phone never shows up twice. A name given on the PC is kept.
     /// </summary>
-    internal (string Token, PairedDevice Device) IssueDeviceToken(string name, string ip, string? installId, PairedDevice? existing = null)
+    internal (string Token, PairedDevice Device) IssueDeviceToken(string name, string ip, string? installId, PairedDevice? existing = null, DeviceInfo? info = null)
     {
         var token = MobileBridgeSettings.NewPairingToken();
         if (installId is { } iid && (iid.Length is < 8 or > 64 || !iid.All(c => char.IsAsciiLetterOrDigit(c) || c == '-'))) installId = null;
@@ -80,34 +108,67 @@ public sealed partial class LocalMobileBridgeService
         {
             var list = _host.Settings.MobileBridge.PairedDevices;
             device = existing ?? (installId != null ? list.FirstOrDefault(d => d.InstallId == installId) : null) ?? new PairedDevice();
-            if (!list.Contains(device)) list.Add(device);
-            device.Name = string.IsNullOrWhiteSpace(name) ? device.Name : name.Trim()[..Math.Min(60, name.Trim().Length)];
+            if (!list.Contains(device))
+            {
+                list.Add(device);
+                // A new device may do what the PC chose for new devices (the PC is asked right after, when it wants).
+                device.Grants ??= AccessControl.Defaults(_host.Settings.MobileBridge, Now());
+            }
+            if (!device.NameSetOnPc)
+                device.Name = string.IsNullOrWhiteSpace(name) ? device.Name : name.Trim()[..Math.Min(60, name.Trim().Length)];
             device.IpAddress = ip;
             device.InstallId = installId ?? device.InstallId;
             device.TokenHash = HashToken(token);
             device.IsBlocked = false;
             device.LastSeen = DateTimeOffset.Now;
             if (existing == null && device.PairedAt == default) device.PairedAt = DateTimeOffset.Now;
+            if (info != null)
+            {
+                // A kind the device sent wins; a guessed one only fills an empty field.
+                if (info.KindSent || device.Kind == null) device.Kind = info.Kind;
+                device.Platform = info.Platform ?? device.Platform;
+                device.AppVersion = info.AppVersion ?? device.AppVersion;
+                if (info.HubPcId != null) { device.PeerPcId = info.HubPcId; device.PeerName = info.HubName; device.PeerPort = info.HubPort; }
+            }
+            else device.Kind ??= DeviceKinds.Infer(null, device.Name, null);
         }
         _host.SaveSettings();
         StatusChanged?.Invoke();
+        RaiseDevicesChanged();
         return (token, device);
     }
 
-    /// <summary>Removes one phone: its token stops working at once.</summary>
+    /// <summary>Removes one phone: its token stops working at once, and what it is transferring stops.</summary>
     public void RemoveDevice(string id)
     {
-        lock (_devicesLock) _host.Settings.MobileBridge.PairedDevices.RemoveAll(d => d.Id == id);
+        string? peerPc = null;
+        lock (_devicesLock)
+        {
+            peerPc = _host.Settings.MobileBridge.PairedDevices.FirstOrDefault(d => d.Id == id)?.PeerPcId;
+            _host.Settings.MobileBridge.PairedDevices.RemoveAll(d => d.Id == id);
+        }
+        Presence.Forget(id);
+        AccessLog.Forget(id);
         _host.SaveSettings();
         StatusChanged?.Invoke();
+        RaiseDevicesChanged();
+        // Another PC removed (or it forgot this one): the entry it gave this PC to reach it back goes as well.
+        if (peerPc != null) _host.RemotePcs.ForgetPairedBack(peerPc);
     }
 
     /// <summary>Disconnects every phone: all device tokens and the old shared token stop working.</summary>
     public void RevokeAll()
     {
-        lock (_devicesLock) _host.Settings.MobileBridge.PairedDevices.Clear();
+        List<string> ids;
+        lock (_devicesLock)
+        {
+            ids = _host.Settings.MobileBridge.PairedDevices.Select(d => d.Id).ToList();
+            _host.Settings.MobileBridge.PairedDevices.Clear();
+        }
+        foreach (var id in ids) Presence.Forget(id);
         RetireLegacyToken();
         NewPairingSecrets();
+        RaiseDevicesChanged();
     }
 
     /// <summary>Phones still using the shared token that every phone used before device tokens.</summary>
@@ -124,9 +185,16 @@ public sealed partial class LocalMobileBridgeService
         var bridge = _host.Settings.MobileBridge;
         bridge.LegacyTokenAccepted = false;
         bridge.PairingToken = MobileBridgeSettings.NewPairingToken();
-        lock (_devicesLock) bridge.PairedDevices.RemoveAll(d => d.TokenHash == null);
+        List<string> gone;
+        lock (_devicesLock)
+        {
+            gone = bridge.PairedDevices.Where(d => d.TokenHash == null).Select(d => d.Id).ToList();
+            bridge.PairedDevices.RemoveAll(d => d.TokenHash == null);
+        }
+        foreach (var id in gone) Presence.Forget(id);
         _host.SaveSettings();
         StatusChanged?.Invoke();
+        RaiseDevicesChanged();
     }
 
     // ---- pairing link (QR code) -----------------------------------------------------------------------------------
@@ -218,11 +286,14 @@ public sealed partial class LocalMobileBridgeService
     }
 
     /// <summary>The score that picks the address shown in the QR code. Tailscale and link-local addresses never win.</summary>
-    internal static int ScoreAddress(NetworkInterfaceType type, IPAddress ip)
+    internal static int ScoreAddress(NetworkInterfaceType type, IPAddress ip, string description = "")
     {
         if (TailscaleInfo.IsTailnetAddress(ip)) return -100;
         var b = ip.GetAddressBytes();
         int score = type switch { NetworkInterfaceType.Wireless80211 => 30, NetworkInterfaceType.Ethernet => 20, _ => 0 };
+        // This PC's own hotspot and a phone's USB tethering reach only the one device on them: the home network wins.
+        if (LinkClassifier.IsUsbTether(description)) score -= 40;
+        if (LinkClassifier.IsMobileHotspotRange(ip) || LinkClassifier.IsHostedNetwork(description)) score -= 30;
         if (b[0] == 192 && b[1] == 168) score += 15;
         else if (b[0] == 10) score += 10;
         else if (b[0] == 172 && b[1] >= 16 && b[1] <= 31) score += 10;
@@ -240,7 +311,9 @@ public sealed partial class LocalMobileBridgeService
         FileManagement = ("File management", s => s.AllowFileManagement),
         PcControl = ("PC control", s => s.AllowPcControl),
         Space = ("Space & RAM", s => s.AllowSpace),
-        GameStream = ("Play on phone", s => s.AllowGameStream);
+        GameStream = ("Play on phone", s => s.AllowGameStream),
+        // A laptop seeing a phone's files through this PC (the phone still has to allow it itself).
+        DeviceToDevice = ("Device to device", s => s.AllowDeviceToDevice);
 
     /// <summary>Every switch a route needs; all must be on. Routes not listed need only a paired phone.</summary>
     internal static IReadOnlyList<(string Name, Func<MobileBridgeSettings, bool> Allowed)> RequiredSwitches(string path, string method)
@@ -250,12 +323,17 @@ public sealed partial class LocalMobileBridgeService
         // A phone's own reports and the commands waiting for it need only the pairing; seeing the PC needs the switch.
         if (p.StartsWith("/api/space/phone-")) return [];
         if (p.StartsWith("/api/space/")) return p == "/api/space/action" ? [Space, PcControl] : [Space];
+        if (p == "/api/peer/devices" || p.StartsWith("/api/peer/fs/")) return [DeviceToDevice];
         if (p.StartsWith("/api/game/")) return [GameStream];
         if (p.StartsWith("/api/fs/") || p.StartsWith("/api/backup/"))
         {
             return p switch
             {
-                "/api/fs/read" => [FileManagement, Streaming],
+                // Looking around (the phone's Files app, a laptop's "Other PCs" page) is browsing, and opening a file is
+                // reading it, as in the app's own pages; only what changes files needs "File management". (Asking a
+                // laptop to allow "change files" just to see the folders made no sense.)
+                "/api/fs/roots" or "/api/fs/list" or "/api/fs/stat" or "/api/fs/thumb" or "/api/fs/search" or "/api/fs/usage" => [Browsing],
+                "/api/fs/read" => [Streaming],
                 "/api/fs/write" or "/api/backup/upload" => [FileManagement, Uploads],
                 _ => [FileManagement]
             };
@@ -265,7 +343,10 @@ public sealed partial class LocalMobileBridgeService
             "/api/files" or "/api/preview" or "/api/drives" => [Browsing],
             "/api/stream" or "/api/download" or "/api/media-url" => [Streaming],
             "/api/open-pc" => [Streaming, PcControl],
-            "/api/upload" or "/api/upload/status" => [Uploads],
+            "/api/upload" or "/api/upload/status" or "/api/upload/folder" => [Uploads],
+            // Sending to another device goes through this PC like an upload; receiving needs only the pairing.
+            "/api/share/offer" or "/api/share/upload" => [Uploads],
+            "/api/clip" => [Uploads],
             "/api/hud" or "/api/remote" => [Hud],
             "/api/drives/mount" or "/api/drives/unmount" or "/api/clean" or "/api/storage/offload-now" or "/api/transfers/clear" => [PcControl],
             "/api/storage/offload-config" when post => [PcControl],
@@ -435,15 +516,25 @@ public sealed partial class LocalMobileBridgeService
     {
         lock (_devicesLock)
         {
-            return _host.Settings.MobileBridge.PairedDevices.Select(d => new
+            // No addresses and no activity details for other devices: a phone sees who is paired and online, nothing more.
+            return _host.Settings.MobileBridge.PairedDevices.Select(d =>
             {
-                id = d.Id,
-                name = d.Name,
-                pairedAt = d.PairedAt,
-                lastSeen = d.LastSeen,
-                isBlocked = d.IsBlocked,
-                isThisPhone = caller.Device == d || (caller.Device == null && d.IpAddress == caller.Ip && d.TokenHash == null),
-                legacy = d.TokenHash == null
+                bool self = caller.Device == d || (caller.Device == null && d.IpAddress == caller.Ip && d.TokenHash == null);
+                return new
+                {
+                    id = d.Id,
+                    name = d.Name,
+                    kind = DeviceKinds.Name(DeviceKinds.Of(d.Kind)),
+                    platform = d.Platform,
+                    pairedAt = d.PairedAt,
+                    lastSeen = Presence.LastSeen(d.Id, d.LastSeen),
+                    online = !d.IsBlocked && Presence.IsOnline(d.Id, d.LastSeen),
+                    link = Presence.LinkOf(d.Id) ?? d.LastLink,
+                    isBlocked = d.IsBlocked,
+                    isThisPhone = self,
+                    isThisDevice = self,
+                    legacy = d.TokenHash == null
+                };
             }).ToList();
         }
     }
@@ -489,13 +580,16 @@ public sealed partial class LocalMobileBridgeService
             await SendJsonAsync(stream, 403, "Forbidden", new { error = "A phone can only remove itself. Other phones are removed on the PC." }, ct);
             return;
         }
-        if (own != null) RemoveDevice(own);
-        else
+        if (own != null)
         {
-            lock (_devicesLock) _host.Settings.MobileBridge.PairedDevices.RemoveAll(d => d.IpAddress == caller.Ip && d.TokenHash == null);
-            _host.SaveSettings();
-            StatusChanged?.Invoke();
+            // Answer first: removing the device also stops its running requests, this one included.
+            await SendJsonAsync(stream, 200, "OK", new { success = true }, ct);
+            RemoveDevice(own);
+            return;
         }
+        lock (_devicesLock) _host.Settings.MobileBridge.PairedDevices.RemoveAll(d => d.IpAddress == caller.Ip && d.TokenHash == null);
+        _host.SaveSettings();
+        StatusChanged?.Invoke();
         await SendJsonAsync(stream, 200, "OK", new { success = true }, ct);
     }
 

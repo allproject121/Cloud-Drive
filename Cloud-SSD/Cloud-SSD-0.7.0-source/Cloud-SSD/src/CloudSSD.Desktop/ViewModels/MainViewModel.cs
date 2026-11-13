@@ -14,7 +14,9 @@ public sealed partial class MainViewModel : ObservableObject
         {
             new DashboardViewModel(host, Navigate),
             new CloudDrivesViewModel(host),
-            new MobileHubViewModel(host),
+            new MobileHubViewModel(host, Navigate),
+            new DevicesViewModel(host, Navigate),
+            new RemotePcsViewModel(host),
             new GameLibraryViewModel(host),
             new MemoryViewModel(host),
             new SpaceViewModel(host),
@@ -32,6 +34,114 @@ public sealed partial class MainViewModel : ObservableObject
             Selected.OnMetrics(m);
             UpdateStatus(m);
         });
+
+        // The bell at the top right: every note the app showed, newest first; a click opens its place.
+        NotificationCenter.Load(System.IO.Path.Combine(host.Paths.DataRoot, "notifications.json"));
+        NotificationCenter.Opener = OpenTarget;
+        NotificationCenter.Changed += () => Ui(() => UnreadCount = NotificationCenter.Unread);
+        UnreadCount = NotificationCenter.Unread;
+    }
+
+    // ---- notifications (the bell) ---------------------------------------------------------------------------------------
+
+    public ObservableCollection<NotificationItem> Notifications => NotificationCenter.Items;
+
+    [ObservableProperty] private int _unreadCount;
+    [ObservableProperty] private bool _notificationsOpen;
+
+    public bool HasUnread => UnreadCount > 0;
+    public string UnreadText => UnreadCount > 99 ? "99+" : UnreadCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    public bool HasNotifications => Notifications.Count > 0;
+
+    partial void OnUnreadCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(HasUnread));
+        OnPropertyChanged(nameof(UnreadText));
+        OnPropertyChanged(nameof(HasNotifications));
+    }
+
+    partial void OnNotificationsOpenChanged(bool value)
+    {
+        if (value) NotificationCenter.RefreshTimes();
+        OnPropertyChanged(nameof(HasNotifications));
+    }
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void ToggleNotifications() => NotificationsOpen = !NotificationsOpen;
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void MarkAllRead() => NotificationCenter.MarkAllRead();
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void ClearNotifications()
+    {
+        NotificationCenter.Clear();
+        OnPropertyChanged(nameof(HasNotifications));
+    }
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void OpenNotification(NotificationItem? item)
+    {
+        if (item is null) return;
+        NotificationsOpen = false;
+        NotificationCenter.Open(item);
+    }
+
+    /// <summary>
+    /// Goes to where a notification is about: "page:&lt;title&gt;", "device:&lt;id&gt;" (Devices), "perm:&lt;id&gt;" (its
+    /// permissions), "access:&lt;request&gt;:&lt;device&gt;" (the request while it waits, else the device's permissions),
+    /// "folder:&lt;path&gt;" (File Explorer). The window comes to the front first.
+    /// </summary>
+    public bool OpenTarget(string target)
+    {
+        var w = System.Windows.Application.Current?.MainWindow;
+        if (w != null)
+        {
+            if (!w.IsVisible) w.Show();
+            if (w.WindowState == System.Windows.WindowState.Minimized) w.WindowState = System.Windows.WindowState.Normal;
+            w.Activate();
+        }
+        int colon = target.IndexOf(':');
+        if (colon < 0) return false;
+        string kind = target[..colon], rest = target[(colon + 1)..];
+        switch (kind)
+        {
+            case "page":
+                Navigate(rest);
+                return true;
+            case "device":
+                Navigate("Devices");
+                return true;
+            case "perm":
+                return OpenPermissions(rest);
+            case "access":
+            {
+                var parts = rest.Split(':');
+                var r = Host.MobileBridge.Access.Get(parts[0]);
+                if (r is { State: "pending" })
+                {
+                    DeviceNotifications.ShowRequest(r);
+                    return true;
+                }
+                // Answered or ran out: what that device may do now, where it can be changed.
+                return parts.Length > 1 && OpenPermissions(parts[1]);
+            }
+            case "folder":
+                if (!System.IO.Directory.Exists(rest)) { Navigate("Devices"); return true; }
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"" + rest + "\"") { UseShellExecute = true });
+                return true;
+        }
+        return false;
+    }
+
+    private bool OpenPermissions(string deviceId)
+    {
+        Navigate("Devices");
+        var device = Host.Settings.MobileBridge.PairedDevices.FirstOrDefault(d => d.Id == deviceId);
+        if (device is null) return true;   // removed since: the Devices page is the place
+        new Views.DevicePermissionsWindow(Host, device, justPaired: false, () => Navigate("Phone (Mobile Hub)"))
+        { Owner = System.Windows.Application.Current?.MainWindow }.ShowDialog();
+        return true;
     }
 
     public AppHost Host { get; }
@@ -49,6 +159,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         value?.OnShown();
         Ui(() => LocalizationManager.TranslateTree(System.Windows.Application.Current.MainWindow));
+        // The page's own view is made after this (when it is laid out): its words are translated once it is there.
+        LocalizationManager.TranslateSoon(System.Windows.Application.Current?.MainWindow);
     }
 
     public void Navigate(string title)

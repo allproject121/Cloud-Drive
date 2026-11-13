@@ -1,7 +1,7 @@
 ; Inno Setup script for the single-file Cloud-SSD installer (per-user; asks for administrator rights only to install WinFsp).
 ; Built by build-release.ps1:
 #ifndef AppVersion
-  #define AppVersion "0.7.0"
+  #define AppVersion "0.9.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\dist\Cloud-SSD-" + AppVersion + "-win-x64"

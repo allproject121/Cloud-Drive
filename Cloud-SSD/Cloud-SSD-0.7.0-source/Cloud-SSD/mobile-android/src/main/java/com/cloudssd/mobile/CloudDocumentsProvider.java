@@ -235,6 +235,7 @@ public class CloudDocumentsProvider extends DocumentsProvider {
             if (hit != null && hit.fresh()) return hit.value;
         }
         List<DocInfo> list = backend.list(folderId);
+        ListingCache.put(getContext(), pc(), folderId, list);
         synchronized (listings) {
             listings.put(folderId, new Cached<>(list));
             if (documents.size() > 5000) documents.clear();
@@ -249,8 +250,29 @@ public class CloudDocumentsProvider extends DocumentsProvider {
             Cached<DocInfo> hit = documents.get(id);
             if (hit != null && hit.fresh()) return hit.value;
         }
-        DocInfo d = backend.stat(id);
+        DocInfo d;
+        try {
+            d = backend.stat(id);
+        } catch (IOException e) {
+            // The PC is away: what its folder showed last time.
+            DocInfo saved = ListingCache.find(getContext(), pc(), id);
+            if (saved == null) throw e;
+            return readOnly(saved);
+        }
         remember(d);
+        return d;
+    }
+
+    /** The PC in use (listings and offline copies are kept per PC). */
+    private String pc() {
+        String id = PcProfiles.activeId(getContext());
+        return id == null ? "" : id;
+    }
+
+    /** A saved item: nothing can be changed while the PC is away. */
+    private static DocInfo readOnly(DocInfo d) {
+        d.canEdit = false;
+        d.canCreate = false;
         return d;
     }
 
@@ -307,12 +329,23 @@ public class CloudDocumentsProvider extends DocumentsProvider {
     public Cursor queryChildDocuments(String parentDocumentId, String[] projection, String sortOrder) {
         MatrixCursor c = new MatrixCursor(projection != null ? projection : DOCUMENT_COLUMNS);
         c.setNotificationUri(getContext().getContentResolver(), DocumentsContract.buildChildDocumentsUri(AUTHORITY, parentDocumentId));
+        long t0 = SystemClock.elapsedRealtime();
         try {
             for (DocInfo d : children(parentDocumentId)) addRow(c, d);
+            android.util.Log.d("CloudSSD.Docs", "list " + parentDocumentId + ": " + c.getCount() + " in " + (SystemClock.elapsedRealtime() - t0) + " ms");
         } catch (IOException e) {
-            // Shown by the Files app in place of the (empty) folder.
+            android.util.Log.d("CloudSSD.Docs", "list " + parentDocumentId + " failed in " + (SystemClock.elapsedRealtime() - t0) + " ms: " + e.getMessage());
             Bundle extras = new Bundle();
-            extras.putString(DocumentsContract.EXTRA_ERROR, e instanceof BackendException ? e.getMessage() : "Could not load this folder from the PC.");
+            ListingCache.Saved saved = ListingCache.get(getContext(), pc(), parentDocumentId);
+            if (saved != null) {
+                // The PC is away: the folder as it was, saying since when (kept copies open; the rest needs the PC).
+                for (DocInfo d : saved.items) addRow(c, readOnly(d));
+                extras.putString(DocumentsContract.EXTRA_INFO, "PC offline · showing the list saved "
+                        + android.text.format.DateUtils.getRelativeTimeSpanString(saved.savedAt) + ". Files kept offline open; the rest needs the PC.");
+            } else {
+                // Shown by the Files app in place of the (empty) folder.
+                extras.putString(DocumentsContract.EXTRA_ERROR, e instanceof BackendException ? e.getMessage() : "Could not load this folder from the PC.");
+            }
             c.setExtras(extras);
         }
         return c;
@@ -455,6 +488,9 @@ public class CloudDocumentsProvider extends DocumentsProvider {
     }
 
     private ParcelFileDescriptor openForRead(final String id) throws IOException {
+        // A copy kept on this phone ("Offline rakho") opens at once, with or without the PC.
+        File kept = OfflinePins.get(getContext()).local(pc(), id);
+        if (kept != null) return ParcelFileDescriptor.open(kept, ParcelFileDescriptor.MODE_READ_ONLY);
         if (Build.VERSION.SDK_INT >= 26) {
             RemoteFileReader reader = new RemoteFileReader(backend, id, document(id).size);
             StorageManager storage = (StorageManager) getContext().getSystemService(Context.STORAGE_SERVICE);

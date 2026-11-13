@@ -9,7 +9,7 @@ using System.Windows.Data;
 
 namespace CloudSSD.Desktop;
 
-public static class LocalizationManager
+public static partial class LocalizationManager
 {
     public static readonly string[] SupportedLanguages =
     [
@@ -46,6 +46,7 @@ public static class LocalizationManager
 
     static LocalizationManager()
     {
+        MergeExtraTranslations();
         try
         {
             if (File.Exists(ConfigPath))
@@ -74,6 +75,31 @@ public static class LocalizationManager
                 TranslateTree(w);
             }
         }));
+    }
+
+    /// <summary>
+    /// Translates again once what is being made now is on screen: a page is made when it is selected, after the
+    /// window's pass. (A Loaded class handler cannot do this: WPF raises Loaded only on elements with their own handler.)
+    /// </summary>
+    public static void TranslateSoon(DependencyObject? root)
+    {
+        root?.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() => TranslateTree(root)));
+    }
+
+    /// <summary>Lists translate the items that come later (a device card when a device pairs), once per list.</summary>
+    private static readonly DependencyProperty WatchedProperty =
+        DependencyProperty.RegisterAttached("Watched", typeof(bool), typeof(LocalizationManager));
+
+    private static void WatchItems(ItemsControl list)
+    {
+        if ((bool)list.GetValue(WatchedProperty)) return;
+        list.SetValue(WatchedProperty, true);
+        var generator = list.ItemContainerGenerator;
+        generator.StatusChanged += (_, _) =>
+        {
+            if (generator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated)
+                list.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() => TranslateTree(list)));
+        };
     }
 
     public static void SetLanguage(string lang)
@@ -217,7 +243,11 @@ public static class LocalizationManager
                 }
                 return;
             }
-            else if (root is HeaderedContentControl hcc && hcc.Header is string hStr)
+            else if (root is ItemsControl list)
+            {
+                WatchItems(list);
+            }
+            if (root is HeaderedContentControl hcc && hcc.Header is string hStr)
             {
                 var orig = (string)hcc.GetValue(OriginalTextProperty);
                 if (orig == null)

@@ -9,8 +9,8 @@
         <DockPanel>
             <Button DockPanel.Dock="Top" Style="{StaticResource Primary}" HorizontalAlignment="Left" Margin="0,0,0,12" Command="{Binding AddGameCommand}">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                    <TextBlock Text="Add game from cloud drive" />
+                    <TextBlock Foreground="{DynamicResource OnAccent}" Text="&#xE710;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Foreground="{DynamicResource OnAccent}" Text="Add game from cloud drive" />
                 </StackPanel>
             </Button>
             <TextBlock DockPanel.Dock="Top" Text="Your library is empty. Mount a drive, then add a game folder." Style="{StaticResource Caption}"
@@ -19,12 +19,12 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel>
-                            <Border Width="44" Height="44" CornerRadius="9" Background="{StaticResource PurpleSoft}" Margin="0,0,12,0">
-                                <TextBlock Text="{Binding Initial}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource Purple}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Border Width="44" Height="44" CornerRadius="22" Background="{DynamicResource PurpleSoft}" Margin="0,0,12,0">
+                                <TextBlock Text="{Binding Initial}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Purple}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <StackPanel>
                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding Mode}" Foreground="{StaticResource Muted}" FontSize="12" />
+                                <TextBlock Text="{Binding Mode}" Foreground="{DynamicResource Muted}" FontSize="12" />
                                 <TextBlock Text="{Binding Readiness}" Foreground="{Binding ReadinessTone, Converter={StaticResource Tone}}" FontSize="12" />
                             </StackPanel>
                         </DockPanel>
@@ -41,8 +41,8 @@
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
                                 <Button Style="{StaticResource Play}" Command="{Binding PlayCommand}" IsEnabled="{Binding IsRunning, Converter={StaticResource NotVis}}">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE768;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                        <TextBlock Text="PLAY" />
+                                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="&#xE768;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="PLAY" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -56,18 +56,18 @@
                                         <TextBlock Text="{Binding Selected.Readiness}" FontSize="11.5" Foreground="{Binding Selected.ReadinessTone, Converter={StaticResource Tone}}" />
                                     </Border>
                                     <Border Style="{StaticResource Pill}" Margin="8,0,0,0">
-                                        <TextBlock Text="{Binding Selected.Mode}" FontSize="11.5" Foreground="{StaticResource Accent}" />
+                                        <TextBlock Text="{Binding Selected.Mode}" FontSize="11.5" Foreground="{DynamicResource Accent}" />
                                     </Border>
                                 </StackPanel>
                             </StackPanel>
                         </DockPanel>
                         <TextBlock Text="{Binding ReadinessDetail}" Style="{StaticResource Caption}" Margin="0,12,0,0" />
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,0"><Run Text="Last launch: " Foreground="{StaticResource Dim}" /><Run Text="{Binding LastResult, Mode=OneWay}" /></TextBlock>
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,0"><Run Text="Last launch: " Foreground="{DynamicResource Dim}" /><Run Text="{Binding LastResult, Mode=OneWay}" /></TextBlock>
                         <WrapPanel Margin="0,14,0,0">
                             <Button Command="{Binding PrepareCommand}" Style="{StaticResource Primary}" Margin="0,0,8,6">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE945;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="Optimize &amp; Prepare" />
+                                    <TextBlock Foreground="{DynamicResource OnAccent}" Text="&#xE945;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock Foreground="{DynamicResource OnAccent}" Text="Optimize &amp; Prepare" />
                                 </StackPanel>
                             </Button>
                             <Button Content="Game settings" Command="{Binding SettingsCommand}" Margin="0,0,8,6" />
@@ -106,7 +106,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel Margin="0,3">
-                                        <TextBlock Text="{Binding Key}" Width="150" Foreground="{StaticResource Dim}" />
+                                        <TextBlock Text="{Binding Key}" Width="150" Foreground="{DynamicResource Dim}" />
                                         <TextBlock Text="{Binding Value}" TextWrapping="Wrap" Foreground="{Binding Tone, Converter={StaticResource Tone}}" />
                                     </DockPanel>
                                 </DataTemplate>

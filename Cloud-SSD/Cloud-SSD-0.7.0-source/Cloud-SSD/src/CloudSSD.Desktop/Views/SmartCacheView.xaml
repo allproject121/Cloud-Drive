@@ -4,7 +4,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="0,0,14,20">
             <!-- Smart Storage Saver & Auto Cloud Offload Card -->
-            <Border Style="{StaticResource Card}" Margin="0,0,0,14" BorderBrush="{StaticResource Accent}" BorderThickness="1.5">
+            <Border Style="{StaticResource Card}" Margin="0,0,0,14" BorderBrush="{DynamicResource Accent}" BorderThickness="1.5">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,10">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -13,13 +13,13 @@
                             <Button Content="Save Settings" Command="{Binding SaveOffloadSettingsCommand}" Padding="12,6" />
                         </StackPanel>
                         <StackPanel>
-                            <TextBlock Text="⚡ SMART SPACE SAVER &amp; AUTO CLOUD OFFLOAD" Style="{StaticResource H2}" Foreground="{StaticResource Accent}" />
+                            <TextBlock Text="⚡ SMART SPACE SAVER &amp; AUTO CLOUD OFFLOAD" Style="{StaticResource H2}" Foreground="{DynamicResource Accent}" />
                             <TextBlock Text="When laptop storage drops below your limit, local files automatically switch to Cloud Drive (Z:)." Style="{StaticResource Caption}" />
                         </StackPanel>
                     </DockPanel>
 
                     <!-- Status Banner -->
-                    <Border Background="{StaticResource Surface2}" CornerRadius="8" Padding="14,10" Margin="0,0,0,12" BorderBrush="{Binding OffloadStatusTone, Converter={StaticResource Tone}}" BorderThickness="1">
+                    <Border Background="{DynamicResource Surface2}" CornerRadius="14" Padding="14,10" Margin="0,0,0,12" BorderBrush="{Binding OffloadStatusTone, Converter={StaticResource Tone}}" BorderThickness="1">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -27,12 +27,12 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Text="{Binding OffloadStatusText}" FontWeight="Bold" FontSize="13" Foreground="{Binding OffloadStatusTone, Converter={StaticResource Tone}}" />
-                                <TextBlock Text="{Binding LaptopDiskSummary}" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,3,0,0" />
-                                <ProgressBar Height="6" Maximum="100" Value="{Binding LaptopDiskPercent}" Margin="0,6,0,0" Foreground="{StaticResource Accent}" Background="{StaticResource Bg}" />
+                                <TextBlock Text="{Binding LaptopDiskSummary}" FontSize="12" Foreground="{DynamicResource Muted}" Margin="0,3,0,0" />
+                                <ProgressBar Height="6" Maximum="100" Value="{Binding LaptopDiskPercent}" Margin="0,6,0,0" Foreground="{DynamicResource Accent}" Background="{DynamicResource Bg}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="20,0,0,0">
-                                <TextBlock Text="{Binding TargetDriveDisplayName}" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Right" Foreground="{StaticResource Purple}" />
-                                <TextBlock Text="{Binding UploadsPendingSummary}" FontSize="11" Foreground="{StaticResource Dim}" HorizontalAlignment="Right" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding TargetDriveDisplayName}" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Right" Foreground="{DynamicResource Purple}" />
+                                <TextBlock Text="{Binding UploadsPendingSummary}" FontSize="11" Foreground="{DynamicResource Dim}" HorizontalAlignment="Right" Margin="0,2,0,0" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -48,8 +48,8 @@
                                   VerticalAlignment="Center" FontWeight="SemiBold" FontSize="13" />
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock Text="Trigger when laptop free space is below:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource Dim}" />
-                            <TextBox Text="{Binding OffloadThresholdGb, UpdateSourceTrigger=PropertyChanged}" Width="60" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="Trigger when laptop free space is below:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource Dim}" />
+                            <TextBox Text="{Binding OffloadThresholdGb, UpdateSourceTrigger=PropertyChanged}" Width="76" VerticalAlignment="Center" Margin="0,0,8,0" />
                             <TextBlock Text="GB" VerticalAlignment="Center" Margin="0,0,12,0" FontWeight="SemiBold" />
                             
                             <ItemsControl ItemsSource="{Binding OffloadPresets}" VerticalAlignment="Center">
@@ -69,21 +69,21 @@
                               Content="Also move old big files from Downloads (over 100 MB, untouched for 7 days; folders are never moved). A shortcut stays in Downloads." />
                     <CheckBox IsChecked="{Binding CleanRecycleBin}" Margin="0,6,0,0" FontSize="13"
                               Content="Also empty Recycle Bin items deleted more than 30 days ago" />
-                    <TextBlock Text="While a game or a phone stream is running, nothing new is cleaned or moved and cloud uploads run slowly." Margin="0,8,0,0" FontSize="12" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+                    <TextBlock Text="While a game or a phone stream is running, nothing new is cleaned or moved and cloud uploads run slowly." Margin="0,8,0,0" FontSize="12" Foreground="{DynamicResource Muted}" TextWrapping="Wrap" />
 
                     <!-- Files moved from Downloads, with a way back -->
                     <DockPanel Margin="0,14,0,4">
                         <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshMovedCommand}" Padding="10,4" />
                         <TextBlock Text="FILES MOVED FROM DOWNLOADS TO THE CLOUD" Style="{StaticResource Label}" VerticalAlignment="Center" />
                     </DockPanel>
-                    <TextBlock Text="{Binding MovedFilesSummary}" FontSize="12" Foreground="{StaticResource Muted}" />
+                    <TextBlock Text="{Binding MovedFilesSummary}" FontSize="12" Foreground="{DynamicResource Muted}" />
                     <ItemsControl ItemsSource="{Binding MovedFiles}" Margin="0,4,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel Margin="0,3">
                                     <Button DockPanel.Dock="Right" Content="{Binding DataContext.BringBackLabel, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Padding="10,4" Margin="10,0,0,0"
                                             Command="{Binding DataContext.BringBackCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Size}" Foreground="{StaticResource Dim}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Size}" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" Margin="10,0,0,0" />
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </DockPanel>
                             </DataTemplate>
@@ -102,7 +102,7 @@
                             <TextBlock Text="Shows the biggest folders and files on the Windows drive, so you can see what to delete or move. Nothing is changed." Style="{StaticResource Caption}" TextWrapping="Wrap" />
                         </StackPanel>
                     </DockPanel>
-                    <TextBlock Text="{Binding SpaceScanStatus}" FontSize="12" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding SpaceScanStatus}" FontSize="12" Foreground="{DynamicResource Muted}" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding SpaceRows}" Margin="0,6,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -115,7 +115,7 @@
                                     <TextBlock Text="{Binding Size}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}" />
-                                        <TextBlock Text="{Binding Note}" FontSize="11" Foreground="{StaticResource Dim}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding Note}" FontSize="11" Foreground="{DynamicResource Dim}" TextWrapping="Wrap" />
                                     </StackPanel>
                                     <Button Grid.Column="2" Content="{Binding DataContext.OpenLabel, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Padding="10,4" Margin="10,0,0,0" VerticalAlignment="Center"
                                             Command="{Binding DataContext.OpenSpaceFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
@@ -170,11 +170,11 @@
                             <ItemsControl ItemsSource="{Binding Usage}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <DockPanel Margin="0,3"><TextBlock Text="{Binding Key}" Width="200" Foreground="{StaticResource Dim}" /><TextBlock Text="{Binding Value}" Foreground="{Binding Tone, Converter={StaticResource Tone}}" FontWeight="SemiBold" /></DockPanel>
+                                        <DockPanel Margin="0,3"><TextBlock Text="{Binding Key}" Width="200" Foreground="{DynamicResource Dim}" /><TextBlock Text="{Binding Value}" Foreground="{Binding Tone, Converter={StaticResource Tone}}" FontWeight="SemiBold" /></DockPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="{Binding Effective}" Foreground="{StaticResource Accent}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Effective}" Foreground="{DynamicResource Accent}" Margin="0,10,0,0" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource Card}">
@@ -183,7 +183,7 @@
                             <TextBlock Style="{StaticResource Caption}" Text="Eviction is done by rclone: least-recently-used files are removed when the budget or the protected free space is exceeded, and data unused for the maximum age expires. Only cached copies are ever removed — never cloud originals, never files outside the Cloud Drive cache folder, never save games." />
                             <ItemsControl ItemsSource="{Binding Warnings}" Margin="0,8,0,0">
                                 <ItemsControl.ItemTemplate>
-                                    <DataTemplate><TextBlock Text="{Binding}" Foreground="{StaticResource Warning}" TextWrapping="Wrap" Margin="0,0,0,6" FontSize="12" /></DataTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding}" Foreground="{DynamicResource Warning}" TextWrapping="Wrap" Margin="0,0,0,6" FontSize="12" /></DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </StackPanel>
@@ -234,7 +234,7 @@
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Text}" />
                                 <Setter Property="Padding" Value="0,3" />
                             </Style>
                         </ListBox.ItemContainerStyle>
@@ -244,15 +244,15 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="110" /><ColumnDefinition Width="*" /><ColumnDefinition Width="170" /><ColumnDefinition Width="90" /><ColumnDefinition Width="90" /><ColumnDefinition Width="130" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding Mount}" Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Mount}" Foreground="{DynamicResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Grid.Column="1" Text="{Binding Path}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                     <StackPanel Grid.Column="2" Margin="0,0,10,0">
                                         <TextBlock Text="{Binding Cached}" FontSize="12" />
                                         <ProgressBar Value="{Binding Fraction}" Maximum="1" Height="3" />
                                     </StackPanel>
                                     <TextBlock Grid.Column="3" Text="{Binding Physical}" FontSize="12" />
-                                    <TextBlock Grid.Column="4" Text="{Binding Logical}" FontSize="12" Foreground="{StaticResource Muted}" />
-                                    <TextBlock Grid.Column="5" Text="{Binding LastAccess}" FontSize="12" Foreground="{StaticResource Muted}" />
+                                    <TextBlock Grid.Column="4" Text="{Binding Logical}" FontSize="12" Foreground="{DynamicResource Muted}" />
+                                    <TextBlock Grid.Column="5" Text="{Binding LastAccess}" FontSize="12" Foreground="{DynamicResource Muted}" />
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

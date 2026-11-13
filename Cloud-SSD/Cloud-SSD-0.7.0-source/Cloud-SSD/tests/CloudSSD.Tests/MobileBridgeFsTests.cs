@@ -79,10 +79,15 @@ public class MobileBridgeFsTests
         using var anonymous = new HttpClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(fs.Base + "/api/fs/roots")).StatusCode);
 
+        // File management off: looking around still works (it is browsing), changing does not.
         fs.Host.Settings.MobileBridge.AllowFileManagement = false;
-        Assert.Equal(HttpStatusCode.Forbidden, (await fs.Get("/api/fs/roots")).Status);
+        Assert.Equal(HttpStatusCode.OK, (await fs.Get("/api/fs/roots")).Status);
         Assert.Equal(HttpStatusCode.Forbidden, (await fs.Post($"/api/fs/create?parent={E("cloudssd:")}&name=x&dir=1")).Status);
         Assert.Empty(Directory.GetFileSystemEntries(fs.All));
+        // Browsing off: not even the list.
+        fs.Host.Settings.MobileBridge.AllowDriveBrowsing = false;
+        Assert.Equal(HttpStatusCode.Forbidden, (await fs.Get("/api/fs/roots")).Status);
+        Assert.Equal(HttpStatusCode.Forbidden, (await fs.Get($"/api/fs/list?path={E("cloudssd:")}")).Status);
     });
 
     [Fact]

@@ -50,7 +50,7 @@ public sealed partial class MemoryViewModel : PageViewModel
     private void AutoRelieve()
     {
         if (_relief.Run(GameToKeep()) is { } r && r.FreedBytes >= 500 * ByteSize.MiB && !GameActivity.IsPlaying(Host))
-            Notifier.Show(L("RAM auto mode"), L("Moved {0} idle app(s) out of RAM. Free RAM went from {1} to {2}.", r.Apps, MemoryHealth.Size(r.AvailableBefore), MemoryHealth.Size(r.AvailableAfter)));
+            Notifier.Show(L("RAM auto mode"), L("Moved {0} idle app(s) out of RAM. Free RAM went from {1} to {2}.", r.Apps, MemoryHealth.Size(r.AvailableBefore), MemoryHealth.Size(r.AvailableAfter)), "page:PC Memory (RAM)", "auto");
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public sealed partial class MemoryViewModel : PageViewModel
         if (Host.GameMode.Last is not { } last) return;
         var text = L("During the game {0} app(s) were closed and {1} of RAM was freed.", last.Closed.Count, MemoryHealth.Size(last.FreedBytes));
         if (opened.Count > 0) text += " " + L("Opened again: {0}.", string.Join(", ", opened));
-        Notifier.Show(L("Game mode"), text);
+        Notifier.Show(L("Game mode"), text, "page:PC Memory (RAM)", "auto");
     }
 
     /// <summary>A running game is never closed or moved out of RAM from here.</summary>

@@ -8,6 +8,7 @@ using Xunit;
 
 namespace CloudSSD.Tests;
 
+[Collection("Language")]   // switches the app's language; never at the same time as other language tests
 public class NewFeaturesTests
 {
     [Fact]
@@ -84,17 +85,14 @@ public class NewFeaturesTests
     [Fact]
     public void LocalizationManager_Translates_Hinglish_And_Hindi()
     {
-        LocalizationManager.SetLanguage("Hinglish");
-        Assert.Equal("Dashboard (Home)", LocalizationManager.T("Dashboard"));
-        Assert.Equal("Cloud Drives (Storage)", LocalizationManager.T("Cloud Drives"));
-        Assert.Equal("Cloud Account Jodein", LocalizationManager.T("Connect Cloud Account"));
+        // TranslateTo, not SetLanguage: SetLanguage saves the choice in the user's own language.txt, and a test run
+        // must not change the language of the app installed on this PC.
+        Assert.Equal("Dashboard (Home)", LocalizationManager.TranslateTo("Hinglish", "Dashboard"));
+        Assert.Equal("Cloud Drives (Storage)", LocalizationManager.TranslateTo("Hinglish", "Cloud Drives"));
+        Assert.Equal("Cloud Account Jodein", LocalizationManager.TranslateTo("Hinglish", "Connect Cloud Account"));
 
-        LocalizationManager.SetLanguage("हिन्दी (Hindi)");
-        Assert.Equal("डैशबोर्ड", LocalizationManager.T("Dashboard"));
-        Assert.Equal("क्लाउड ड्राइव्स", LocalizationManager.T("Cloud Drives"));
-        Assert.Equal("क्लाउड खाता जोड़ें", LocalizationManager.T("Connect Cloud Account"));
-
-        // Reset back to Hinglish
-        LocalizationManager.SetLanguage("Hinglish");
+        Assert.Equal("डैशबोर्ड", LocalizationManager.TranslateTo("हिन्दी (Hindi)", "Dashboard"));
+        Assert.Equal("क्लाउड ड्राइव्स", LocalizationManager.TranslateTo("हिन्दी (Hindi)", "Cloud Drives"));
+        Assert.Equal("क्लाउड खाता जोड़ें", LocalizationManager.TranslateTo("हिन्दी (Hindi)", "Connect Cloud Account"));
     }
 }

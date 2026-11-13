@@ -27,7 +27,7 @@
   /** The connected cloud drive a path belongs to, or null (PC disks and the "From phone" folder are not managed here). */
   function place(path) {
     const pl = app.placeOf(path);
-    return pl && pl.cloud && pl.id && pl.mounted ? pl : null;
+    return pl && (pl.cloud || pl.id === 'received') && pl.id && pl.mounted ? pl : null;
   }
   /** "Z:\Photos\a.jpg" → "cloudssd:Photos/a.jpg": the PC names cloud items by drive, not by drive letter. */
   function idOf(path) {
@@ -137,9 +137,12 @@
     if (r) { app.toast('Renamed to ' + (r.name || name)); refresh(); }
   }
 
+  /** Where a delete goes: the PC's own folder for received files has the Recycle Bin, a cloud drive its account trash. */
+  function binOf(id) { return String(id).startsWith('received:') ? "the PC's Recycle Bin" : 'the trash of the cloud account'; }
+
   async function remove(item, id) {
     const ok = await app.confirmDialog(item.isFolder ? 'Delete this folder?' : 'Delete this file?',
-      `"${item.name}"${item.isFolder ? ' and everything in it' : ''} will be moved to the trash of the cloud account.`, 'Delete');
+      `"${item.name}"${item.isFolder ? ' and everything in it' : ''} will be moved to ${binOf(id)}.`, 'Delete');
     if (!ok) return;
     app.toast('Deleting ' + item.name + '…');
     const r = await call('delete', { path: id });
@@ -152,7 +155,7 @@
     if (!list.length) return false;
     const folders = list.filter(i => i.isFolder).length;
     const ok = await app.confirmDialog(`Delete ${list.length} ${list.length === 1 ? 'item' : 'items'}?`,
-      `${list.length - folders} files${folders ? ` and ${folders} folders (with everything in them)` : ''} go to the trash of the cloud account.`, 'Delete');
+      `${list.length - folders} files${folders ? ` and ${folders} folders (with everything in them)` : ''} go to ${list.every(i => binOf(i.id) === binOf(list[0].id)) ? binOf(list[0].id) : 'the trash or the Recycle Bin'}.`, 'Delete');
     if (!ok) return false;
     let done = 0, failed = 0;
     for (const it of list) {
@@ -200,10 +203,11 @@
   function itemActions(item) {
     const id = app ? idOf(item.path) : null;
     if (!id || item.readOnly) return [];
+    const onPc = String(id).startsWith('received:');
     return [
-      { icon: ICON.rename, title: 'Rename', sub: 'Change the name on the cloud drive', fn: () => rename(item, id) },
+      { icon: ICON.rename, title: 'Rename', sub: onPc ? 'Change the name on the PC' : 'Change the name on the cloud drive', fn: () => rename(item, id) },
       { icon: ICON.move, title: 'Move to…', sub: 'Then open the folder it should go to', fn: () => startMove(item, id) },
-      { icon: ICON.trash, title: 'Delete', sub: 'Goes to the trash of the cloud account', fn: () => remove(item, id) }
+      { icon: ICON.trash, title: 'Delete', sub: 'Goes to ' + binOf(id), fn: () => remove(item, id) }
     ];
   }
 
@@ -429,7 +433,12 @@
         const fo = app.ssd.view.folders[+el.dataset.i];
         if (!fo) return;
         const item = { name: fo.name, path: fo.path, isFolder: true };
-        sheet(fo.name, [{ icon: app.SVG.folder, title: 'Open', sub: '', fn: () => app.loadSsd(fo.path) }].concat(itemActions(item)));
+        // While the PC is away only what works without it: open the saved list, keep or let go of the offline copy.
+        const away = app.cloudSource() === 'none';
+        sheet(fo.name, [{ icon: app.SVG.folder, title: 'Open', sub: '', fn: () => app.loadSsd(fo.path) }]
+          .concat(away ? [] : itemActions(item))
+          .concat(app.keepActions ? app.keepActions(item) : [])
+          .concat(away || !app.syncActions ? [] : app.syncActions(item)));
       },
       'fs-row': (el) => { const a = rows[+el.dataset.i]; app.closeSheet('fs-sheet'); if (a) a.fn(); },
       'fs-prompt-yes': () => answer($('fs-prompt-input').value.trim()),
@@ -454,6 +463,8 @@
     fileActions: (f) => itemActions({ name: f.name, path: f.path, isFolder: false, readOnly: f.readOnly || f.exported }),
     startMove,
     bulkDelete,
-    onMediaFolders
+    onMediaFolders,
+    /** A one-line text prompt (rename a device, name this phone…): resolves to the text, or null when cancelled. */
+    ask: (title, value, okLabel) => (app ? ask(title, value, okLabel) : Promise.resolve(null))
   };
 })();

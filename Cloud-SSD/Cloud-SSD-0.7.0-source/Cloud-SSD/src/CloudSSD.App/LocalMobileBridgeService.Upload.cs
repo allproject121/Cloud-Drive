@@ -129,6 +129,7 @@ public sealed partial class LocalMobileBridgeService
             long saved = 0;
             bool bodyComplete;
             var sw = Stopwatch.StartNew();
+            using var activity = BeginTransfer(route == "backup" ? DeviceActivityKind.Backup : DeviceActivityKind.Upload, name, total, offset);
             await using (var file = new FileStream(partPath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read, 64 * 1024, useAsync: true))
             {
                 file.SetLength(offset); // a retry from an earlier point drops what came after it
@@ -144,7 +145,7 @@ public sealed partial class LocalMobileBridgeService
                     if (read == 0) break;
                     await file.WriteAsync(buffer.AsMemory(0, read), ct);
                     saved += read;
-                    TrackBytes(read);
+                    TrackBytes(read, fromDevice: true);
                 }
                 bodyComplete = chunked ? ((ChunkedBodyStream)body).Finished : saved == contentLength;
             }
@@ -190,6 +191,24 @@ public sealed partial class LocalMobileBridgeService
         }
     }
 
+    /// <summary>
+    /// /api/upload/folder?name=MyApp: a free name for a folder the phone is about to send ("MyApp", or "MyApp (2)" when one
+    /// is there), made now so two sends at once do not get the same one.
+    /// </summary>
+    private object ReserveUploadFolder(Dictionary<string, string> q)
+    {
+        var name = ProjectFilter.SafeFolder(q.GetValueOrDefault("name")).Split('/')[0];
+        if (name.Length == 0) throw new FsException(400, "name is needed.");
+        Directory.CreateDirectory(UploadDirectory);
+        lock (_folderReserveLock)
+        {
+            var free = ProjectFilter.FreeFolderName(UploadDirectory, name);
+            Directory.CreateDirectory(Path.Combine(UploadDirectory, free));
+            return new { name = free };
+        }
+    }
+    private readonly object _folderReserveLock = new();
+
     /// <summary>/api/upload with an upload id: the phone's "Send to PC", continuing after a broken connection.</summary>
     private async Task HandleResumableUploadAsync(Dictionary<string, string> q, Dictionary<string, string> headers, NetworkStream stream, string clientIp, CancellationToken ct)
     {
@@ -198,10 +217,14 @@ public sealed partial class LocalMobileBridgeService
             var id = q.GetValueOrDefault("uploadId");
             if (!IsUploadId(id)) throw new FsException(400, "uploadId must be 32 lowercase hex characters.");
             if (QueryLong(q, "total") is not { } total) throw new FsException(400, "A resumable upload needs total.");
-            var folder = UploadDirectory;
+            // A file of a folder the phone sends (a project…) goes to its place in it: UploadsMyAppsrc. The phone asked
+            // for the folder's name first (/api/upload/folder), so a second "MyApp" is "MyApp (2)", not mixed in.
+            var sub = ProjectFilter.SafeFolder(q.GetValueOrDefault("folder"));
+            var folder = sub.Length > 0 ? Path.Combine(UploadDirectory, sub.Replace('/', Path.DirectorySeparatorChar)) : UploadDirectory;
             Directory.CreateDirectory(folder);
             var r = await ReceiveResumableAsync(id!, "upload", folder, SafeUploadName(q.GetValueOrDefault("filename")), false, ModifiedTime(q),
-                QueryLong(q, "offset") ?? 0, total, folder, headers, stream, clientIp, ct);
+                QueryLong(q, "offset") ?? 0, total, UploadDirectory, headers, stream, clientIp, ct);
+            if (r.Complete) RaiseFileReceived(r.FinalPath!);
             if (!r.Complete)
                 await SendJsonAsync(stream, 200, "OK", new { success = true, complete = false, offset = r.Offset }, ct);
             else

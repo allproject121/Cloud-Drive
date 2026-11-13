@@ -9,7 +9,7 @@
                        Text="Sign in to add an account. Its files then appear as a drive in File Explorer. You can add as many accounts as you like, one at a time." />
 
             <!-- Provider Selection Tabs -->
-            <Border Background="{StaticResource Surface2}" CornerRadius="10" Padding="4" Margin="0,0,0,16">
+            <Border Background="{DynamicResource Surface2}" CornerRadius="20" Padding="4" Margin="0,0,0,16">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -28,9 +28,9 @@
             <!-- 1. Google Drive Panel -->
             <StackPanel x:Name="GooglePanel">
                 <!-- Key status -->
-                <Border x:Name="KeyFoundBox" Visibility="Collapsed" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Success}" Background="{StaticResource Surface}" Padding="14,10" Margin="0,0,0,12">
+                <Border x:Name="KeyFoundBox" Visibility="Collapsed" CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource Success}" Background="{DynamicResource Surface}" Padding="14,10" Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Foreground="{StaticResource Success}" FontWeight="SemiBold" Text="✓ Your own Google key is ready — fast and not shared with anyone" />
+                        <TextBlock Foreground="{DynamicResource Success}" FontWeight="SemiBold" Text="✓ Your own Google key is ready — fast and not shared with anyone" />
                         <TextBlock x:Name="KeyFileText" Style="{StaticResource Caption}" Margin="0,4,0,0" />
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <Button x:Name="TesterButton" Content="Add me as a tester (opens Google)" Style="{StaticResource Ghost}" Padding="0,2" Margin="0,0,18,0" Click="OpenTesters" />
@@ -41,17 +41,17 @@
 
                 <Button x:Name="QuickButton" Style="{StaticResource Primary}" HorizontalAlignment="Stretch" Padding="14,12" Click="QuickConnect" Margin="0">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE77B;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
-                        <TextBlock Text="Sign in with Google" FontSize="15" />
+                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="&#xE77B;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="Sign in with Google" FontSize="15" />
                     </StackPanel>
                 </Button>
-                <TextBlock x:Name="ModeText" Style="{StaticResource Caption}" Margin="0,8,0,0" Foreground="{StaticResource Dim}" />
+                <TextBlock x:Name="ModeText" Style="{StaticResource Caption}" Margin="0,8,0,0" Foreground="{DynamicResource Dim}" />
 
                 <!-- Everything about Google keys is optional and stays folded away; signing in needs only the button above. -->
                 <CheckBox x:Name="AdvancedBox" Margin="0,14,0,0" Content="Advanced: use my own Google key (optional)" Checked="AdvancedChanged" Unchecked="AdvancedChanged" />
                 <StackPanel x:Name="AdvancedPanel" Visibility="Collapsed" Margin="26,10,0,0">
                     <!-- Shown when no key file exists yet -->
-                    <Border x:Name="GetKeyBox" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource Surface}" Padding="14,10" Margin="0,0,0,14">
+                    <Border x:Name="GetKeyBox" CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource Surface}" Padding="14,10" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock FontWeight="SemiBold" Text="Your own free Google key (one time) keeps drives fast and working after rclone's shared login is retired:" TextWrapping="Wrap" />
                             <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,8" TextWrapping="Wrap"
@@ -75,7 +75,7 @@
 
             <!-- 2. Microsoft OneDrive Panel -->
             <StackPanel x:Name="OneDrivePanel" Visibility="Collapsed">
-                <Border CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource Surface}" Padding="14,12" Margin="0,0,0,14">
+                <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource Surface}" Padding="14,12" Margin="0,0,0,14">
                     <StackPanel>
                         <TextBlock Text="Microsoft OneDrive &amp; SharePoint" FontWeight="SemiBold" FontSize="14" />
                         <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" TextWrapping="Wrap"
@@ -91,11 +91,11 @@
 
                 <Button x:Name="OneDriveQuickButton" Style="{StaticResource Primary}" HorizontalAlignment="Stretch" Padding="14,12" Click="ConnectOneDrive" Margin="0">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE774;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
-                        <TextBlock Text="Sign in with Microsoft" FontSize="15" />
+                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="&#xE774;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="Sign in with Microsoft" FontSize="15" />
                     </StackPanel>
                 </Button>
-                <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0" Foreground="{StaticResource Dim}"
+                <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0" Foreground="{DynamicResource Dim}"
                            Text="A browser window will open to Microsoft's official sign-in page." />
 
                 <CheckBox x:Name="OneDriveAdvancedBox" Margin="0,14,0,0" Content="Advanced: Use custom Azure Application Client ID" Checked="OneDriveAdvancedChanged" Unchecked="OneDriveAdvancedChanged" />
@@ -109,7 +109,7 @@
 
             <!-- 3. WebDAV / Nextcloud Panel -->
             <StackPanel x:Name="WebDavPanel" Visibility="Collapsed">
-                <Border CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource Surface}" Padding="14,12" Margin="0,0,0,14">
+                <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource Surface}" Padding="14,12" Margin="0,0,0,14">
                     <StackPanel>
                         <TextBlock Text="Nextcloud, ownCloud &amp; WebDAV" FontWeight="SemiBold" FontSize="14" />
                         <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" TextWrapping="Wrap"
@@ -119,7 +119,7 @@
 
                 <TextBlock Text="SERVER WEBDAV URL" Style="{StaticResource Label}" />
                 <TextBox x:Name="WebDavUrlBox" Text="https://" Margin="0,0,0,10" />
-                <TextBlock Style="{StaticResource Caption}" Foreground="{StaticResource Dim}" Margin="0,-6,0,10"
+                <TextBlock Style="{StaticResource Caption}" Foreground="{DynamicResource Dim}" Margin="0,-6,0,10"
                            Text="Example: https://cloud.example.com/remote.php/dav/files/myusername/" />
 
                 <TextBlock Text="SERVICE TYPE / VENDOR" Style="{StaticResource Label}" />
@@ -138,15 +138,15 @@
 
                 <Button x:Name="WebDavConnectButton" Style="{StaticResource Primary}" HorizontalAlignment="Stretch" Padding="14,12" Click="ConnectWebDav">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE753;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
-                        <TextBlock Text="Connect WebDAV Storage" FontSize="15" />
+                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="&#xE753;" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="Connect WebDAV Storage" FontSize="15" />
                     </StackPanel>
                 </Button>
             </StackPanel>
 
             <CheckBox x:Name="ReadOnlyBox" Margin="0,16,0,0" Content="Read-only access (protects cloud files; no writing or installing on it)" />
 
-            <TextBlock x:Name="Status" Style="{StaticResource Caption}" Margin="0,16,0,0" Foreground="{StaticResource Accent}" MaxHeight="120" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+            <TextBlock x:Name="Status" Style="{StaticResource Caption}" Margin="0,16,0,0" Foreground="{DynamicResource Accent}" MaxHeight="120" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
             <Button x:Name="FixButton" Style="{StaticResource Primary}" HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="Collapsed" Click="OpenFix" />
             <ProgressBar x:Name="Progress" IsIndeterminate="True" Margin="0,8,0,0" Visibility="Collapsed" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">

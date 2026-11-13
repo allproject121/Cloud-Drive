@@ -20,20 +20,20 @@
 
             <TextBlock Text="EXECUTION MODE" Style="{StaticResource Label}" />
             <RadioButton x:Name="ModeCloud" GroupName="mode">
-                <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Text}"><Run Text="Cloud Direct" FontWeight="SemiBold" /><Run Text=" — launch straight from the virtual drive; everything streams through the cache." Foreground="{StaticResource Muted}" /></TextBlock>
+                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Text}"><Run Text="Cloud Direct" FontWeight="SemiBold" /><Run Text=" — launch straight from the virtual drive; everything streams through the cache." Foreground="{DynamicResource Muted}" /></TextBlock>
             </RadioButton>
             <RadioButton x:Name="ModeHybrid" GroupName="mode">
-                <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Text}"><Run Text="Hybrid Optimized" FontWeight="SemiBold" /><Run Text=" — executables, DLLs, configs and small files copied to the SSD; large assets streamed via symbolic links. Game writes stay local." Foreground="{StaticResource Muted}" /></TextBlock>
+                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Text}"><Run Text="Hybrid Optimized" FontWeight="SemiBold" /><Run Text=" — executables, DLLs, configs and small files copied to the SSD; large assets streamed via symbolic links. Game writes stay local." Foreground="{DynamicResource Muted}" /></TextBlock>
             </RadioButton>
             <RadioButton x:Name="ModeLocal" GroupName="mode">
-                <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Text}"><Run Text="Full Local" FontWeight="SemiBold" /><Run Text=" — run a complete local copy (use 'Install locally…' first; requires your approval)." Foreground="{StaticResource Muted}" /></TextBlock>
+                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Text}"><Run Text="Full Local" FontWeight="SemiBold" /><Run Text=" — run a complete local copy (use 'Install locally…' first; requires your approval)." Foreground="{DynamicResource Muted}" /></TextBlock>
             </RadioButton>
             <TextBlock x:Name="ModeHint" Style="{StaticResource Caption}" Margin="0,4,0,14" />
 
             <!-- Cloud Save Game Backup Section -->
-            <Border CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource Surface2}" Padding="14,12" Margin="0,0,0,14">
+            <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource Surface2}" Padding="14,12" Margin="0,0,0,14">
                 <StackPanel>
-                    <TextBlock Text="CLOUD SAVE-GAME BACKUP &amp; SYNC" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource Purple}" Margin="0,0,0,8" />
+                    <TextBlock Text="CLOUD SAVE-GAME BACKUP &amp; SYNC" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource Purple}" Margin="0,0,0,8" />
                     <CheckBox x:Name="CloudSaveBox" Content="Automatically back up save games to cloud when game exits" IsChecked="True" Margin="0,0,0,8" />
 
                     <TextBlock Text="SAVE FOLDER LOCATION" Style="{StaticResource Label}" Margin="0,4,0,4" />
@@ -47,13 +47,13 @@
                         <Button Grid.Column="1" Content="Auto-Detect" Click="AutoDetectSave" Margin="0,0,6,0" Style="{StaticResource Ghost}" />
                         <Button Grid.Column="2" Content="Browse…" Click="BrowseSavePath" Margin="0" Style="{StaticResource Ghost}" />
                     </Grid>
-                    <TextBlock x:Name="SavePathHint" Style="{StaticResource Caption}" Margin="0,0,0,8" Foreground="{StaticResource Dim}" />
+                    <TextBlock x:Name="SavePathHint" Style="{StaticResource Caption}" Margin="0,0,0,8" Foreground="{DynamicResource Dim}" />
 
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <Button x:Name="BackupNowBtn" Content="Backup Saves Now" Click="BackupSavesNow" Margin="0,0,10,0" Style="{StaticResource Primary}" />
                         <Button x:Name="RestoreBtn" Content="Restore from Cloud" Click="RestoreSavesNow" Margin="0,0,10,0" />
                     </StackPanel>
-                    <TextBlock x:Name="SaveStatusText" Style="{StaticResource Caption}" Margin="0,6,0,0" Foreground="{StaticResource Success}" />
+                    <TextBlock x:Name="SaveStatusText" Style="{StaticResource Caption}" Margin="0,6,0,0" Foreground="{DynamicResource Success}" />
                 </StackPanel>
             </Border>
 

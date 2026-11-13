@@ -711,13 +711,14 @@ final class CameraBackup {
     }
 
     private static void notifyProgress(Context c, int index, int total, String name, String via) {
-        show(c, PROGRESS, builder(c).setSmallIcon(android.R.drawable.stat_sys_upload).setContentTitle("Camera backup · " + index + " of " + total)
+        show(c, PROGRESS, builder(c).setSmallIcon(android.R.drawable.stat_sys_upload).setContentTitle(Tr.t(c, "Camera backup · {0} of {1}", index, total))
                 .setContentText(name + " → " + via).setOngoing(true).setProgress(total, index - 1, false));
     }
 
     private static void notifyDone(Context c, int sent, int left, String via) {
-        show(c, SUMMARY, builder(c).setSmallIcon(android.R.drawable.stat_sys_upload_done).setContentTitle("Camera backup")
-                .setContentText(sent + (sent == 1 ? " new item saved" : " new items saved") + " via " + via + (left > 0 ? " · " + left + " waiting" : ""))
+        show(c, SUMMARY, builder(c).setSmallIcon(android.R.drawable.stat_sys_upload_done).setContentTitle(Tr.t(c, "Camera backup"))
+                .setContentText((sent == 1 ? Tr.t(c, "{0} new item saved via {1}", sent, via) : Tr.t(c, "{0} new items saved via {1}", sent, via))
+                        + (left > 0 ? " · " + Tr.t(c, "{0} waiting", left) : ""))
                 .setAutoCancel(true));
     }
 

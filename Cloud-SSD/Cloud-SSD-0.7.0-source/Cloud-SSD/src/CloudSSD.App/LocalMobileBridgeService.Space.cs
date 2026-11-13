@@ -75,7 +75,15 @@ public sealed partial class LocalMobileBridgeService
                 if (method != "POST") { await SendJsonAsync(stream, 405, "Method Not Allowed", new { error = "Use POST." }, ct); return true; }
                 var kind = q.GetValueOrDefault("kind") ?? "";
                 var target = q.GetValueOrDefault("target") ?? "";
+                bool folder = Directory.Exists(target);
                 var result = await space.ActionAsync(kind, target, q.GetValueOrDefault("shortcut") != "0", ct);
+                // Removed from the PC by this device: the card's "Deleted by this device" lists it (and can restore it).
+                if (result.Ok && kind is SpaceActionKinds.Recycle or SpaceActionKinds.Delete)
+                {
+                    var full = Path.GetFullPath(target);
+                    LogDelete(Path.GetFileName(full.TrimEnd('\\')), Path.GetDirectoryName(full) ?? "", folder,
+                        kind == SpaceActionKinds.Recycle ? "recycle" : "gone", kind == SpaceActionKinds.Recycle ? full : null);
+                }
                 await SendJsonAsync(stream, result.Ok ? 200 : 400, result.Ok ? "OK" : "Bad Request", result, ct);
                 return true;
             }

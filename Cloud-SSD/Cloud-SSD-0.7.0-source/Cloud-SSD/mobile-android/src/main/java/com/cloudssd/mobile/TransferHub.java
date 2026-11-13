@@ -83,6 +83,7 @@ final class TransferHub {
         // Transfers that were running when the app was killed: nothing is running them now. They can be retried
         // (and continue where they stopped).
         store.interrupted();
+        watchNetwork();
     }
 
     void addListener(Listener l) {
@@ -110,6 +111,7 @@ final class TransferHub {
         v.put("size", size);
         v.put("uploadId", Uploader.randomId());
         v.put("state", "queued");
+        v.put("pcId", PcProfiles.activeId(ctx));
         long id = store.insert(v);
         submit(id);
         return id;
@@ -130,6 +132,7 @@ final class TransferHub {
         v.put("uploadId", Uploader.randomId());
         v.put("state", "queued");
         v.put("deleteSrc", 1);
+        v.put("pcId", PcProfiles.activeId(ctx));
         long id = store.insert(v);
         submit(id);
         return id;
@@ -137,13 +140,20 @@ final class TransferHub {
 
     /** @param route a PC route with its parameters and no key ("/api/download?path=…"), or "cloud:" + an item id */
     long enqueueDownload(String route, String name, long size) {
+        return enqueueDownload(route, name, size, "");
+    }
+
+    /** folder: a folder inside Downloads ("Cloud-SSD/Received/DESKTOP"), or "" for Downloads itself. */
+    long enqueueDownload(String route, String name, long size, String folder) {
         ContentValues v = new ContentValues();
         v.put("type", "download");
+        v.put("target", cleanFolder(folder));
         v.put("name", name);
         v.put("srcKind", route.startsWith("cloud:") ? "cloud" : "pc");
         v.put("src", route.startsWith("cloud:") ? route.substring(6) : route);
         v.put("size", size);
         v.put("state", "queued");
+        v.put("pcId", route.startsWith("cloud:") ? "" : PcProfiles.activeId(ctx));
         long id = store.insert(v);
         submit(id);
         return id;
@@ -158,11 +168,42 @@ final class TransferHub {
         submit(id);
     }
 
+    /**
+     * The PC is back (or another PC was chosen): transfers that were waiting for the PC now in use start again by
+     * themselves. Those for another saved PC keep waiting for it.
+     */
+    void resumeHeld() {
+        String active = PcProfiles.activeId(ctx);
+        for (long id : store.ids("state = 'held'")) {
+            JSONObject row = store.row(id);
+            if (row == null) continue;
+            String pc = row.optString("pcId", "");
+            if (!pc.isEmpty() && !pc.equals(active)) continue;
+            retry(id);
+        }
+    }
+
+    /** Watches the network: when a network comes up, transfers waiting for the PC are tried again a moment later. */
+    private void watchNetwork() {
+        if (Build.VERSION.SDK_INT < 24) return;
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return;
+            cm.registerDefaultNetworkCallback(new android.net.ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(android.net.Network network) {
+                    if (store.count("state = 'held'") > 0) timer.schedule(TransferHub.this::resumeHeld, 3, TimeUnit.SECONDS);
+                }
+            });
+        } catch (Exception ignored) {
+        }
+    }
+
     void cancel(long id) {
         AtomicBoolean f = cancel.get(id);
         if (f != null) f.set(true);
         JSONObject row = store.row(id);
-        if (row != null && ("queued".equals(row.optString("state")) || "waiting".equals(row.optString("state")))) {
+        if (row != null && ("queued".equals(row.optString("state")) || "waiting".equals(row.optString("state")) || "held".equals(row.optString("state")))) {
             retryAt.remove(id);
             setState(id, "cancelled", "Cancelled");
             dropPartial(row);
@@ -218,6 +259,14 @@ final class TransferHub {
             TransferService.stopIfIdle(ctx);
             return;
         }
+        // Meant for a saved PC that is not the one in use now: it waits for that PC instead of going to another one.
+        String forPc = row.optString("pcId", "");
+        if (!forPc.isEmpty() && !"cloud".equals(row.optString("srcKind")) && !forPc.equals(PcProfiles.activeId(ctx))) {
+            setState(id, "held", "Waiting for " + pcName(forPc) + " — sends when it is the PC in use");
+            cancel.remove(id);
+            TransferService.stopIfIdle(ctx);
+            return;
+        }
         setState(id, "active", "");
         speed.put(id, new double[]{0, row.optLong("bytes", 0), SystemClock.elapsedRealtime()});
         try {
@@ -263,6 +312,15 @@ final class TransferHub {
         boolean refused = e instanceof Uploader.Refused && ((Uploader.Refused) e).status > 0
                 || e instanceof CloudBackend.BackendException && ((CloudBackend.BackendException) e).status > 0;
         String msg = friendly(e);
+        // The PC is away (not refusing): after one quick retry the transfer waits for it and goes on by itself when it
+        // is reachable again, instead of failing. A file shared by another app cannot wait (it may not be readable later).
+        boolean pcAway = !refused && unreachable(e) && row != null && !"uri-temp".equals(row.optString("srcKind"))
+                && !"cloud".equals(row.optString("srcKind"));
+        if (pcAway && attempts >= 1) {
+            String pc = row.optString("pcId", "");
+            setState(id, "held", "Waiting for " + pcName(pc) + " — sends when it is reachable");
+            return;
+        }
         if (!refused && attempts < RETRY_DELAYS_MS.length && row != null && !"uri-temp-gone".equals(msg)) {
             long delay = RETRY_DELAYS_MS[attempts];
             ContentValues v = new ContentValues();
@@ -284,6 +342,21 @@ final class TransferHub {
             setState(id, "failed", msg);
             notifyFailed(id, msg);
         }
+    }
+
+    /** The PC did not answer at all (switched off, another network, Wi-Fi gone), as opposed to answering with an error. */
+    static boolean unreachable(Exception e) {
+        if (e instanceof CloudBackend.BackendException) return ((CloudBackend.BackendException) e).status == CloudBackend.BackendException.UNREACHABLE;
+        if (e instanceof Uploader.Refused) return ((Uploader.Refused) e).status <= 0;
+        return e instanceof java.net.SocketTimeoutException || e instanceof java.net.ConnectException || e instanceof java.net.NoRouteToHostException
+                || e instanceof java.net.UnknownHostException || e instanceof java.net.SocketException;
+    }
+
+    /** The name the page gave a saved PC (or "the PC"). */
+    private String pcName(String pcId) {
+        JSONObject rec = pcId == null || pcId.isEmpty() ? null : PcProfiles.get(ctx, pcId);
+        String n = rec == null ? "" : rec.optString("label", rec.optString("name", ""));
+        return n.isEmpty() ? "the PC" : n;
     }
 
     static String friendly(Exception e) {
@@ -350,14 +423,23 @@ final class TransferHub {
         String name = row.optString("name");
         String target = row.optString("target", "");
         long size = row.optLong("size", -1);
-        String route = target.isEmpty()
+        String route;
+        if (target.startsWith("share:")) {
+            // A file for another device, passed on through the PC: "share:<offer>:<item>".
+            String[] p = target.split(":", 3);
+            route = "/api/share/upload?id=" + Uploader.enc(p.length > 1 ? p[1] : "") + "&item=" + Uploader.enc(p.length > 2 ? p[2] : "")
+                    + "&filename=" + Uploader.enc(name);
+        } else if (target.startsWith("pcfolder:")) {
+            // A file of a folder sent to the PC: its place there ("MyApp (2)/src"), named by the PC beforehand.
+            route = "/api/upload?filename=" + Uploader.enc(name) + "&folder=" + Uploader.enc(target.substring(9));
+        } else route = target.isEmpty()
                 ? "/api/upload?filename=" + Uploader.enc(name)
                 : "/api/fs/write?overwrite=0&mkdirs=1&path=" + Uploader.enc(target + (target.endsWith(":") ? "" : "/") + cleanName(name));
         try {
             Uploader.send(ctx, route, opener(row), size, row.optString("uploadId"), (done, total) -> progress(id, done), stop);
         } catch (Uploader.Refused r) {
             // PC off, but Google Drive is signed in on this phone: the file goes straight to the cloud instead.
-            if (r.status != -1 || !Backends.driveReady(ctx)) throw r;
+            if (r.status != -1 || !Backends.driveReady(ctx) || target.startsWith("pcfolder:")) throw r;
             String folder = target.isEmpty() ? "cloudssd:From phone" : target;
             CloudBackend drive = Backends.drive(ctx);
             Backends.ensureFolder(drive, folder);
@@ -396,10 +478,62 @@ final class TransferHub {
         return out.toString("UTF-8");
     }
 
+    /**
+     * Is something already at Downloads/folder ("Cloud-SSD/Received/PC/MyApp")? On the disk, in MediaStore (files still
+     * being written count too) or among the downloads waiting in this list.
+     */
+    boolean folderTaken(String folder) {
+        String f = cleanFolder(folder);
+        if (f.isEmpty()) return false;
+        try {
+            if (new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), f).exists()) return true;
+        } catch (Exception ignored) { }
+        String like = f.replace("'", "''");
+        if (!store.ids("type='download' AND state IN ('queued','active','waiting','held') AND (target='" + like + "' OR target LIKE '" + like.replace("%", "") + "/%')").isEmpty())
+            return true;
+        if (Build.VERSION.SDK_INT >= 29) {
+            String rel = Environment.DIRECTORY_DOWNLOADS + "/" + f + "/";
+            String[] cols = {MediaStore.MediaColumns._ID};
+            try {
+                Cursor c;
+                if (Build.VERSION.SDK_INT >= 30) {
+                    android.os.Bundle q = new android.os.Bundle();
+                    q.putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, MediaStore.MediaColumns.RELATIVE_PATH + " LIKE ?");
+                    q.putStringArray(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, new String[]{rel + "%"});
+                    q.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+                    q.putInt(android.content.ContentResolver.QUERY_ARG_LIMIT, 1);
+                    c = ctx.getContentResolver().query(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cols, q, null);
+                } else {
+                    c = ctx.getContentResolver().query(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cols,
+                            MediaStore.MediaColumns.RELATIVE_PATH + " LIKE ?", new String[]{rel + "%"}, null);
+                }
+                if (c != null) {
+                    try { if (c.moveToFirst()) return true; } finally { c.close(); }
+                }
+            } catch (Exception ignored) { }
+        }
+        return false;
+    }
+
     /** Where the file is being written: a pending Downloads item (Android 10+) or a hidden part file (older). */
+    /** "Cloud-SSD/Received/My PC" with every part cleaned; "" when nothing usable is left. */
+    static String cleanFolder(String folder) {
+        if (folder == null) return "";
+        StringBuilder out = new StringBuilder();
+        for (String part : folder.split("/")) {
+            String p = part.replaceAll("[\\\\:*?\"<>|\\p{Cntrl}]", "_").replaceAll("^[. ]+|[. ]+$", "");
+            if (p.isEmpty() || p.equals("..")) continue;
+            if (p.length() > 60) p = p.substring(0, 60);
+            if (out.length() > 0) out.append('/');
+            out.append(p);
+        }
+        return out.toString();
+    }
+
     private OutputStream openDest(long id, JSONObject row, long[] have) throws IOException {
         String name = row.optString("name");
         String dest = row.optString("dest", "");
+        String folder = cleanFolder(row.optString("target", ""));
         if (Build.VERSION.SDK_INT >= 29) {
             Uri uri = dest.isEmpty() ? null : Uri.parse(dest);
             if (uri != null) {
@@ -413,7 +547,7 @@ final class TransferHub {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
                 values.put(MediaStore.MediaColumns.MIME_TYPE, mimeOf(name));
-                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + (folder.isEmpty() ? "" : "/" + folder));
                 values.put(MediaStore.MediaColumns.IS_PENDING, 1);
                 uri = ctx.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
                 if (uri == null) throw new IOException("Cannot create the file in Downloads");
@@ -425,6 +559,7 @@ final class TransferHub {
             return ctx.getContentResolver().openOutputStream(uri, have[0] > 0 ? "wa" : "w");
         }
         File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        if (!folder.isEmpty()) dir = new File(dir, folder);
         if (!dir.exists()) dir.mkdirs();
         File part = dest.isEmpty() ? new File(dir, "." + name + ".cssd-part") : new File(dest);
         if (dest.isEmpty()) {
@@ -594,7 +729,7 @@ final class TransferHub {
             String err = row.optString("error", "");
             if (!err.isEmpty() && !"active".equals(state)) o.put("error", err);
             if (!row.optString("note", "").isEmpty()) o.put("note", row.optString("note"));
-            o.put("canRetry", "failed".equals(state) || "cancelled".equals(state));
+            o.put("canRetry", "failed".equals(state) || "cancelled".equals(state) || "held".equals(state));
             o.put("resumable", row.optLong("bytes") > 0 && row.optLong("size", -1) > 0);
             o.put("attempt", row.optInt("attempts", 0));
             Long at = retryAt.get(id);
@@ -649,7 +784,7 @@ final class TransferHub {
         lastNotified.put(id, now);
         boolean up = "upload".equals(e.optString("type"));
         long total = e.optLong("total", -1), done = e.optLong("bytes");
-        post((int) (5000 + id), builder((up ? "Sending " : "Downloading ") + e.optString("name"),
+        post((int) (5000 + id), builder(up ? Tr.t(ctx, "Sending {0}", e.optString("name")) : Tr.t(ctx, "Downloading {0}", e.optString("name")),
                 fmt(e.optLong("speed")) + "/s • " + fmt(done) + (total > 0 ? " / " + fmt(total) : ""),
                 up ? android.R.drawable.stat_sys_upload : android.R.drawable.stat_sys_download)
                 .setOngoing(true).setProgress(100, total > 0 ? (int) (done * 100 / total) : 0, total <= 0));
@@ -660,7 +795,8 @@ final class TransferHub {
         if (row == null) return;
         boolean up = "upload".equals(row.optString("type"));
         String note = row.optString("note", "");
-        Notification.Builder b = builder(up ? (note.isEmpty() ? "Sent to PC" : "Saved to Google Drive") : "Saved to Downloads",
+        String title = up ? (note.isEmpty() ? Tr.t(ctx, "Sent to PC") : Tr.t(ctx, "Saved to Google Drive")) : Tr.t(ctx, "Saved to Downloads");
+        Notification.Builder b = builder(title,
                 row.optString("name") + " (" + fmt(row.optLong("bytes")) + ")",
                 up ? android.R.drawable.stat_sys_upload_done : android.R.drawable.stat_sys_download_done).setAutoCancel(true);
         if (!up) {
@@ -680,8 +816,9 @@ final class TransferHub {
     private void notifyFailed(long id, String msg) {
         JSONObject row = store.row(id);
         if (row == null) return;
-        post((int) (5000 + id), builder("upload".equals(row.optString("type")) ? "Upload stopped" : "Download stopped",
-                row.optString("name") + ": " + msg + " — open the app to retry", android.R.drawable.stat_notify_error).setAutoCancel(true));
+        boolean up = "upload".equals(row.optString("type"));
+        post((int) (5000 + id), builder(up ? Tr.t(ctx, "Upload stopped") : Tr.t(ctx, "Download stopped"),
+                Tr.t(ctx, "{0}: {1} — open the app to retry", row.optString("name"), msg), android.R.drawable.stat_notify_error).setAutoCancel(true));
     }
 
     static String fmt(long bytes) {
@@ -695,19 +832,29 @@ final class TransferHub {
 
     private static final class Store extends SQLiteOpenHelper {
         Store(Context c) {
-            super(c, "transfers.db", null, 2);
+            super(c, "transfers.db", null, 3);
         }
 
         @Override
         public void onCreate(SQLiteDatabase db) {
             db.execSQL("CREATE TABLE t (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, name TEXT, srcKind TEXT, src TEXT, target TEXT, "
                     + "size INTEGER DEFAULT -1, uploadId TEXT, dest TEXT, etag TEXT, bytes INTEGER DEFAULT 0, state TEXT, error TEXT, "
-                    + "note TEXT, attempts INTEGER DEFAULT 0, created INTEGER, finished INTEGER DEFAULT 0, deleteSrc INTEGER DEFAULT 0)");
+                    + "note TEXT, attempts INTEGER DEFAULT 0, created INTEGER, finished INTEGER DEFAULT 0, deleteSrc INTEGER DEFAULT 0, pcId TEXT DEFAULT '')");
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int from, int to) {
             if (from < 2) db.execSQL("ALTER TABLE t ADD COLUMN deleteSrc INTEGER DEFAULT 0");
+            // Which saved PC a transfer is for: it waits for that PC instead of going to another one.
+            if (from < 3) db.execSQL("ALTER TABLE t ADD COLUMN pcId TEXT DEFAULT ''");
+        }
+
+        synchronized List<Long> ids(String where) {
+            List<Long> out = new ArrayList<>();
+            try (Cursor c = getReadableDatabase().rawQuery("SELECT id FROM t WHERE " + where, null)) {
+                while (c.moveToNext()) out.add(c.getLong(0));
+            }
+            return out;
         }
 
         synchronized long insert(ContentValues v) {

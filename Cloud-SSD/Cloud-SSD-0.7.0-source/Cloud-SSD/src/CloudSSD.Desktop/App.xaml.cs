@@ -17,10 +17,10 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        var dbgLog = @"C:\Users\rosha\AppData\Local\Cloud-SSD\startup_debug.txt";
+        ThemeManager.Initialize(); // saved Dark/Light choice, before any window is created
         try
         {
-            System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] OnStartup entered\n");
+            StartupLog("OnStartup entered");
             bool hasOwnership = false;
             try
             {
@@ -37,14 +37,14 @@ public partial class App : Application
             }
             catch (Exception ex)
             {
-                System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] Mutex exception: {ex}\n");
+                StartupLog($"Mutex exception: {ex}\n");
                 hasOwnership = true;
             }
 
-            System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] hasOwnership={hasOwnership}\n");
+            StartupLog($"hasOwnership={hasOwnership}\n");
             if (!hasOwnership)
             {
-                System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] Exiting: already running\n");
+                StartupLog($"Exiting: already running\n");
                 MessageBox.Show("Cloud Drive is already running.", "Cloud Drive", MessageBoxButton.OK, MessageBoxImage.Information);
                 Shutdown();
                 return;
@@ -53,17 +53,17 @@ public partial class App : Application
             _host = AppHost.Create();
             MobileThumbnailer.Attach(_host.MobileBridge);
             var lockAcquired = _host.TryAcquireInstanceLock();
-            System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] lockAcquired={lockAcquired}\n");
+            StartupLog($"lockAcquired={lockAcquired}\n");
             if (!lockAcquired)
             {
-                System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] Exiting: lock not acquired\n");
+                StartupLog($"Exiting: lock not acquired\n");
                 MessageBox.Show("Another Cloud Drive process (for example the command-line tool) is using the data folder.", "Cloud Drive");
                 Shutdown();
                 return;
             }
             DispatcherUnhandledException += (_, args) =>
             {
-                System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] DispatcherUnhandledException: {args.Exception}\n");
+                StartupLog($"DispatcherUnhandledException: {args.Exception}\n");
                 _host.LoggerFactory.CreateLogger("App").LogError(args.Exception, "Unhandled UI exception");
                 MessageBox.Show(Diagnostics.Redactor.Redact(args.Exception.Message), "Cloud Drive error", MessageBoxButton.OK, MessageBoxImage.Error);
                 args.Handled = true;
@@ -78,18 +78,18 @@ public partial class App : Application
             MainWindow = window;
             window.Closing += OnClosing;
             window.Show();
-            System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] Window shown\n");
+            StartupLog($"Window shown\n");
 
             try
             {
                 await _host.InitializeAsync();
-                System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] Host initialized\n");
+                StartupLog($"Host initialized\n");
                 // Keep exactly the two standard drives (each account / all accounts); also tidies up older layouts.
                 if (_host.Remotes.Count > 0 || _host.Settings.Mounts.Count > 0) await _host.SyncStandardDrivesAsync(removeUnfinishedLogins: true);
             }
             catch (Exception ex)
             {
-                System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] Host init exception: {ex}\n");
+                StartupLog($"Host init exception: {ex}\n");
                 MessageBox.Show(window, "Startup problem: " + Diagnostics.Redactor.Redact(ex.Message), "Cloud Drive", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             if (!_host.Settings.FirstRunCompleted)
@@ -101,12 +101,30 @@ public partial class App : Application
             // Space & RAM keeps a live map of the disks (first read in the background, after start-up settles).
             _host.Space.Start();
             StartTailscaleAuto(_host);
-            System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] Startup completed successfully!\n");
+            StartupLog($"Startup completed successfully!\n");
         }
         catch (Exception ex)
         {
-            System.IO.File.AppendAllText(dbgLog, $"[{DateTime.Now:O}] FATAL STARTUP EXCEPTION: {ex}\n");
+            StartupLog($"FATAL STARTUP EXCEPTION: {ex}\n");
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Start-up trace in this user's own data folder. Best effort: a missing folder or a locked file must never stop
+    /// the app from starting.
+    /// </summary>
+    private static void StartupLog(string message)
+    {
+        try
+        {
+            var dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cloud-SSD");
+            System.IO.Directory.CreateDirectory(dir);
+            System.IO.File.AppendAllText(System.IO.Path.Combine(dir, "startup_debug.txt"), $"[{DateTime.Now:O}] {message.TrimEnd('\n')}\n");
+        }
+        catch
+        {
+            // Diagnostics only.
         }
     }
 

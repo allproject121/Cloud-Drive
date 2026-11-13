@@ -12,13 +12,20 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -66,13 +73,40 @@ final class PcLink {
 
     /** The page tells us the PC's addresses: the one it paired on (home) and the ones that work away (Tailscale). */
     static void setCandidates(Context c, String lan, JSONArray away, String pcId) {
+        setCandidates(c, lan, away, pcId, null);
+    }
+
+    /** Also this phone's id on the PC (or "legacy"), which the PC's /api/hello proof is made for. */
+    static void setCandidates(Context c, String lan, JSONArray away, String pcId, String deviceId) {
+        setCandidates(c, lan, away, pcId, deviceId, null);
+    }
+
+    /** direct: the PC's other addresses without the internet (its hotspot, a USB cable, …), from its /api/status. */
+    static void setCandidates(Context c, String lan, JSONArray away, String pcId, String deviceId, JSONArray direct) {
         SharedPreferences.Editor e = prefs(c).edit();
         if (lan != null && !lan.isEmpty()) e.putString("server_lan", strip(lan));
         if (away != null) e.putString("server_away", away.toString());
+        if (direct != null) e.putString("server_direct", direct.toString());
         if (pcId != null && !pcId.isEmpty()) e.putString("pc_id", pcId);
+        if (deviceId != null && !deviceId.isEmpty()) e.putString("device_id", deviceId);
         e.apply();
         synchronized (lock) {
             verifiedAt = 0;
+        }
+    }
+
+    /** A new key (paired again, or with another PC): the old device id no longer goes with it. */
+    static void forgetDeviceId(Context c) {
+        prefs(c).edit().remove("device_id").apply();
+    }
+
+    /** Another PC became the active one: nothing proven about the previous one's addresses carries over. */
+    static void reset() {
+        synchronized (lock) {
+            verifiedUrl = "";
+            verifiedNet = "";
+            verifiedAt = 0;
+            downUntil.clear();
         }
     }
 
@@ -107,7 +141,10 @@ final class PcLink {
             o.put("metered", metered);
             o.put("vpn", vpn);
             o.put("tailnetIp", tailnetIp());
-            o.put("key", (n == null ? "none" : n.toString()) + (wifi ? ":w" : ":m"));
+            // Any way to reach a PC without the internet: Wi-Fi, this phone's hotspot, USB tethering, Ethernet.
+            String links = LinkScanner.signature();
+            o.put("direct", !links.isEmpty());
+            o.put("key", (n == null ? "none" : n.toString()) + (wifi ? ":w" : ":m") + "|" + links);
         } catch (Exception ignored) {
         }
         return o;
@@ -131,12 +168,32 @@ final class PcLink {
 
     // ---- choosing the address -----------------------------------------------------------------------------------
 
-    /** The addresses to try, best first: on Wi-Fi the home address, then Tailscale; off Wi-Fi Tailscale only. */
-    static List<String> candidates(Context c, boolean onWifi) {
+    /**
+     * The addresses to try, best first: the PC on this phone's own localhost (USB debugging), addresses on a link this
+     * phone has now (Wi-Fi, its hotspot, a USB cable), the home address, the PC's other direct addresses, then
+     * Tailscale. Without any direct link only localhost and Tailscale are tried.
+     */
+    static List<String> candidates(Context c, boolean direct) {
         SharedPreferences p = prefs(c);
         List<String> out = new ArrayList<>();
         String lan = p.getString("server_lan", p.getString("server", ""));
-        if (!lan.isEmpty() && (onWifi || lan.contains("127.0.0.1") || lan.contains("://100."))) out.add(strip(lan));
+        List<String> others = new ArrayList<>();
+        try {
+            JSONArray d = new JSONArray(p.getString("server_direct", "[]"));
+            for (int i = 0; i < d.length(); i++) {
+                String u = strip(d.optString(i, ""));
+                if (!u.isEmpty()) others.add(u);
+            }
+        } catch (JSONException ignored) {
+        }
+        if (lan.contains("127.0.0.1")) out.add(strip(lan));
+        if (direct) {
+            for (String u : others) if (!out.contains(u) && LinkScanner.sameSubnet(hostOf(u))) out.add(u);
+        }
+        if (!lan.isEmpty() && !out.contains(strip(lan)) && (direct || lan.contains("://100."))) out.add(strip(lan));
+        if (direct) {
+            for (String u : others) if (!out.contains(u)) out.add(u);
+        }
         try {
             JSONArray away = new JSONArray(p.getString("server_away", "[]"));
             for (int i = 0; i < away.length(); i++) {
@@ -146,8 +203,17 @@ final class PcLink {
         } catch (JSONException ignored) {
         }
         String last = p.getString("server", "");
-        if (!last.isEmpty() && !out.contains(strip(last)) && onWifi) out.add(strip(last));
+        if (!last.isEmpty() && !out.contains(strip(last)) && (direct || last.contains("127.0.0.1"))) out.add(strip(last));
         return out;
+    }
+
+    /** "192.168.42.10" for "http://192.168.42.10:8090". */
+    static String hostOf(String url) {
+        String u = url.replaceFirst("^https?://", "");
+        int slash = u.indexOf('/');
+        if (slash >= 0) u = u.substring(0, slash);
+        int colon = u.lastIndexOf(':');
+        return colon > 0 ? u.substring(0, colon) : u;
     }
 
     /**
@@ -161,39 +227,181 @@ final class PcLink {
             if (!verifiedUrl.isEmpty() && key.equals(verifiedNet) && SystemClock.elapsedRealtime() - verifiedAt < VERIFIED_MS && !isDown(verifiedUrl))
                 return verifiedUrl;
         }
-        String pcId = prefs(c).getString("pc_id", "");
-        for (String url : candidates(c, net.optBoolean("wifi", true))) {
-            if (isDown(url)) continue;
-            if (identify(url, pcId)) {
-                synchronized (lock) {
-                    verifiedUrl = url;
-                    verifiedNet = key;
-                    verifiedAt = SystemClock.elapsedRealtime();
-                }
-                prefs(c).edit().putString("server", url).apply();
-                return url;
-            }
-            markDown(url);
+        final String pcId = prefs(c).getString("pc_id", "");
+        final String deviceId = prefs(c).getString("device_id", "");
+        final String token = TokenStore.pcToken(c);
+        final List<String> urls = new ArrayList<>();
+        for (String url : candidates(c, net.optBoolean("direct", true))) if (!isDown(url)) urls.add(url);
+        String found = firstThatIsOurs(urls, pcId, deviceId, token);
+        if (found.isEmpty()) return "";
+        synchronized (lock) {
+            verifiedUrl = found;
+            verifiedNet = key;
+            verifiedAt = SystemClock.elapsedRealtime();
         }
-        return "";
+        prefs(c).edit().putString("server", found).apply();
+        return found;
     }
 
-    /** True when the address answers as our PC (an older PC that has no id is accepted on the address it was paired on). */
-    private static boolean identify(String url, String pcId) {
+    private static final java.util.concurrent.ExecutorService PROBES = java.util.concurrent.Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "cloudssd-probe");
+        t.setDaemon(true);
+        return t;
+    });
+    /** How long the addresses are given together; one that does not answer by then is left for next time. */
+    private static final long PROBE_ALL_MS = 4000;
+    /** A better (earlier) address still being asked gets this long once a later one has answered. */
+    private static final long PREFER_EARLIER_MS = 400;
+
+    /**
+     * Asks every address at once (it used to be one after another: an address that does not answer made the Files
+     * app wait ~10 s before saying the PC is away). The first in the usual order that proves to be our PC wins; a
+     * later address that answers first waits a moment for the earlier, better ones (USB, home Wi-Fi before Tailscale).
+     */
+    static String firstThatIsOurs(final List<String> urls, final String pcId, final String deviceId, final String token) {
+        if (urls.isEmpty()) return "";
+        final int n = urls.size();
+        final Boolean[] result = new Boolean[n];
+        final Object done = new Object();
+        for (int i = 0; i < n; i++) {
+            final int k = i;
+            PROBES.execute(() -> {
+                boolean ok = false;
+                try {
+                    ok = identify(urls.get(k), pcId, deviceId, token);
+                } catch (Exception ignored) {
+                }
+                if (!ok) markDown(urls.get(k));
+                synchronized (done) {
+                    result[k] = ok;
+                    done.notifyAll();
+                }
+            });
+        }
+        long deadline = SystemClock.elapsedRealtime() + PROBE_ALL_MS;
+        long preferUntil = Long.MAX_VALUE;
+        synchronized (done) {
+            while (true) {
+                // The best answer so far: the earliest address that proved itself, if every earlier one has failed.
+                for (int i = 0; i < n; i++) {
+                    if (result[i] == null) break;
+                    if (result[i]) return urls.get(i);
+                }
+                int firstOk = -1;
+                boolean allDone = true;
+                for (int i = 0; i < n; i++) {
+                    if (result[i] == null) allDone = false;
+                    else if (result[i] && firstOk < 0) firstOk = i;
+                }
+                long now = SystemClock.elapsedRealtime();
+                if (firstOk >= 0 && preferUntil == Long.MAX_VALUE) preferUntil = now + PREFER_EARLIER_MS;
+                if (firstOk >= 0 && now >= preferUntil) return urls.get(firstOk);
+                if (allDone) return firstOk >= 0 ? urls.get(firstOk) : "";
+                if (now >= deadline) return firstOk >= 0 ? urls.get(firstOk) : "";
+                try {
+                    done.wait(Math.max(1, Math.min(deadline, preferUntil) - now));
+                } catch (InterruptedException e) {
+                    return firstOk >= 0 ? urls.get(firstOk) : "";
+                }
+            }
+        }
+    }
+
+    /**
+     * True when the address is our PC. A PC with /api/hello must answer a fresh challenge with the hash of this
+     * phone's key (a device that only copied the PC's public id cannot); an older PC, or a phone that does not know
+     * its id on the PC yet, is checked by the public id (accepted on the address it was paired on when it has none).
+     */
+    static boolean identify(String url, String pcId, String deviceId, String token) {
+        if (!deviceId.isEmpty() && !token.isEmpty()) {
+            String nonce = randomHex(16);
+            JSONObject h;
+            try {
+                h = getJsonOrThrow(url + "/api/hello?nonce=" + nonce + "&d=" + encode(deviceId));
+            } catch (IOException e) {
+                return false;   // nothing answers there: no point asking the same address for its status too
+            }
+            if (h != null && h.has("proof")) {
+                String theirs = h.optString("pcId", "");
+                if (!pcId.isEmpty() && !pcId.equals(theirs)) return false;
+                return MessageDigest.isEqual(helloProof(token, nonce, theirs).getBytes(UTF8), h.optString("proof", "").getBytes(UTF8));
+            }
+        }
+        JSONObject s = getJson(url + "/api/status");
+        if (s == null || !s.has("pcName")) return false;
+        // A PC that has /api/hello but did not prove itself above is not trusted by its public id alone.
+        if (!deviceId.isEmpty() && hasFeature(s, "hello-proof")) return false;
+        String theirs = s.optString("pcId", "");
+        return pcId.isEmpty() || theirs.isEmpty() || pcId.equals(theirs);
+    }
+
+    /** HMAC-SHA256(SHA-256(key), nonce + "\n" + pcId) as lowercase hex — what the real PC answers on /api/hello. */
+    static String helloProof(String token, String nonce, String pcId) {
+        try {
+            byte[] key = MessageDigest.getInstance("SHA-256").digest(token.getBytes(UTF8));
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(key, "HmacSHA256"));
+            return hex(mac.doFinal((nonce + "\n" + pcId).getBytes(UTF8)));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static final java.nio.charset.Charset UTF8 = java.nio.charset.Charset.forName("UTF-8");
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private static String randomHex(int bytes) {
+        byte[] b = new byte[bytes];
+        RANDOM.nextBytes(b);
+        return hex(b);
+    }
+
+    private static String hex(byte[] b) {
+        StringBuilder sb = new StringBuilder(b.length * 2);
+        for (byte x : b) sb.append(String.format(java.util.Locale.US, "%02x", x & 0xFF));
+        return sb.toString();
+    }
+
+    private static String encode(String s) {
+        try {
+            return URLEncoder.encode(s, "UTF-8");
+        } catch (Exception e) {
+            return s;
+        }
+    }
+
+    private static boolean hasFeature(JSONObject status, String feature) {
+        JSONArray f = status.optJSONArray("features");
+        if (f == null) return false;
+        for (int i = 0; i < f.length(); i++) if (feature.equals(f.optString(i))) return true;
+        return false;
+    }
+
+    /** A JSON answer from a GET without the key, or null (not reachable, not 200, not JSON). */
+    private static JSONObject getJson(String url) {
+        try {
+            return getJsonOrThrow(url);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    /**
+     * A JSON answer, or null when something answered but not with JSON (an older PC without that route); throws when
+     * nothing answers. A PC answers these in milliseconds, so 2.5 s is plenty even through Tailscale.
+     */
+    private static JSONObject getJsonOrThrow(String url) throws IOException {
         HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection) new URL(url + "/api/status").openConnection();
+            conn = (HttpURLConnection) new URL(url).openConnection();
             conn.setConnectTimeout(2500);
-            conn.setReadTimeout(4000);
+            conn.setReadTimeout(2500);
             conn.setUseCaches(false);
             conn.setRequestProperty("Connection", "close");
-            if (conn.getResponseCode() != 200) return false;
-            JSONObject s = new JSONObject(readAll(conn.getInputStream()));
-            if (!s.has("pcName")) return false;
-            String theirs = s.optString("pcId", "");
-            return pcId.isEmpty() || theirs.isEmpty() || pcId.equals(theirs);
-        } catch (Exception e) {
-            return false;
+            if (conn.getResponseCode() != 200) return null;
+            return new JSONObject(readAll(conn.getInputStream()));
+        } catch (JSONException e) {
+            return null;
         } finally {
             if (conn != null) conn.disconnect();
         }

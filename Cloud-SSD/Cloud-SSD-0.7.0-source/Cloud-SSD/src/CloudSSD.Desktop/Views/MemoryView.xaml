@@ -32,12 +32,12 @@
                 <StackPanel>
                     <CheckBox Content="Game mode: when a game or a phone stream starts, free RAM at once and close the apps chosen here" IsChecked="{Binding GameModeOn}" />
                     <CheckBox Content="Open those apps again when the game is over" IsChecked="{Binding ReopenAfterGame}" Margin="0,6,0,0" />
-                    <TextBlock Text="{Binding GameModeStatus}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{StaticResource Muted}" />
+                    <TextBlock Text="{Binding GameModeStatus}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource Muted}" />
                     <ItemsControl ItemsSource="{Binding CloseForGame}" Margin="0,6,0,0">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{StaticResource Surface2}" CornerRadius="6" Padding="10,4,4,4" Margin="0,0,8,6">
+                                <Border Background="{DynamicResource Surface2}" CornerRadius="10" Padding="10,4,4,4" Margin="0,0,8,6">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding}" VerticalAlignment="Center" />
                                         <Button Content="✕" Padding="6,1" Margin="8,0,0,0" ToolTip="{Binding}"
@@ -61,7 +61,7 @@
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource Metric}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding RamTone}" Value="warn">
-                                            <Setter Property="Foreground" Value="{StaticResource Warning}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Warning}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -85,7 +85,7 @@
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource Metric}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding CommitTone}" Value="error">
-                                            <Setter Property="Foreground" Value="{StaticResource Danger}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Danger}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -112,10 +112,10 @@
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
                         <DockPanel>
-                            <TextBlock Text="{Binding RamNow}" DockPanel.Dock="Right" Foreground="{StaticResource Accent}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding RamNow}" DockPanel.Dock="Right" Foreground="{DynamicResource Accent}" FontWeight="SemiBold" />
                             <TextBlock Text="RAM use (last 5 min)" Style="{StaticResource H2}" />
                         </DockPanel>
-                        <c:Sparkline Values="{Binding RamHistoryValues}" Height="170" Stroke="{StaticResource Accent}" Capacity="300" MaxValue="1" Format="{Binding PercentFormat}" />
+                        <c:Sparkline Values="{Binding RamHistoryValues}" Height="170" Stroke="{DynamicResource Accent}" Capacity="300" MaxValue="1" Format="{Binding PercentFormat}" />
                         <TextBlock Text="Near the top, Windows starts using the page file on the SSD and games stutter." Style="{StaticResource Caption}" Margin="0,10,0,0" />
                     </StackPanel>
                 </Border>
@@ -125,7 +125,7 @@
                         <ItemsControl ItemsSource="{Binding PageFile}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <DockPanel Margin="0,3"><TextBlock Text="{Binding Key}" Width="80" Foreground="{StaticResource Dim}" /><TextBlock Text="{Binding Value}" TextWrapping="Wrap" Foreground="{Binding Tone, Converter={StaticResource Tone}}" /></DockPanel>
+                                    <DockPanel Margin="0,3"><TextBlock Text="{Binding Key}" Width="80" Foreground="{DynamicResource Dim}" /><TextBlock Text="{Binding Value}" TextWrapping="Wrap" Foreground="{Binding Tone, Converter={StaticResource Tone}}" /></DockPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -149,7 +149,7 @@
                                         <ColumnDefinition Width="130" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Size}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Size}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
                                     <Button Grid.Column="2" Content="{Binding DataContext.CloseInGamesLabel, RelativeSource={RelativeSource AncestorType=ItemsControl}}" HorizontalAlignment="Right" Margin="16,0,0,0" Padding="10,4"
                                             Command="{Binding DataContext.ChooseForGameCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
                                             Visibility="{Binding CanChoose, Converter={StaticResource Vis}}" />

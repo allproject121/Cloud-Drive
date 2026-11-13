@@ -43,6 +43,11 @@ public sealed partial class LocalMobileBridgeService
             case "/api/pair/upgrade":
                 await HandlePairUpgradeAsync(method, q, stream, ct);
                 return true;
+            case "/api/upload/folder":
+                try { await SendJsonAsync(stream, 200, "OK", ReserveUploadFolder(q), ct); }
+                catch (FsException e) { await SendFsErrorAsync(stream, e, ct); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { await SendFsErrorAsync(stream, e, ct); }
+                return true;
             case "/api/upload/status":
                 try { await SendJsonAsync(stream, 200, "OK", UploadStatus(q), ct); }
                 catch (FsException e) { await SendFsErrorAsync(stream, e, ct); }
@@ -197,6 +202,8 @@ public sealed partial class LocalMobileBridgeService
     private DateTime _lastThumbTrim = DateTime.MinValue;
     private string ThumbDir => Path.Combine(_host.Paths.DataRoot, "thumbs");
     internal const long ThumbCacheBytes = 300L * 1024 * 1024;
+    /// <summary>How long one thumbnail may take (a photo not cached yet is read from the cloud first). Tests shorten it.</summary>
+    internal TimeSpan ThumbTimeout { get; set; } = TimeSpan.FromSeconds(20);
 
     private async Task FsThumbAsync(Dictionary<string, string> q, NetworkStream stream, CancellationToken ct)
     {
@@ -228,11 +235,18 @@ public sealed partial class LocalMobileBridgeService
         if (bytes is null)
         {
             if (!await _thumbGate.WaitAsync(TimeSpan.FromSeconds(30), ct)) throw new FsException(503, "Busy making thumbnails; try again.");
+            bool timedOut = false;
             try
             {
                 using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                limit.CancelAfter(TimeSpan.FromSeconds(20));
+                limit.CancelAfter(ThumbTimeout);
                 try { bytes = await make(file.FullName, w, limit.Token); }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    // Still coming from the cloud (a big photo on a slow link): not a file without a picture.
+                    timedOut = true;
+                    bytes = null;
+                }
                 catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
                 {
                     _log.LogDebug(e, "Thumbnail failed for {File}", file.Name);
@@ -240,10 +254,12 @@ public sealed partial class LocalMobileBridgeService
                 }
                 Directory.CreateDirectory(dir);
                 if (bytes is { Length: > 0 }) await File.WriteAllBytesAsync(jpg, bytes, ct);
-                else await File.WriteAllTextAsync(none, "", ct);
+                // Only a file that really has no picture is remembered as such (for a day); a timeout is tried again.
+                else if (!timedOut) await File.WriteAllTextAsync(none, "", ct);
             }
             finally { _thumbGate.Release(); }
             if (DateTime.UtcNow - _lastThumbTrim > TimeSpan.FromMinutes(10)) _ = Task.Run(TrimThumbCache);
+            if (timedOut) throw new FsException(503, "This picture is still coming from the cloud; try again in a moment.");
             if (bytes is not { Length: > 0 }) throw new FsException(404, "No thumbnail for this file.");
         }
         await SendResponseAsync(stream, 200, "OK", "image/jpeg", bytes, ct, cacheControl: "private, max-age=2592000");

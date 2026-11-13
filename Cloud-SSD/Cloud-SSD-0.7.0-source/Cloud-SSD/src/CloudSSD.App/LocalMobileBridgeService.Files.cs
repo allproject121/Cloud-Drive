@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
 using CloudSSD.Core;
@@ -44,6 +44,26 @@ public sealed partial class LocalMobileBridgeService
         ?? _host.Mounts.Sessions.Where(s => s.State == MountState.Mounted)
             .Select(s => new CloudRoot(s.Id, s.Root, s.Definition.ReadOnly, s.Id == AppHost.SingleMountId, s.CacheDir, s.Definition.DisplayName))
             .ToList();
+
+    /// <summary>Id of the folder that files sent to this PC land in, as a drive for laptops ("received:&lt;path&gt;").</summary>
+    internal const string ReceivedRootId = "received";
+
+    /// <summary>
+    /// The cloud drives plus the folder files sent to this PC land in, so a laptop always has somewhere to browse and
+    /// send to (even on a PC without a cloud drive connected). Phones keep seeing only the cloud drives in their list.
+    /// </summary>
+    private IReadOnlyList<CloudRoot> BrowseRoots()
+    {
+        var roots = CloudRoots().ToList();
+        try
+        {
+            var up = UploadDirectory;
+            Directory.CreateDirectory(up);
+            roots.Add(new CloudRoot(ReceivedRootId, up, false, false, null, "Received files"));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { }
+        return roots;
+    }
 
     private class FsException(int status, string message) : Exception(message)
     {
@@ -102,7 +122,7 @@ public sealed partial class LocalMobileBridgeService
             }
             object? result = route switch
             {
-                "/api/fs/roots" => FsRoots(),
+                "/api/fs/roots" => FsRoots(q),
                 "/api/fs/list" => FsList(q),
                 "/api/fs/stat" => FsStat(q),
                 "/api/fs/search" => FsSearch(q, ct),
@@ -132,6 +152,35 @@ public sealed partial class LocalMobileBridgeService
     /// makes Windows reset it, and the phone would then see "connection lost" instead of the reason. Bounded: a large
     /// upload is not swallowed just to say no.
     /// </summary>
+    /// <summary>
+    /// Reads away the body of a request that is refused, so Windows does not reset the connection (and lose the reason).
+    /// With a Content-Length, exactly that much (the headers were read byte by byte, so all of it is still there):
+    /// cancelling a read that waits for "quiet" could itself break the connection now and then. Else briefly.
+    /// </summary>
+    private static async Task DrainBodyAsync(NetworkStream stream, Dictionary<string, string> headers, CancellationToken ct)
+    {
+        if (!headers.ContainsKey("Transfer-Encoding") && headers.TryGetValue("Content-Length", out var cl)
+            && long.TryParse(cl, out var length) && length is >= 0 and <= 4 * 1024 * 1024)
+        {
+            var buffer = new byte[64 * 1024];
+            using var total = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            total.CancelAfter(TimeSpan.FromSeconds(5));
+            try
+            {
+                for (long left = length; left > 0;)
+                {
+                    int read = await stream.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, left)), total.Token);
+                    if (read == 0) break;
+                    left -= read;
+                }
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
+            catch (IOException) { }
+            return;
+        }
+        await DrainBrieflyAsync(stream, ct);
+    }
+
     private static async Task DrainBrieflyAsync(NetworkStream stream, CancellationToken ct)
     {
         var buffer = new byte[64 * 1024];
@@ -196,7 +245,7 @@ public sealed partial class LocalMobileBridgeService
         return new FsTarget(root, string.Join('/', segments), segments.Length == 0 ? rootFull : full);
     }
 
-    private FsTarget Target(Dictionary<string, string> q, string key = "path") => ResolveCloudPath(CloudRoots(), q.GetValueOrDefault(key));
+    private FsTarget Target(Dictionary<string, string> q, string key = "path") => ResolveCloudPath(BrowseRoots(), q.GetValueOrDefault(key));
 
     private static FsTarget Child(FsTarget parent, string name) =>
         new(parent.Root, parent.Relative.Length == 0 ? name : parent.Relative + "/" + name, Path.Combine(parent.FullPath, name));
@@ -242,7 +291,7 @@ public sealed partial class LocalMobileBridgeService
 
     // ---- reads ---------------------------------------------------------------------------------------------------
 
-    private object FsRoots() => CloudRoots().Select(r =>
+    private object FsRoots(Dictionary<string, string> q) => (q.GetValueOrDefault("include") == "local" ? BrowseRoots() : CloudRoots()).Select(r =>
     {
         long? total = null, free = null;
         try
@@ -284,7 +333,9 @@ public sealed partial class LocalMobileBridgeService
     {
         var t = Target(q);
         if (Existing(t) is not FileInfo file) throw new FsException(400, "Not a file.");
-        await SendFileAsync(file, headers, stream, clientIp, null, null, "stream", ct);
+        // purpose=download: a laptop or phone saving the file (shown as "Download 45%", recorded as a download).
+        var direction = q.GetValueOrDefault("purpose") == "download" ? "download" : "stream";
+        await SendFileAsync(file, headers, stream, clientIp, null, null, direction, ct);
     }
 
     // ---- changes -------------------------------------------------------------------------------------------------
@@ -310,7 +361,7 @@ public sealed partial class LocalMobileBridgeService
         var name = (q.GetValueOrDefault("name") ?? "").Trim();
         if (!IsPlainName(name)) throw new FsException(400, "That name cannot be used.");
         if (name == t.Name) return Entry(t, info);
-        var parent = ResolveCloudPath(CloudRoots(), t.Root.Id + ":" + (t.Relative.Contains('/') ? t.Relative[..t.Relative.LastIndexOf('/')] : ""));
+        var parent = ResolveCloudPath(BrowseRoots(), t.Root.Id + ":" + (t.Relative.Contains('/') ? t.Relative[..t.Relative.LastIndexOf('/')] : ""));
         var dest = Child(parent, name);
         // Only a change of letter case may point at the item itself.
         if (Info(dest) != null && !string.Equals(name, t.Name, StringComparison.OrdinalIgnoreCase)) throw new FsException(409, "That name is already used here.");
@@ -349,9 +400,22 @@ public sealed partial class LocalMobileBridgeService
         var t = Target(q);
         var info = Existing(t);
         RequireEditable(t);
+        bool folder = info is DirectoryInfo;
+        var parent = t.Relative.Contains('/') ? t.Relative[..t.Relative.LastIndexOf('/')] : "";
+        // "From phone › Trip", as the devices show the place.
+        var where = t.Root.DisplayName + (parent.Length > 0 ? " › " + parent.Replace("/", " › ") : "");
+        if (t.Root.Id == ReceivedRootId)
+        {
+            // A plain folder on this PC has no account trash: its deletes go to the Recycle Bin, so they can be restored
+            // (a plain delete here would be for good, while the phone and laptop say it can be undone).
+            if (!RecycleBin.Send(t.FullPath)) throw new FsException(409, "Windows could not move it to the Recycle Bin. Is it open in another program?");
+            LogDelete(info.Name, where, folder, "recycle", t.FullPath);
+            return new { success = true, id = t.Id, recycled = true };
+        }
         // On Google Drive this moves the item to the account's trash, where it can be restored.
-        if (info is DirectoryInfo) Directory.Delete(t.FullPath, recursive: true);
+        if (folder) Directory.Delete(t.FullPath, recursive: true);
         else File.Delete(t.FullPath);
+        LogDelete(info.Name, where, folder, "cloud", null);
         return new { success = true, id = t.Id };
     }
 
@@ -359,9 +423,10 @@ public sealed partial class LocalMobileBridgeService
     {
         var t = Target(q);
         if (t.Depth == 0) throw new FsException(400, "Missing file name.");
-        var parent = ResolveCloudPath(CloudRoots(), t.Root.Id + ":" + (t.Relative.Contains('/') ? t.Relative[..t.Relative.LastIndexOf('/')] : ""));
+        var parent = ResolveCloudPath(BrowseRoots(), t.Root.Id + ":" + (t.Relative.Contains('/') ? t.Relative[..t.Relative.LastIndexOf('/')] : ""));
         // A phone moving a whole folder to the cloud sends its files with mkdirs=1: missing folders are made on the way.
-        if (q.GetValueOrDefault("mkdirs") == "1" && parent.Depth > 0 && Existing(parent) is null && !File.Exists(parent.FullPath))
+        // (Info, not Existing: Existing throws for a missing folder, and making it is the point here.)
+        if (q.GetValueOrDefault("mkdirs") == "1" && parent.Depth > 0 && Info(parent) is null && !File.Exists(parent.FullPath))
         {
             RequireCreatable(parent);
             Directory.CreateDirectory(parent.FullPath);
@@ -414,6 +479,7 @@ public sealed partial class LocalMobileBridgeService
         long saved = 0;
         bool complete = false;
         var sw = Stopwatch.StartNew();
+        using var activity = BeginTransfer(DeviceActivityKind.Upload, name, contentLength);
         try
         {
             await using (var file = new FileStream(part, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 64 * 1024, useAsync: true))
@@ -429,7 +495,7 @@ public sealed partial class LocalMobileBridgeService
                     if (read == 0) break;
                     await file.WriteAsync(buffer.AsMemory(0, read), ct);
                     saved += read;
-                    TrackBytes(read);
+                    TrackBytes(read, fromDevice: true);
                 }
                 complete = chunked ? ((ChunkedBodyStream)body).Finished : saved == contentLength;
             }

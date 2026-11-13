@@ -6,16 +6,16 @@
             <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                 <Button Style="{StaticResource Primary}" Command="{Binding ConnectAccountCommand}">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                        <TextBlock Text="Connect Cloud Account" />
+                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="&#xE710;" FontFamily="{StaticResource IconFont}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Foreground="{DynamicResource OnAccent}" Text="Connect Cloud Account" />
                     </StackPanel>
                 </Button>
             </StackPanel>
 
-            <Border Style="{StaticResource Card}" BorderBrush="{StaticResource Warning}" BorderThickness="1" Margin="0,0,0,14"
+            <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource Warning}" BorderThickness="1" Margin="0,0,0,14"
                     Visibility="{Binding ShowKeyNotice, Converter={StaticResource Vis}}">
                 <StackPanel>
-                    <TextBlock Text="Google login is being retired" FontWeight="SemiBold" Foreground="{StaticResource Warning}" />
+                    <TextBlock Text="Google login is being retired" FontWeight="SemiBold" Foreground="{DynamicResource Warning}" />
                     <TextBlock Text="{Binding SharedKeyNotice}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,10" />
                     <StackPanel Orientation="Horizontal">
                         <Button Content="Switch to my own Google key" Style="{StaticResource Primary}" Command="{Binding SwitchToOwnKeyCommand}" />
@@ -31,7 +31,7 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel>
-                            <Border DockPanel.Dock="Left" Width="52" Height="52" CornerRadius="10" Background="{StaticResource Surface3}" Margin="0,0,16,0">
+                            <Border DockPanel.Dock="Left" Width="52" Height="52" CornerRadius="26" Background="{DynamicResource Surface3}" Margin="0,0,16,0">
                                 <TextBlock Text="{Binding Letter}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -51,7 +51,7 @@
                                         <TextBlock Text="{Binding State}" FontSize="11" Foreground="{Binding Tone, Converter={StaticResource Tone}}" />
                                     </Border>
                                 </StackPanel>
-                                <TextBlock Text="{Binding Account}" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Account}" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" Margin="0,3,0,0" />
                             </StackPanel>
                         </DockPanel>

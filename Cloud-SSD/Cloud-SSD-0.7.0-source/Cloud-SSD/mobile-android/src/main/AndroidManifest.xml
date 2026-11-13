@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cloudssd.mobile"
-    android:versionCode="5"
-    android:versionName="0.10.0">
+    android:versionCode="7"
+    android:versionName="0.12.0">
 
     <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="35" />
 
@@ -17,6 +17,8 @@
     <!-- "All files access": lets the file browser show documents, APKs and every folder, like the phone's own Files app. -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- "Ring" from the PC, to find the phone. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Camera backup: keeps its schedule after the phone restarts, and keeps the place a photo was taken. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
@@ -25,6 +27,15 @@
     <!-- Transfers keep going when the app is closed (TransferService). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- "Find my phone" / the PC looking at this phone with the app closed (PeerLinkService). CHANGE_NETWORK_STATE is
+         what Android 14+ asks of a connected-device service. Battery: one system dialog, only when switched on. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- App lock: the fingerprint / face check (the screen lock works without it). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Ring: the "Found it" screen over the lock screen (Android 14+ asks the person once). -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- Space & RAM: "Uninstall" hands an app to Android's own uninstall prompt; app sizes and recently used apps
          need "Usage access", which the user turns on in Settings (the app opens that screen). -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
@@ -87,6 +98,19 @@
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
+        <!-- "Share" → "Send to a device…": the app asks where (the PC, or a phone, tablet or laptop through it). -->
+        <activity-alias
+            android:name=".SendToDevice"
+            android:targetActivity=".MainActivity"
+            android:label="Send to a device…"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Shows the cloud drives in the phone's Files app and in every app's Open / Save picker. -->
         <provider
@@ -105,6 +129,21 @@
             android:name=".CameraBackupService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+        <!-- "Your PC is ringing this phone" over the lock screen, with a big "Found it" button (see PhoneRinger). -->
+        <activity
+            android:name=".RingActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.cloudssd.mobile.ring"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@android:style/Theme.Material.NoActionBar" />
+        <!-- Synced folders (phone folder <-> PC folder), run by Android every hour on Wi-Fi (see FolderSync). -->
+        <service
+            android:name=".FolderSyncService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <!-- Keeps transfers going while the app is closed (see TransferHub). -->
         <service
@@ -118,5 +157,19 @@
             android:screenOrientation="sensorLandscape"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+        <!-- "Allow 1 hour" / "Deny" on the note that the PC wants to see this phone's files. -->
+        <receiver android:name=".PeerDecisionReceiver" android:exported="false" />
+        <!-- Keeps answering the PC (Ring, files, clipboard) with the app closed, only while that is wanted. -->
+        <service
+            android:name=".PeerLinkService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+        <!-- After a restart or an update: "Find my phone" listens again without opening the app. -->
+        <receiver android:name=".BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

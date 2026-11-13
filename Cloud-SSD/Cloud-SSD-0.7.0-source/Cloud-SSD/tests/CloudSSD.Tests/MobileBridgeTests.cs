@@ -173,7 +173,7 @@ public class MobileBridgeTests
     }
 
     [Theory]
-    [InlineData("192.168.31.4", true)]
+    [InlineData("192.168.1.4", true)]
     [InlineData("10.0.0.7", true)]
     [InlineData("172.20.1.1", true)]
     [InlineData("127.0.0.1", true)]

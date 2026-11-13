@@ -39,11 +39,39 @@ final class PcBackend implements CloudBackend {
     private static final long DOWN_MS = 5000;
 
     private static volatile long downUntil;
+    /** When the PC last answered a request; after {@link #QUIET_MS} without one, a quick check comes first. */
+    private static volatile long lastOkAt;
+    private static final long QUIET_MS = 15_000;
+    private static final int QUICK_MS = 2000;
+
+    /** The PC's public status within 2 s (no key is sent). */
+    private static boolean answersNow(String server) {
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL(server + "/api/status").openConnection();
+            c.setConnectTimeout(QUICK_MS);
+            c.setReadTimeout(QUICK_MS);
+            c.setUseCaches(false);
+            c.setRequestProperty("Connection", "close");
+            if (c.getResponseCode() != 200) return false;
+            lastOkAt = SystemClock.elapsedRealtime();
+            return true;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            if (c != null) c.disconnect();
+        }
+    }
 
     private final Context context;
 
     PcBackend(Context context) {
         this.context = context.getApplicationContext();
+    }
+
+    /** Another PC became the active one: its first request is tried at once. */
+    static void reset() {
+        downUntil = 0;
     }
 
     private SharedPreferences prefs() {
@@ -78,6 +106,13 @@ final class PcBackend implements CloudBackend {
         String server = PcLink.resolve(context);
         if (server.isEmpty()) {
             downUntil = SystemClock.elapsedRealtime() + DOWN_MS;
+            throw unreachable();
+        }
+        // After a quiet while, a 2 s check first: a PC that went away behind a link that still connects (a USB
+        // tunnel, a stuck app) would otherwise keep the Files app waiting the whole read time (~10 s) for nothing.
+        if (SystemClock.elapsedRealtime() - lastOkAt > QUIET_MS && !answersNow(server)) {
+            downUntil = SystemClock.elapsedRealtime() + DOWN_MS;
+            PcLink.markDown(server);
             throw unreachable();
         }
         HttpURLConnection c = (HttpURLConnection) new URL(server + route + (query.isEmpty() ? "" : "?" + query)).openConnection();
@@ -137,6 +172,7 @@ final class PcBackend implements CloudBackend {
         try {
             check(c);
             String text = readAll(c.getInputStream());
+            lastOkAt = SystemClock.elapsedRealtime();
             return text.isEmpty() ? null : new JSONTokener(text).nextValue();
         } catch (JSONException e) {
             throw new IOException("Unexpected answer from the PC.", e);
@@ -181,7 +217,8 @@ final class PcBackend implements CloudBackend {
 
     @Override
     public List<RootInfo> roots() throws IOException {
-        Object o = get("/api/fs/roots", "");
+        // Also the PC's folder for files sent to it ("From phone"), so what was kept offline from there shows here too.
+        Object o = get("/api/fs/roots", pcHas("fs-local-roots") ? "include=local" : "");
         if (!(o instanceof JSONArray)) throw new IOException("Unexpected answer from the PC.");
         JSONArray a = (JSONArray) o;
         List<RootInfo> roots = new ArrayList<>();
@@ -262,7 +299,12 @@ final class PcBackend implements CloudBackend {
 
     @Override
     public DocInfo write(String id, InputStream data) throws IOException {
-        HttpURLConnection c = open("POST", "/api/fs/write", "path=" + enc(id) + "&overwrite=1", SLOW_MS);
+        return write(id, data, false);
+    }
+
+    /** With mkdirs, folders missing on the way to it are made (a synced folder's new sub-folders). */
+    DocInfo write(String id, InputStream data, boolean mkdirs) throws IOException {
+        HttpURLConnection c = open("POST", "/api/fs/write", "path=" + enc(id) + "&overwrite=1" + (mkdirs ? "&mkdirs=1" : ""), SLOW_MS);
         c.setDoOutput(true);
         c.setChunkedStreamingMode(64 * 1024);
         c.setRequestProperty("Content-Type", "application/octet-stream");

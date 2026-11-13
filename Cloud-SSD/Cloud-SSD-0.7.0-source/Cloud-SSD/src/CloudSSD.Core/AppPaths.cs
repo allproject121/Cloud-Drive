@@ -40,6 +40,14 @@ public sealed class AppPaths
     public string DefaultCacheRoot => Path.Combine(DataRoot, "cache");
     public string DefaultLocalGamesRoot => Path.Combine(DataRoot, "local-games");
     public string DiagnosticsDirectory => Path.Combine(DataRoot, "diagnostics");
+    /// <summary>Other PCs this one connects to as a laptop: their keys (DPAPI), saved lists, thumbnails and "keep offline" copies.</summary>
+    public string RemoteDirectory => Path.Combine(DataRoot, "remote");
+    /// <summary>Who opened what on this PC, per device (kept 30 days).</summary>
+    public string AccessLogDirectory => Path.Combine(DataRoot, "access-log");
+    /// <summary>What devices deleted on this PC, so it can be found and restored (kept 60 days).</summary>
+    public string DeleteLogFile => Path.Combine(DataRoot, "device-deletes.json");
+    /// <summary>Files offered between devices, share links, and files passing through for another device.</summary>
+    public string SharesDirectory => Path.Combine(DataRoot, "shares");
 
     public string CacheRootFor(AppSettings s) => string.IsNullOrWhiteSpace(s.Cache.CacheRoot) ? DefaultCacheRoot : s.Cache.CacheRoot!;
 

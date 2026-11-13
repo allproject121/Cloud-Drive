@@ -14,16 +14,16 @@
                 </DockPanel>
             </Border>
             <UniformGrid Columns="5">
-                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="CACHE HITS" Style="{StaticResource Label}" /><TextBlock Text="{Binding Hits}" Style="{StaticResource Metric}" Foreground="{StaticResource Success}" /></StackPanel></Border>
-                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="CACHE MISSES" Style="{StaticResource Label}" /><TextBlock Text="{Binding Misses}" Style="{StaticResource Metric}" Foreground="{StaticResource Warning}" /></StackPanel></Border>
+                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="CACHE HITS" Style="{StaticResource Label}" /><TextBlock Text="{Binding Hits}" Style="{StaticResource Metric}" Foreground="{DynamicResource Success}" /></StackPanel></Border>
+                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="CACHE MISSES" Style="{StaticResource Label}" /><TextBlock Text="{Binding Misses}" Style="{StaticResource Metric}" Foreground="{DynamicResource Warning}" /></StackPanel></Border>
                 <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="HIT RATE" Style="{StaticResource Label}" /><TextBlock Text="{Binding HitRate}" Style="{StaticResource Metric}" /></StackPanel></Border>
                 <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="AVERAGE READ WAIT" Style="{StaticResource Label}" /><TextBlock Text="{Binding AvgWait}" Style="{StaticResource Metric}" /></StackPanel></Border>
                 <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="LONGEST STALL" Style="{StaticResource Label}" /><TextBlock Text="{Binding LongestStall}" Style="{StaticResource Metric}" /><TextBlock Text="{Binding Stalls}" Style="{StaticResource Caption}" /></StackPanel></Border>
             </UniformGrid>
             <UniformGrid Columns="3">
-                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Hit rate per second" Style="{StaticResource H2}" /><c:Sparkline Values="{Binding HitHistory}" MaxValue="1" Height="100" Stroke="{StaticResource Success}" /></StackPanel></Border>
-                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Average read wait (ms)" Style="{StaticResource H2}" /><c:Sparkline Values="{Binding WaitHistory}" Height="100" Stroke="{StaticResource Warning}" /></StackPanel></Border>
-                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Prefetch queue" Style="{StaticResource H2}" /><c:Sparkline Values="{Binding QueueHistory}" Height="100" Stroke="{StaticResource Purple}" /></StackPanel></Border>
+                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Hit rate per second" Style="{StaticResource H2}" /><c:Sparkline Values="{Binding HitHistory}" MaxValue="1" Height="100" Stroke="{DynamicResource Success}" /></StackPanel></Border>
+                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Average read wait (ms)" Style="{StaticResource H2}" /><c:Sparkline Values="{Binding WaitHistory}" Height="100" Stroke="{DynamicResource Warning}" /></StackPanel></Border>
+                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Prefetch queue" Style="{StaticResource H2}" /><c:Sparkline Values="{Binding QueueHistory}" Height="100" Stroke="{DynamicResource Purple}" /></StackPanel></Border>
             </UniformGrid>
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -36,13 +36,13 @@
                         <ItemsControl ItemsSource="{Binding Queue}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <DockPanel Margin="0,2"><TextBlock Text="{Binding Key}" Width="150" Foreground="{StaticResource Dim}" /><TextBlock Text="{Binding Value}" Foreground="{Binding Tone, Converter={StaticResource Tone}}" /></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="{Binding Key}" Width="150" Foreground="{DynamicResource Dim}" /><TextBlock Text="{Binding Value}" Foreground="{Binding Tone, Converter={StaticResource Tone}}" /></DockPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <DockPanel Margin="0,10,0,2"><TextBlock Text="Accuracy" Width="150" Foreground="{StaticResource Dim}" /><TextBlock Text="{Binding Accuracy}" /></DockPanel>
-                        <DockPanel Margin="0,2"><TextBlock Text="Useful prefetch" Width="150" Foreground="{StaticResource Dim}" /><TextBlock Text="{Binding Useful}" Foreground="{StaticResource Success}" /></DockPanel>
-                        <DockPanel Margin="0,2"><TextBlock Text="Wasted prefetch" Width="150" Foreground="{StaticResource Dim}" /><TextBlock Text="{Binding Wasted}" Foreground="{StaticResource Warning}" /></DockPanel>
+                        <DockPanel Margin="0,10,0,2"><TextBlock Text="Accuracy" Width="150" Foreground="{DynamicResource Dim}" /><TextBlock Text="{Binding Accuracy}" /></DockPanel>
+                        <DockPanel Margin="0,2"><TextBlock Text="Useful prefetch" Width="150" Foreground="{DynamicResource Dim}" /><TextBlock Text="{Binding Useful}" Foreground="{DynamicResource Success}" /></DockPanel>
+                        <DockPanel Margin="0,2"><TextBlock Text="Wasted prefetch" Width="150" Foreground="{DynamicResource Dim}" /><TextBlock Text="{Binding Wasted}" Foreground="{DynamicResource Warning}" /></DockPanel>
                         <TextBlock Text="Predictors (this session)" Style="{StaticResource H2}" Margin="0,16,0,6" />
                         <ItemsControl ItemsSource="{Binding Predictors}">
                             <ItemsControl.ItemTemplate>
@@ -74,10 +74,10 @@
                                             <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding Time}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="{StaticResource Dim}" />
+                                        <TextBlock Text="{Binding Time}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="{DynamicResource Dim}" />
                                         <TextBlock Grid.Column="1" Text="{Binding Result}" FontSize="11.5" Foreground="{Binding Tone, Converter={StaticResource Tone}}" />
                                         <TextBlock Grid.Column="2" Text="{Binding Wait}" FontSize="11.5" />
-                                        <TextBlock Grid.Column="3" Text="{Binding Range}" FontSize="11.5" Foreground="{StaticResource Muted}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Range}" FontSize="11.5" Foreground="{DynamicResource Muted}" />
                                         <TextBlock Grid.Column="4" Text="{Binding Path}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                                     </Grid>
                                 </DataTemplate>

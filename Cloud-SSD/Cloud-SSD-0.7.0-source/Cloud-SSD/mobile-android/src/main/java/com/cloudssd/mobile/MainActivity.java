@@ -7,6 +7,7 @@ import android.app.usage.StorageStatsManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -47,13 +48,17 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.OutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -95,15 +100,36 @@ public class MainActivity extends Activity {
     private static final String THUMB_HOST = "cloudssd.thumb";
     private static final String PDF_HOST = "cloudssd.pdf";
     private static final String CLOUD_HOST = "cloudssd.cloud";
+    /** Pictures of photos and videos on the PC, kept on the phone so they also show while the PC is away. */
+    private static final String PC_THUMB_HOST = "cloudssd.pcthumb";
+    /** cloudssd.offline/f?pc=…&id=…: a file kept on this phone ("Offline rakho"), with Range support. */
+    private static final String OFFLINE_HOST = "cloudssd.offline";
     private static final String PREFS = "cloudssd";
     private static final int MAX_LIST_ITEMS = 3000;
 
     private WebView webView;
+    /** Behind the status bar and the navigation bar: colours the page's look chose (setBars). */
+    private BarsDrawable bars;
+    /** Asks for the fingerprint or screen lock when the app opens or comes back (when switched on). */
+    private AppLock appLock;
     private ValueCallback<Uri[]> webChooserCallback;
     private volatile String serverBaseUrl = "";
     private volatile String uploadTarget = "";
     /** A cloudssd://pair link that arrived before the page could take it (JSON, or ""). */
     private volatile String pendingPairLink = "";
+    /** Opened from the "listening for your PC" note: the page shows Settings → Find my phone (to switch it off). */
+    static final String ACTION_FIND_MY_PHONE = "com.cloudssd.mobile.FIND_MY_PHONE";
+    private volatile boolean pendingFindMyPhone;
+    /** Files shared to "Send to a device…", until the page says where they go. */
+    private final List<Uri> shareIn = new ArrayList<>();
+
+    private List<Uri> takeShareIn() {
+        synchronized (shareIn) {
+            List<Uri> u = new ArrayList<>(shareIn);
+            shareIn.clear();
+            return u;
+        }
+    }
 
     private final ExecutorService worker = Executors.newFixedThreadPool(3);
     private final AtomicBoolean discovering = new AtomicBoolean(false);
@@ -114,6 +140,13 @@ public class MainActivity extends Activity {
         }
     };
     private final TransferHub.Listener transferListener = t -> emit("transfer", t);
+    private final OfflinePins.Listener offlineListener = ev -> emit("offline", ev);
+    private final PeerLink.Listener peerListener = (pc, name) -> {
+        try {
+            emit("peer", new JSONObject().put("type", "ask").put("pc", pc).put("name", name));
+        } catch (JSONException ignored) {
+        }
+    };
 
     // ------------------------------------------------------------------ small helpers
 
@@ -163,8 +196,54 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** A new file in Downloads/Cloud-SSD; when the name is taken, "name (1).ext" (Android picks it on 10+). */
+    private OutputStream openInDownloads(String name) throws IOException {
+        if (Build.VERSION.SDK_INT >= 29) {
+            ContentValues v = new ContentValues();
+            v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+            v.put(MediaStore.MediaColumns.MIME_TYPE, mimeOf(name));
+            v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Cloud-SSD");
+            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+            OutputStream o = uri == null ? null : getContentResolver().openOutputStream(uri, "w");
+            if (o == null) throw new IOException("Cannot create the file in Downloads");
+            return o;
+        }
+        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Cloud-SSD");
+        if (!dir.exists() && !dir.mkdirs()) throw new IOException("Cannot make Downloads/Cloud-SSD");
+        int dot = name.lastIndexOf('.');
+        String base = dot > 0 ? name.substring(0, dot) : name, ext = dot > 0 ? name.substring(dot) : "";
+        File f = new File(dir, name);
+        for (int i = 1; f.exists(); i++) f = new File(dir, base + " (" + i + ")" + ext);
+        return new FileOutputStream(f);
+    }
+
+    /** True when Android may not stop this app in the background to save battery. */
+    private boolean batteryUnrestricted() {
+        if (Build.VERSION.SDK_INT < 23) return true;
+        android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+        return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+    }
+
+    /** One system dialog: "Let Cloud-SSD always run in the background?" (else the app's battery settings). */
+    private void askBatteryUnrestricted() {
+        if (Build.VERSION.SDK_INT < 23 || batteryUnrestricted()) return;
+        runOnUiThread(() -> {
+            try {
+                startActivity(new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName())));
+            } catch (Exception e) {
+                try {
+                    startActivity(new Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+                } catch (Exception ignored) {
+                    toast("Settings → Apps → Cloud-SSD → Battery → Unrestricted");
+                }
+            }
+        });
+    }
+
     private void toast(final String text) {
-        runOnUiThread(() -> Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show());
+        // Fixed messages are translated here; ones with values come translated (Tr.t with {0}).
+        final String shown = Tr.t(MainActivity.this, text);
+        runOnUiThread(() -> Toast.makeText(MainActivity.this, shown, Toast.LENGTH_SHORT).show());
     }
 
     private boolean hasPermission(String permission) {
@@ -257,6 +336,8 @@ public class MainActivity extends Activity {
                 o.put("storageAccess", storageAccess());
                 o.put("network", PcLink.netInfo(MainActivity.this));
                 o.put("installId", PcLink.installId(MainActivity.this));
+                o.put("meName", getSharedPreferences(PREFS, MODE_PRIVATE).getString("me_name", ""));
+                o.put("tablet", getResources().getConfiguration().smallestScreenWidthDp >= 600);
                 o.put("googleAvailable", GoogleAuth.available());
                 o.put("night", nightMode());
                 o.put("usageAccess", SpaceScanner.hasUsageAccess(MainActivity.this));
@@ -285,10 +366,16 @@ public class MainActivity extends Activity {
             boolean changed = !p.getString("server_lan", p.getString("server", "")).equals(clean);
             serverBaseUrl = clean;
             p.edit().putString("server", clean).putString("server_lan", clean).commit();
-            TokenStore.setPcToken(MainActivity.this, token == null ? "" : token.trim());
+            String newToken = token == null ? "" : token.trim();
+            // A new key belongs to a new pairing: the page sends the matching device id with the next status.
+            if (!newToken.equals(TokenStore.pcToken(MainActivity.this))) PcLink.forgetDeviceId(MainActivity.this);
+            TokenStore.setPcToken(MainActivity.this, newToken);
             PcLink.setCandidates(MainActivity.this, clean, null, null);
+            if (!clean.isEmpty()) PcProfiles.syncActiveFromFlat(MainActivity.this);
             // The phone's Files app lists the cloud drives of the paired PC.
             if (changed) CloudDocumentsProvider.notifyRootsChanged(MainActivity.this);
+            // Just paired (or another key): the PC can ring and ask this phone right away, not after the next wait.
+            PeerLink.get(MainActivity.this).kick();
         }
 
         /** Away addresses (Tailscale) and the PC's id, from the PC's status: used when the home address does not answer. */
@@ -296,8 +383,316 @@ public class MainActivity extends Activity {
         public void setServerCandidates(String json) {
             try {
                 JSONObject o = new JSONObject(json);
-                PcLink.setCandidates(MainActivity.this, o.optString("lan", ""), o.optJSONArray("away"), o.optString("pcId", ""));
+                PcLink.setCandidates(MainActivity.this, o.optString("lan", ""), o.optJSONArray("away"), o.optString("pcId", ""), o.optString("deviceId", ""),
+                        o.optJSONArray("direct"));
+                PcProfiles.syncActiveFromFlat(MainActivity.this);
             } catch (Exception ignored) { }
+        }
+
+        // ---- several PCs: the page's list of saved devices (keys stay on this side) ----
+
+        // ---- the PC looking at this phone (only as far as this phone allows) -------------------------------------
+
+        /** {scope: shared|all, until (ms, 0 = until taken back)} or {} when that PC may not see this phone. */
+        @JavascriptInterface
+        public String peerState(String pcId) {
+            return PeerLink.Grants.forPage(MainActivity.this, pcId).toString();
+        }
+
+        /** Lets that PC see this phone's files: scope shared|all, for minutes (0 = until taken back). */
+        @JavascriptInterface
+        public void peerGrant(String pcId, String scope, int minutes) {
+            PeerLink.Grants.set(MainActivity.this, pcId, scope, minutes);
+            android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(PeerLink.NOTE_ID);
+            // Keeps answering with the app closed for as long as it is allowed.
+            PeerLinkService.ensure(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void peerRevoke(String pcId) {
+            PeerLink.Grants.clear(MainActivity.this, pcId);
+            PeerLinkService.stopIfNotNeeded(MainActivity.this);
+        }
+
+        /** The page is back online with its PC (paired, unblocked, another PC): ask it for questions right away. */
+        @JavascriptInterface
+        public void peerKick() {
+            PeerLink.get(MainActivity.this).kick();
+        }
+
+        /** {on, listening (the background service runs), batteryOk (Android may not stop it to save battery)}. */
+        @JavascriptInterface
+        public String findMyPhone() {
+            JSONObject o = new JSONObject();
+            try {
+                o.put("on", getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("find_my_phone", false));
+                o.put("listening", PeerLinkService.isRunning());
+                o.put("batteryOk", batteryUnrestricted());
+                o.put("lockScreen", fullScreenAllowed());
+            } catch (JSONException ignored) {
+            }
+            return o.toString();
+        }
+
+        /** "Find my phone": keep listening for the PC with the app closed (a quiet note shows while it does). */
+        @JavascriptInterface
+        public void setFindMyPhone(boolean on) {
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("find_my_phone", on).remove("peer_paused").apply();
+            if (on) {
+                PeerLinkService.ensure(MainActivity.this);
+                if (!batteryUnrestricted()) askBatteryUnrestricted();
+            } else {
+                PeerLinkService.stopIfNotNeeded(MainActivity.this);
+            }
+        }
+
+        /** Android 14+: opens the setting that lets the ring show its "Found it" screen over the lock screen. */
+        @JavascriptInterface
+        public void askLockScreenRing() {
+            if (Build.VERSION.SDK_INT < 34) return;
+            runOnUiThread(() -> {
+                try {
+                    startActivity(new Intent("android.settings.MANAGE_APP_USE_FULL_SCREEN_INTENT", Uri.parse("package:" + getPackageName())));
+                } catch (Exception e) {
+                    toast("Settings → Apps → Cloud-SSD → Full screen notifications");
+                }
+            });
+        }
+
+        /** Asks Android (one system dialog) to let the app run in the background without being stopped. */
+        @JavascriptInterface
+        public void askBatteryExemption() {
+            askBatteryUnrestricted();
+        }
+
+        /** Wakes a sleeping PC on this Wi-Fi (Wake-on-LAN) with the card and broadcast address it gave while it was on. */
+        @JavascriptInterface
+        public boolean wakePc(String mac, String broadcast) {
+            // Called on the page's bridge thread, not the screen's, so the few small packets may go out right here.
+            return WakeOnLan.send(mac, broadcast);
+        }
+
+        /** App lock: {on, after (seconds, 0 = right away), available (the phone has a screen lock)}. */
+        @JavascriptInterface
+        public String appLock() {
+            JSONObject o = new JSONObject();
+            try {
+                o.put("on", AppLock.enabled(MainActivity.this)).put("after", AppLock.afterSeconds(MainActivity.this))
+                        .put("available", AppLock.available(MainActivity.this));
+            } catch (Exception ignored) {
+            }
+            return o.toString();
+        }
+
+        /** Switches App lock on (only with a screen lock on the phone) or off. False when it cannot be on. */
+        @JavascriptInterface
+        public boolean setAppLock(boolean on, int afterSeconds) {
+            if (on && !AppLock.available(MainActivity.this)) return false;
+            AppLock.set(MainActivity.this, on, afterSeconds);
+            if (!on) runOnUiThread(() -> { if (appLock != null) appLock.disabled(); });
+            return true;
+        }
+
+        /** Synced folders: [{id, pcId, pcFolder, pcLabel, phoneLabel, last: {at, up, down, conflicts, failed, ok, error}}]. */
+        @JavascriptInterface
+        public String folderSyncs() {
+            return FolderSync.pairs(MainActivity.this).toString();
+        }
+
+        /** "Keep in sync with a phone folder": Android's folder picker opens; the pair then syncs once right away. */
+        @JavascriptInterface
+        public void folderSyncAdd(String pcFolder, String pcLabel) {
+            pendingSyncFolder = pcFolder;
+            pendingSyncLabel = pcLabel;
+            runOnUiThread(() -> {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                        | Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                try {
+                    startActivityForResult(i, REQ_SYNC_TREE);
+                } catch (Exception e) {
+                    toast(Tr.t(MainActivity.this, "Could not sync that folder: {0}", String.valueOf(e.getMessage())));
+                }
+            });
+        }
+
+        /** Picks a folder to send (a project, photos…); the page hears "folderPicked" with what is in it. */
+        @JavascriptInterface
+        public void pickFolderToSend(boolean everything) {
+            sendFolderEverything = everything;
+            runOnUiThread(() -> {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                        | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                try {
+                    startActivityForResult(i, REQ_SEND_TREE);
+                } catch (Exception e) {
+                    toast(Tr.t(MainActivity.this, "Cannot share: {0}", String.valueOf(e.getMessage())));
+                }
+            });
+        }
+
+        /** The picked folder goes to the PC, into the folder it named for it ("MyApp" or "MyApp (2)"). */
+        @JavascriptInterface
+        public void sendFolderToPc(String top) {
+            java.util.List<String[]> files = sendFolderFiles;
+            if (files == null || top == null || top.isEmpty()) return;
+            TransferHub hub = TransferHub.get(MainActivity.this);
+            for (String[] f : files) {
+                int slash = f[3].indexOf('/');
+                String place = top + (slash < 0 ? "" : f[3].substring(slash));
+                hub.enqueueUpload(f[1], Long.parseLong(f[2]), "uri", f[0], "pcfolder:" + place);
+            }
+        }
+
+        /** The picked folder goes to another device through the PC: the offer's item ids, in the order of the files. */
+        @JavascriptInterface
+        public void sendFolderToDevice(String offer, String idsJson) {
+            java.util.List<String[]> files = sendFolderFiles;
+            if (files == null) return;
+            try {
+                JSONArray ids = new JSONArray(idsJson);
+                TransferHub hub = TransferHub.get(MainActivity.this);
+                for (int i = 0; i < files.size() && i < ids.length(); i++) {
+                    String[] f = files.get(i);
+                    hub.enqueueUpload(f[1], Long.parseLong(f[2]), "uri", f[0], "share:" + offer + ":" + ids.optString(i));
+                }
+            } catch (Exception e) {
+                toast("The files could not be sent");
+            }
+        }
+
+        @JavascriptInterface
+        public void folderSyncNow(String id) {
+            worker.execute(() -> FolderSync.run(MainActivity.this, id, new java.util.concurrent.atomic.AtomicBoolean()));
+        }
+
+        @JavascriptInterface
+        public void folderSyncRemove(String id) {
+            FolderSync.remove(MainActivity.this, id);
+        }
+
+        /**
+         * The page's look: the colour under the status bar (its top band) and under the navigation bar (its bottom bar),
+         * as "#RRGGBB", and whether the bars' icons must be dark (on a light colour). Remembered for the next start.
+         */
+        @JavascriptInterface
+        public void setBars(String top, String rest, boolean statusDark, boolean navDark) {
+            final int t, r;
+            try {
+                t = android.graphics.Color.parseColor(top);
+                r = android.graphics.Color.parseColor(rest);
+            } catch (Exception e) {
+                return;
+            }
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putInt("bars_top", t).putInt("bars_rest", r)
+                    .putBoolean("bars_status_dark", statusDark).putBoolean("bars_nav_dark", navDark).apply();
+            runOnUiThread(() -> {
+                if (bars != null) bars.setColors(t, r);
+                applyBarIcons(statusDark, navDark);
+            });
+        }
+
+        /** The language picked on the page (english, hinglish, hindi), so the phone's own notes use it too. */
+        @JavascriptInterface
+        public void setLanguage(String lang) {
+            Tr.setLang(MainActivity.this, lang);
+            PeerLinkService.relabel(MainActivity.this);
+        }
+
+        /** The text on this phone's clipboard ("" when none), for "Send clipboard to PC". */
+        @JavascriptInterface
+        public String getClipboard() {
+            final String[] out = {""};
+            final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+            runOnUiThread(() -> {
+                try {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    if (cm != null && cm.hasPrimaryClip() && cm.getPrimaryClip().getItemCount() > 0) {
+                        CharSequence t = cm.getPrimaryClip().getItemAt(0).coerceToText(MainActivity.this);
+                        out[0] = t == null ? "" : t.toString();
+                    }
+                } catch (Exception ignored) {
+                } finally {
+                    done.countDown();
+                }
+            });
+            try {
+                done.await(2, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) {
+            }
+            return out[0];
+        }
+
+        /** This phone's direct links and the USB cable: {links: [{name, kind, ip}], usb: {connected, tethering}}. */
+        @JavascriptInterface
+        public String linkInfo() {
+            return LinkScanner.forPage(MainActivity.this).toString();
+        }
+
+        /** Opens Android's tethering settings (to turn on USB tethering), or the network settings when there is none. */
+        @JavascriptInterface
+        public void openTetherSettings() {
+            runOnUiThread(() -> {
+                try {
+                    startActivity(new Intent().setClassName("com.android.settings", "com.android.settings.TetherSettings").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                } catch (Exception e) {
+                    try {
+                        startActivity(new Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    } catch (Exception ignored) {
+                        toast("Open Settings → Hotspot & tethering → USB tethering");
+                    }
+                }
+            });
+        }
+
+        /** Every saved PC/laptop: [{id, name, label, kind, lan, away, last, deviceId, features, lastOnline, active, hasKey}]. */
+        @JavascriptInterface
+        public String pcList() {
+            return PcProfiles.forPage(MainActivity.this).toString();
+        }
+
+        /** Adds or updates one: {id, name?, label?, kind?, lan?, away?, last?, deviceId?, lastOnline?, token?, activate?}. */
+        @JavascriptInterface
+        public boolean pcSave(String json) {
+            try {
+                JSONObject o = new JSONObject(json);
+                String token = o.has("token") ? o.optString("token", "") : null;
+                if (o.has("replaces")) PcProfiles.rekey(MainActivity.this, o.optString("replaces"), o.optString("id"));
+                return PcProfiles.upsert(MainActivity.this, o, token, o.optBoolean("activate", false));
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        /** Switches to another saved PC: {ok, server, token, id}, or "" when it is not saved. */
+        @JavascriptInterface
+        public String pcActivate(String id) {
+            JSONObject r = PcProfiles.activate(MainActivity.this, id);
+            if (r != null) serverBaseUrl = r.optString("server", serverBaseUrl);
+            // The PC now in use is asked at once (the wait open to the previous one is ended).
+            if (r != null) PeerLink.get(MainActivity.this).kick();
+            return r == null ? "" : r.toString();
+        }
+
+        /** Forgets a saved PC and its key on this phone (the page tells that PC first when it can). */
+        @JavascriptInterface
+        public boolean pcRemove(String id) {
+            boolean removed = PcProfiles.remove(MainActivity.this, id);
+            // Nothing of a forgotten PC stays on this phone: its offline copies and the lists the Files app kept.
+            if (removed) {
+                OfflinePins.get(MainActivity.this).forgetPc(id);
+                ListingCache.forgetPc(MainActivity.this, id);
+                FolderSync.forgetPc(MainActivity.this, id);
+            }
+            return removed;
+        }
+
+        /** This phone's name as its owner set it (shown on the PCs it pairs with). */
+        @JavascriptInterface
+        public void setMeName(String name) {
+            String clean = name == null ? "" : name.trim();
+            if (clean.length() > 60) clean = clean.substring(0, 60);
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("me_name", clean).apply();
         }
 
         /** What the PC can do and how it stores backups (saved for the Files app and camera backup). */
@@ -318,6 +713,59 @@ public class MainActivity extends Activity {
             String link = pendingPairLink;
             pendingPairLink = "";
             return link;
+        }
+
+        /** The files shared to "Send to a device…" that wait for a place: [{name, size}] (size -1 when not known). */
+        @JavascriptInterface
+        public String shareInFiles() {
+            JSONArray a = new JSONArray();
+            List<Uri> uris;
+            synchronized (shareIn) {
+                uris = new ArrayList<>(shareIn);
+            }
+            for (Uri u : uris) {
+                Object[] ns = nameAndSize(u);
+                try {
+                    a.put(new JSONObject().put("name", ns[0]).put("size", ns[1]));
+                } catch (JSONException ignored) {
+                }
+            }
+            return a.toString();
+        }
+
+        /** They go to the PC in use (into its "From phone" folder; they wait when it is away). */
+        @JavascriptInterface
+        public void shareInToPc() {
+            final List<Uri> uris = takeShareIn();
+            worker.execute(() -> uploadUris(uris, "", false));
+        }
+
+        /** They go to another device through the PC: one offer item id per file, in the same order. */
+        @JavascriptInterface
+        public void shareInToDevice(final String offerId, String itemIdsJson) {
+            final List<Uri> uris = takeShareIn();
+            try {
+                final JSONArray ids = new JSONArray(itemIdsJson);
+                worker.execute(() -> {
+                    for (int i = 0; i < uris.size() && i < ids.length(); i++) uploadUri(uris.get(i), "share:" + offerId + ":" + ids.optString(i), false);
+                });
+            } catch (JSONException e) {
+                toast("The files could not be sent");
+            }
+        }
+
+        /** The share was cancelled in the page: forget the files. */
+        @JavascriptInterface
+        public void shareInCancel() {
+            takeShareIn();
+        }
+
+        /** True once after the "listening" note was tapped: the page then shows Settings → Find my phone. */
+        @JavascriptInterface
+        public boolean consumeFindMyPhone() {
+            boolean was = pendingFindMyPhone;
+            pendingFindMyPhone = false;
+            return was;
         }
 
         /** Looks for Cloud-SSD PCs on this Wi-Fi/hotspot; results arrive as 'discovery' events. */
@@ -518,7 +966,7 @@ public class MainActivity extends Activity {
             if (localFilePath == null || localFilePath.trim().isEmpty()) return;
             final File file = new File(localFilePath);
             if (!file.isFile()) {
-                toast("File not found: " + file.getName());
+                toast(Tr.t(MainActivity.this, "File not found: {0}", file.getName()));
                 return;
             }
             TransferHub.get(MainActivity.this).enqueueUpload(file.getName(), file.length(), "file", file.getAbsolutePath(), "");
@@ -543,7 +991,7 @@ public class MainActivity extends Activity {
                 try {
                     startActivityForResult(intent, REQ_PICK_UPLOAD);
                 } catch (Exception e) {
-                    toast("Cannot open file picker: " + e.getMessage());
+                    toast(Tr.t(MainActivity.this, "Cannot open file picker: {0}", e.getMessage()));
                 }
             });
         }
@@ -554,6 +1002,62 @@ public class MainActivity extends Activity {
             String name = rawFileName == null || rawFileName.trim().isEmpty() ? "download_" + System.currentTimeMillis() : rawFileName.trim();
             if (downloadUrl != null && downloadUrl.startsWith("cloud:")) TransferHub.get(MainActivity.this).enqueueDownload(downloadUrl, name, -1);
             else TransferHub.get(MainActivity.this).enqueueDownload(routeOf(downloadUrl), name, -1);
+        }
+
+        /** Files another device or the PC sent to this phone: {folder, files: [{url, name, size}]} into Downloads/folder. */
+        @JavascriptInterface
+        public void receiveFiles(String json) {
+            try {
+                JSONObject o = new JSONObject(json);
+                String folder = o.optString("folder", "");
+                JSONArray a = o.getJSONArray("files");
+                for (int i = 0; i < a.length(); i++) {
+                    JSONObject f = a.getJSONObject(i);
+                    // A file of a sent folder (a project…) has its own place: "Cloud-SSD/Received/PC/MyApp/src".
+                    TransferHub.get(MainActivity.this).enqueueDownload(routeOf(f.optString("url")), f.optString("name", "file"), f.optLong("size", -1),
+                            f.optString("folder", folder));
+                }
+            } catch (Exception e) {
+                toast("The files could not be saved");
+            }
+        }
+
+        /**
+         * "MyApp" when Downloads/parent has nothing of that name yet, else "MyApp (2)", "MyApp (3)"…: a second copy of a
+         * sent folder goes next to the first instead of mixing its files in.
+         */
+        @JavascriptInterface
+        public String freeFolderName(String parent, String name) {
+            String base = TransferHub.cleanFolder(name == null ? "" : name.replace('/', '_'));
+            if (base.isEmpty()) base = "Folder";
+            String p = TransferHub.cleanFolder(parent);
+            for (int i = 1; i < 1000; i++) {
+                String n = i == 1 ? base : base + " (" + i + ")";
+                if (!folderTaken(p.isEmpty() ? n : p + "/" + n)) return n;
+            }
+            return base + " (" + System.currentTimeMillis() + ")";
+        }
+
+        private boolean folderTaken(String folder) {
+            return TransferHub.get(MainActivity.this).folderTaken(folder);
+        }
+
+        /** Phone files for another device, through the PC: {offer, items: [{id, path}]} (the offer was made by the page). */
+        @JavascriptInterface
+        public void sendToDevice(String json) {
+            try {
+                JSONObject o = new JSONObject(json);
+                String offer = o.getString("offer");
+                JSONArray a = o.getJSONArray("items");
+                for (int i = 0; i < a.length(); i++) {
+                    JSONObject it = a.getJSONObject(i);
+                    File f = new File(it.getString("path"));
+                    if (!f.isFile()) continue;
+                    TransferHub.get(MainActivity.this).enqueueUpload(f.getName(), f.length(), "file", f.getAbsolutePath(), "share:" + offer + ":" + it.getString("id"));
+                }
+            } catch (Exception e) {
+                toast("The files could not be sent");
+            }
         }
 
         /** Several downloads at once: [{url, name, size}]. */
@@ -584,6 +1088,88 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void dismissTransfer(int id) {
             TransferHub.get(MainActivity.this).dismiss(id);
+        }
+
+        /** The PC answered again (or another PC was chosen): what waited for it goes now. */
+        @JavascriptInterface
+        public void resumeHeldTransfers() {
+            TransferHub.get(MainActivity.this).resumeHeld();
+        }
+
+        // ---- "Offline rakho": folders and files of a PC kept on this phone ---------------------------------------
+
+        /** Keep a folder (with all inside) or a file of that PC on this phone. Returns "" or why not. */
+        @JavascriptInterface
+        public String offlinePin(String pcId, String id, String name, boolean dir) {
+            return OfflinePins.get(MainActivity.this).pin(pcId, id, name, dir);
+        }
+
+        @JavascriptInterface
+        public void offlineUnpin(String pcId, String id) {
+            OfflinePins.get(MainActivity.this).unpin(pcId, id);
+        }
+
+        /** {pins, files: {id: [size, modified]}, busy, mobileData, used} for that PC. */
+        @JavascriptInterface
+        public String offlineState(String pcId) {
+            try {
+                return OfflinePins.get(MainActivity.this).state(pcId).toString();
+            } catch (Exception e) {
+                return "{}";
+            }
+        }
+
+        /** The kept copy of a file as a path on this phone (for the PDF reader), or "". */
+        @JavascriptInterface
+        public String offlinePath(String pcId, String id) {
+            File f = OfflinePins.get(MainActivity.this).local(pcId, id);
+            return f == null ? "" : f.getAbsolutePath();
+        }
+
+        /** Copies the kept copy of a file into Downloads/Cloud-SSD (works with the PC away); a toast says how it went. */
+        @JavascriptInterface
+        public void offlineSaveToPhone(final String pcId, final String id, final String name) {
+            final File src = OfflinePins.get(MainActivity.this).local(pcId, id);
+            if (src == null || !src.isFile()) {
+                toast("That file is not kept on this phone any more");
+                return;
+            }
+            worker.execute(() -> {
+                String clean = (name == null || name.trim().isEmpty() ? src.getName() : name.trim()).replaceAll("[\\\\/:*?\"<>|]", "_");
+                try (InputStream in = new FileInputStream(src); OutputStream out = openInDownloads(clean)) {
+                    byte[] buf = new byte[64 * 1024];
+                    for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+                    toast(Tr.t(MainActivity.this, "Saved to Downloads/Cloud-SSD: {0}", clean));
+                } catch (Exception e) {
+                    toast(Tr.t(MainActivity.this, "Could not save {0}: {1}", clean, e.getMessage()));
+                }
+            });
+        }
+
+        /** Android's share sheet for a cloud file, through the app's Files provider (a kept copy works offline). */
+        @JavascriptInterface
+        public void cloudShare(final String id, final String fileName) {
+            runOnUiThread(() -> {
+                try {
+                    Uri uri = DocumentsContract.buildDocumentUri(CloudDocumentsProvider.AUTHORITY, id);
+                    Intent send = new Intent(Intent.ACTION_SEND).setType(mimeOf(fileName)).putExtra(Intent.EXTRA_STREAM, uri)
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(Intent.createChooser(send, Tr.t(MainActivity.this, "Share {0}", fileName)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                } catch (Exception e) {
+                    toast(Tr.t(MainActivity.this, "Cannot share: {0}", e.getMessage()));
+                }
+            });
+        }
+
+        /** Brings the kept folders of the PC in use up to date (in the background). */
+        @JavascriptInterface
+        public void offlineSync() {
+            OfflinePins.get(MainActivity.this).kick();
+        }
+
+        @JavascriptInterface
+        public void offlineMobileData(boolean on) {
+            OfflinePins.get(MainActivity.this).setMobileData(on);
         }
 
         /** Everything queued, running, waiting or failed (and what just finished), so the page can show it after a restart. */
@@ -661,9 +1247,9 @@ public class MainActivity extends Activity {
                     String type = (mimeType != null && !mimeType.isEmpty() && !mimeType.equals("application/octet-stream")) ? mimeType : "*/*";
                     intent.setDataAndType(Uri.parse(fileUrl), type);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(Intent.createChooser(intent, "Open " + (fileName != null ? fileName : "file") + " with"));
+                    startActivity(Intent.createChooser(intent, Tr.t(MainActivity.this, "Open {0} with", fileName != null ? fileName : Tr.t(MainActivity.this, "the file"))));
                 } catch (Exception e) {
-                    toast("Cannot open: " + e.getMessage());
+                    toast(Tr.t(MainActivity.this, "Cannot open: {0}", e.getMessage()));
                 }
             });
         }
@@ -677,9 +1263,9 @@ public class MainActivity extends Activity {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(uri, mimeOf(fileName));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(Intent.createChooser(intent, "Open " + fileName + " with"));
+                    startActivity(Intent.createChooser(intent, Tr.t(MainActivity.this, "Open {0} with", fileName)));
                 } catch (Exception e) {
-                    toast("Cannot open: " + e.getMessage());
+                    toast(Tr.t(MainActivity.this, "Cannot open: {0}", e.getMessage()));
                 }
             });
         }
@@ -691,7 +1277,7 @@ public class MainActivity extends Activity {
                 try {
                     File f = new File(path);
                     if (!f.exists()) {
-                        toast("File not found: " + f.getName());
+                        toast(Tr.t(MainActivity.this, "File not found: {0}", f.getName()));
                         return;
                     }
                     Uri uri = contentUriFor(f);
@@ -702,9 +1288,9 @@ public class MainActivity extends Activity {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(uri, mimeOf(f.getName()));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(Intent.createChooser(intent, "Open " + f.getName() + " with"));
+                    startActivity(Intent.createChooser(intent, Tr.t(MainActivity.this, "Open {0} with", f.getName())));
                 } catch (Exception e) {
-                    toast("Cannot open: " + e.getMessage());
+                    toast(Tr.t(MainActivity.this, "Cannot open: {0}", e.getMessage()));
                 }
             });
         }
@@ -902,6 +1488,18 @@ public class MainActivity extends Activity {
 
     private static final String TAILSCALE = "com.tailscale.ipn";
     private static final int REQ_TRASH = 3101;
+    /** Android's folder picker for "sync a phone folder with this PC folder". */
+    private static final int REQ_SYNC_TREE = 3201;
+    private static final int REQ_SEND_TREE = 3202;
+    /** The folder picked to send (a project…): its files, waiting for the page to say where they go. */
+    private volatile java.util.List<String[]> sendFolderFiles;   // {uri, name, size, folder}
+    private volatile boolean sendFolderEverything;
+    /** Left out unless "everything" (made again by a build or a package manager), as the PC does. */
+    private static final java.util.Set<String> SKIP_FOLDERS = new java.util.HashSet<>(java.util.Arrays.asList(
+            ".git", ".svn", ".hg", "node_modules", "bower_components", "bin", "obj", "build", "dist", "out", "target",
+            ".gradle", ".idea", ".vs", ".vscode-test", "__pycache__", ".venv", "venv", ".tox", ".mypy_cache", ".pytest_cache",
+            ".next", ".nuxt", ".cache", ".parcel-cache", ".dart_tool", "pods", "deriveddata", ".terraform", "packages"));
+    private String pendingSyncFolder, pendingSyncLabel;
 
     interface SpaceDone {
         void done(boolean ok, String message, long freed);
@@ -1284,6 +1882,9 @@ public class MainActivity extends Activity {
             pc.put("url", "http://" + host + ":" + port);
             pc.put("ip", host);
             pc.put("pcName", status.optString("pcName", "PC"));
+            // The public id lets the page tell a saved PC from a new one without sending any key.
+            pc.put("pcId", status.optString("pcId", ""));
+            pc.put("version", status.optString("version", ""));
             return pc;
         } catch (Exception e) {
             return null;
@@ -1705,6 +2306,44 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** A kept copy for the page's players and readers: like cloudRead, from this phone's storage. */
+    private WebResourceResponse offlineRead(Uri u, Map<String, String> requestHeaders) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Access-Control-Allow-Origin", "*");
+        headers.put("Accept-Ranges", "bytes");
+        File f = OfflinePins.get(this).local(u.getQueryParameter("pc"), u.getQueryParameter("id"));
+        if (f == null) return new WebResourceResponse("text/plain", null, 404, "Not Found", headers, new ByteArrayInputStream(new byte[0]));
+        String id = u.getQueryParameter("id");
+        String mime = mimeOf(id.substring(Math.max(id.lastIndexOf('/'), id.indexOf(':')) + 1));
+        long size = f.length(), start = 0;
+        String range = requestHeaders == null ? null : requestHeaders.get("Range");
+        if (range != null && range.startsWith("bytes=")) {
+            String spec = range.substring(6).split(",")[0];
+            int dash = spec.indexOf('-');
+            try {
+                if (dash > 0) start = Long.parseLong(spec.substring(0, dash).trim());
+            } catch (NumberFormatException ignored) { }
+        }
+        try {
+            java.io.FileInputStream in = new java.io.FileInputStream(f);
+            if (start > 0 && start < size) {
+                long skipped = 0;
+                while (skipped < start) {
+                    long n = in.skip(start - skipped);
+                    if (n <= 0) break;
+                    skipped += n;
+                }
+                headers.put("Content-Range", "bytes " + start + "-" + (size - 1) + "/" + size);
+                headers.put("Content-Length", String.valueOf(size - start));
+                return new WebResourceResponse(mime, null, 206, "Partial Content", headers, in);
+            }
+            headers.put("Content-Length", String.valueOf(size));
+            return new WebResourceResponse(mime, null, 200, "OK", headers, in);
+        } catch (IOException e) {
+            return new WebResourceResponse("text/plain", null, 404, "Not Found", headers, new ByteArrayInputStream(new byte[0]));
+        }
+    }
+
     private WebResourceResponse cloudThumb(Uri u) {
         try (InputStream in = Backends.files(this).thumbnail(u.getQueryParameter("id"), 320)) {
             if (in == null) return bytesResponse("image/jpeg", null, 404);
@@ -1717,6 +2356,78 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * cloudssd.pcthumb/?id=&lt;drive id&gt;&amp;w=&lt;px&gt;&amp;m=&lt;modified&gt;&amp;s=&lt;size&gt;: a thumbnail from the PC in use, kept in this
+     * phone's cache (by PC, item, size and date, so a changed photo gets a new one). Served from the cache when the PC is
+     * away. The pairing key never appears in the page's image addresses.
+     */
+    private WebResourceResponse pcThumb(Uri u) {
+        String id = u.getQueryParameter("id");
+        String w = u.getQueryParameter("w");
+        String pc = PcProfiles.activeId(this);
+        if (id == null || id.isEmpty() || pc.isEmpty()) return bytesResponse("image/jpeg", null, 404);
+        int px = 160;
+        try { px = Math.max(64, Math.min(640, Integer.parseInt(w))); } catch (Exception ignored) { }
+        File dir = new File(new File(getCacheDir(), "pc-thumbs"), PcProfiles.key(pc));
+        File file = new File(dir, PcProfiles.key(id + "|" + u.getQueryParameter("m") + "|" + u.getQueryParameter("s") + "|" + px) + ".jpg");
+        if (file.isFile() && file.length() > 0) {
+            file.setLastModified(System.currentTimeMillis());
+            try { return bytesResponse("image/jpeg", readFile(file), 200); } catch (Exception ignored) { }
+        }
+        try (InputStream in = new PcBackend(this).thumbnail(id, px)) {
+            if (in == null) return bytesResponse("image/jpeg", null, 404);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buf = new byte[16 * 1024];
+            for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+            byte[] bytes = out.toByteArray();
+            if (bytes.length > 0) {
+                dir.mkdirs();
+                File tmp = new File(dir, file.getName() + ".part");
+                try (java.io.FileOutputStream fo = new java.io.FileOutputStream(tmp)) { fo.write(bytes); }
+                if (!tmp.renameTo(file)) tmp.delete();
+                trimPcThumbs();
+            }
+            return bytesResponse("image/jpeg", bytes, 200);
+        } catch (Exception e) {
+            return bytesResponse("image/jpeg", null, 404);
+        }
+    }
+
+    private static byte[] readFile(File f) throws IOException {
+        try (InputStream in = new java.io.FileInputStream(f)) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream((int) Math.max(1024, f.length()));
+            byte[] buf = new byte[16 * 1024];
+            for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+            return out.toByteArray();
+        }
+    }
+
+    private long pcThumbsTrimmedAt;
+
+    /** At most 64 MB of PC thumbnails on the phone: the least recently shown go first. */
+    private void trimPcThumbs() {
+        long now = System.currentTimeMillis();
+        if (now - pcThumbsTrimmedAt < 60_000) return;
+        pcThumbsTrimmedAt = now;
+        List<File> all = new ArrayList<>();
+        File root = new File(getCacheDir(), "pc-thumbs");
+        File[] pcs = root.listFiles();
+        if (pcs == null) return;
+        long total = 0;
+        for (File d : pcs) {
+            File[] fs = d.listFiles();
+            if (fs == null) continue;
+            for (File f : fs) { all.add(f); total += f.length(); }
+        }
+        if (total <= 64L * 1024 * 1024) return;
+        Collections.sort(all, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+        for (File f : all) {
+            if (total <= 48L * 1024 * 1024) break;
+            total -= f.length();
+            f.delete();
+        }
+    }
+
     // ------------------------------------------------------------------ uploads from the picker or other apps
 
     /**
@@ -1725,31 +2436,49 @@ public class MainActivity extends Activity {
      * @param target    the cloud folder ("&lt;drive&gt;:&lt;folder&gt;") to save into, or "" for the PC's upload folder
      */
     private void uploadUris(List<Uri> uris, final String target, boolean persisted) {
-        for (final Uri uri : uris) {
-            String name = "upload_" + System.currentTimeMillis();
-            long size = -1;
-            try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
-                if (cursor != null && cursor.moveToFirst()) {
-                    int nameIdx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    int sizeIdx = cursor.getColumnIndex(OpenableColumns.SIZE);
-                    if (nameIdx >= 0 && cursor.getString(nameIdx) != null) name = cursor.getString(nameIdx);
-                    if (sizeIdx >= 0 && !cursor.isNull(sizeIdx)) size = cursor.getLong(sizeIdx);
-                }
-            } catch (Exception ignored) { }
-            if ("file".equals(uri.getScheme()) && uri.getPath() != null) {
-                File f = new File(uri.getPath());
-                TransferHub.get(this).enqueueUpload(f.getName(), f.length(), "file", f.getAbsolutePath(), target);
-                continue;
-            }
-            boolean kept = false;
-            if (persisted) {
-                try {
-                    getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    kept = true;
-                } catch (Exception ignored) { }
-            }
-            TransferHub.get(this).enqueueUpload(name, size, kept ? "uri" : "uri-temp", uri.toString(), target);
+        for (final Uri uri : uris) uploadUri(uri, target, persisted);
+    }
+
+    /** {name, size} of a shared file (size -1 when the app that shared it does not say and it cannot be measured). */
+    private Object[] nameAndSize(Uri uri) {
+        String name = "upload_" + System.currentTimeMillis();
+        long size = -1;
+        if ("file".equals(uri.getScheme()) && uri.getPath() != null) {
+            File f = new File(uri.getPath());
+            return new Object[]{f.getName(), f.length()};
         }
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int nameIdx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                int sizeIdx = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (nameIdx >= 0 && cursor.getString(nameIdx) != null) name = cursor.getString(nameIdx);
+                if (sizeIdx >= 0 && !cursor.isNull(sizeIdx)) size = cursor.getLong(sizeIdx);
+            }
+        } catch (Exception ignored) { }
+        if (size < 0) {
+            try (android.content.res.AssetFileDescriptor fd = getContentResolver().openAssetFileDescriptor(uri, "r")) {
+                if (fd != null && fd.getLength() >= 0) size = fd.getLength();
+            } catch (Exception ignored) { }
+        }
+        return new Object[]{name, size};
+    }
+
+    private void uploadUri(Uri uri, String target, boolean persisted) {
+        Object[] ns = nameAndSize(uri);
+        String name = (String) ns[0];
+        long size = (Long) ns[1];
+        if ("file".equals(uri.getScheme()) && uri.getPath() != null) {
+            TransferHub.get(this).enqueueUpload(name, size, "file", new File(uri.getPath()).getAbsolutePath(), target);
+            return;
+        }
+        boolean kept = false;
+        if (persisted) {
+            try {
+                getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                kept = true;
+            } catch (Exception ignored) { }
+        }
+        TransferHub.get(this).enqueueUpload(name, size, kept ? "uri" : "uri-temp", uri.toString(), target);
     }
 
     // ------------------------------------------------------------------ activity
@@ -1759,6 +2488,12 @@ public class MainActivity extends Activity {
         if (intent == null || intent.getAction() == null) return;
         String action = intent.getAction();
         Uri d = intent.getData();
+        if (ACTION_FIND_MY_PHONE.equals(action)) {
+            // Kept for the start of the page too (it may not be loaded yet); the page takes it once.
+            pendingFindMyPhone = true;
+            emit("findMyPhone", "{}");
+            return;
+        }
         if (Intent.ACTION_VIEW.equals(action) && d != null && "cloudssd".equals(d.getScheme()) && "pair".equals(d.getHost())) {
             try {
                 JSONObject o = new JSONObject();
@@ -1784,10 +2519,18 @@ public class MainActivity extends Activity {
                 ArrayList<Uri> list = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
                 if (list != null) uris.addAll(list);
             }
-            if (!uris.isEmpty()) {
-                toast("Sending " + uris.size() + (uris.size() == 1 ? " file" : " files") + " to PC…");
-                worker.execute(() -> uploadUris(uris, "", false));
+            if (uris.isEmpty()) return;
+            // "Send to a device…": the page asks where (the PC, or a phone, tablet or laptop through it).
+            if (intent.getComponent() != null && intent.getComponent().getClassName().endsWith(".SendToDevice")) {
+                synchronized (shareIn) {
+                    shareIn.clear();
+                    shareIn.addAll(uris);
+                }
+                emit("shareIn", "{}");
+                return;
             }
+            toast(uris.size() == 1 ? Tr.t(MainActivity.this, "Sending 1 file to PC…") : Tr.t(MainActivity.this, "Sending {0} files to PC…", uris.size()));
+            worker.execute(() -> uploadUris(uris, "", false));
         }
         // cloudssd://auth (back from the Desktop-key sign-in page) only brings the app to the front.
     }
@@ -1809,20 +2552,27 @@ public class MainActivity extends Activity {
         int background = nightMode() ? 0xFF121316 : 0xFFF8F9FC;
         webView = new WebView(this);
         final FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(background);
+        // The bars as the page's look left them last time (until the page says again), else the phone's light or dark.
+        SharedPreferences barPrefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        bars = new BarsDrawable(barPrefs.getInt("bars_top", background), barPrefs.getInt("bars_rest", background));
+        root.setBackground(bars);
+        if (barPrefs.contains("bars_top")) applyBarIcons(barPrefs.getBoolean("bars_status_dark", !nightMode()), barPrefs.getBoolean("bars_nav_dark", !nightMode()));
         root.addView(webView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
+        appLock = new AppLock(this, root, background);
         // Android 15+ draws apps under the status and navigation bars; keep the page clear of them and of the keyboard.
         root.setOnApplyWindowInsetsListener((v, insets) -> {
             if (Build.VERSION.SDK_INT >= 30) {
                 android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
                 android.graphics.Insets ime = insets.getInsets(WindowInsets.Type.ime());
                 v.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, ime.bottom));
+                MainActivity.this.bars.setTopHeight(bars.top);
                 // Consumed: the page must not add the same space a second time through CSS safe-area insets.
                 return WindowInsets.CONSUMED;
             }
             v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
                     insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            bars.setTopHeight(insets.getSystemWindowInsetTop());
             return insets.consumeSystemWindowInsets();
         });
 
@@ -1868,7 +2618,7 @@ public class MainActivity extends Activity {
                 intent.setType("*/*");
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                 try {
-                    startActivityForResult(Intent.createChooser(intent, "Select files to send"), REQ_WEB_CHOOSER);
+                    startActivityForResult(Intent.createChooser(intent, Tr.t(MainActivity.this, "Select files to send")), REQ_WEB_CHOOSER);
                 } catch (Exception e) {
                     webChooserCallback.onReceiveValue(null);
                     webChooserCallback = null;
@@ -1913,6 +2663,8 @@ public class MainActivity extends Activity {
                     if ("/thumb".equals(u.getPath())) return cloudThumb(u);
                     return cloudRead(u, request.getRequestHeaders());
                 }
+                if (PC_THUMB_HOST.equals(host)) return pcThumb(u);
+                if (OFFLINE_HOST.equals(host)) return offlineRead(u, request.getRequestHeaders());
                 return null;
             }
         });
@@ -1929,6 +2681,13 @@ public class MainActivity extends Activity {
         });
 
         TransferHub.get(this).addListener(transferListener);
+        OfflinePins.get(this).setListener(offlineListener);
+        PeerLink.get(this).setListener(peerListener);
+        PeerLink.get(this).start();
+        FolderSync.listener = e -> emit("folderSync", e);
+        // Opening the app ends a "Stop" on the listening note; it listens on in the background when that is wanted.
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().remove("peer_paused").apply();
+        PeerLinkService.ensure(this);
         handleIntent(getIntent());
         webView.loadUrl("file:///android_asset/index.html");
     }
@@ -1936,6 +2695,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         TransferHub.get(this).removeListener(transferListener);
+        OfflinePins.get(this).setListener(null);
+        PeerLink.get(this).setListener(null);
+        FolderSync.listener = null;
         super.onDestroy();
     }
 
@@ -1954,12 +2716,26 @@ public class MainActivity extends Activity {
         try { o.put("storageAccess", storageAccess()); } catch (Exception ignored) { }
         emit("resume", o);
         startSpaceSync();
+        if (appLock != null) appLock.onResume();
     }
 
     @Override
     protected void onPause() {
         stopSpaceSync();
         super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        if (appLock != null) appLock.onStop();
+        super.onStop();
+    }
+
+    /** Every screen the app opens itself (pickers, share sheets, other apps): a quick return does not lock it again. */
+    @Override
+    public void startActivityForResult(Intent intent, int requestCode, Bundle options) {
+        if (appLock != null && requestCode != AppLock.REQ_UNLOCK) appLock.ownScreen();
+        super.startActivityForResult(intent, requestCode, options);
     }
 
     @Override
@@ -1972,6 +2748,43 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if (requestCode == AppLock.REQ_UNLOCK) {
+            if (appLock != null) appLock.onActivityResult(resultCode);
+            return;
+        }
+        if (requestCode == REQ_SEND_TREE) {
+            final Uri tree = resultCode == Activity.RESULT_OK && intent != null ? intent.getData() : null;
+            if (tree == null) return;
+            // Kept readable across a restart, so a cut-off send continues.
+            try { getContentResolver().takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) { }
+            final boolean everything = sendFolderEverything;
+            worker.execute(() -> {
+                try {
+                    emit("folderPicked", walkTree(tree, everything));
+                } catch (Exception e) {
+                    try { emit("folderPicked", new JSONObject().put("error", String.valueOf(e.getMessage()))); } catch (Exception ignored) { }
+                }
+            });
+            return;
+        }
+        if (requestCode == REQ_SYNC_TREE) {
+            final Uri tree = resultCode == Activity.RESULT_OK && intent != null ? intent.getData() : null;
+            final String folder = pendingSyncFolder, label = pendingSyncLabel;
+            pendingSyncFolder = null;
+            if (tree == null || folder == null) return;
+            worker.execute(() -> {
+                try {
+                    String name = treeName(tree);
+                    JSONObject pair = FolderSync.add(MainActivity.this, PcProfiles.activeId(MainActivity.this), folder, label, tree, name);
+                    emit("folderSync", new JSONObject().put("id", pair.optString("id")).put("state", "added"));
+                    FolderSync.run(MainActivity.this, pair.optString("id"), new java.util.concurrent.atomic.AtomicBoolean());
+                    FolderSync.schedule(MainActivity.this);
+                } catch (Exception e) {
+                    toast(Tr.t(MainActivity.this, "Could not sync that folder: {0}", String.valueOf(e.getMessage())));
+                }
+            });
+            return;
+        }
         if (requestCode == REQ_TRASH) {
             SpaceDone d = trashDone;
             trashDone = null;
@@ -2002,8 +2815,99 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** The ring may show its full screen over the lock screen (always before Android 14; there the person decides). */
+    private boolean fullScreenAllowed() {
+        if (Build.VERSION.SDK_INT < 34) return true;
+        android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        return nm != null && nm.canUseFullScreenIntent();
+    }
+
+    /** Dark icons on a light status / navigation bar, light icons on a dark (or blue) one. */
+    @SuppressWarnings("deprecation")
+    private void applyBarIcons(boolean statusDark, boolean navDark) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            android.view.WindowInsetsController c = getWindow().getInsetsController();
+            if (c == null) return;
+            int light = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
+            int lightNav = android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+            c.setSystemBarsAppearance((statusDark ? light : 0) | (navDark ? lightNav : 0), light | lightNav);
+            return;
+        }
+        android.view.View d = getWindow().getDecorView();
+        int f = d.getSystemUiVisibility() & ~android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+        if (statusDark) f |= android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+        if (Build.VERSION.SDK_INT >= 26) {
+            f &= ~android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            if (navDark) f |= android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        }
+        d.setSystemUiVisibility(f);
+    }
+
+    /** The name of a folder the person picked in Android's folder picker. */
+    /**
+     * Every file in a picked folder with its place in it ("MyApp/src"), as Warpinator sends a relative path with each
+     * file; build output skipped unless everything. Kept here (with its content address); the page gets names and sizes.
+     */
+    private JSONObject walkTree(Uri tree, boolean everything) throws Exception {
+        String top = TransferHub.cleanFolder(treeName(tree).replace('/', '_'));
+        if (top.isEmpty()) top = "Folder";
+        java.util.List<String[]> files = new java.util.ArrayList<>();
+        java.util.TreeSet<String> skippedFolders = new java.util.TreeSet<>();
+        long[] skipped = {0, 0};   // files, bytes: junk files and those over the limit (skipped folders are not walked)
+        java.util.ArrayDeque<String[]> todo = new java.util.ArrayDeque<>();
+        todo.add(new String[]{DocumentsContract.getTreeDocumentId(tree), top});
+        String[] cols = {DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_SIZE};
+        while (!todo.isEmpty()) {
+            String[] d = todo.poll();
+            Uri kids = DocumentsContract.buildChildDocumentsUriUsingTree(tree, d[0]);
+            try (android.database.Cursor c = getContentResolver().query(kids, cols, null, null, null)) {
+                if (c == null) continue;
+                while (c.moveToNext()) {
+                    String id = c.getString(0), name = c.getString(1), mime = c.getString(2);
+                    long size = c.isNull(3) ? 0 : c.getLong(3);
+                    if (name == null) continue;
+                    if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) {
+                        if (!everything && SKIP_FOLDERS.contains(name.toLowerCase(Locale.US))) { skippedFolders.add(name); continue; }
+                        todo.add(new String[]{id, d[1] + "/" + TransferHub.cleanFolder(name.replace('/', '_'))});
+                        continue;
+                    }
+                    boolean junk = name.equals("Thumbs.db") || name.equals("desktop.ini") || name.equals(".DS_Store")
+                            || name.endsWith(".part") || name.endsWith(".tmp") || name.startsWith("~$");
+                    if ((!everything && junk) || files.size() >= 5000) { skipped[0]++; skipped[1] += size; continue; }
+                    files.add(new String[]{DocumentsContract.buildDocumentUriUsingTree(tree, id).toString(), name, String.valueOf(size), d[1]});
+                }
+            }
+        }
+        sendFolderFiles = files;
+        JSONArray items = new JSONArray();
+        long bytes = 0;
+        for (String[] f : files) {
+            items.put(new JSONObject().put("name", f[1]).put("size", Long.parseLong(f[2])).put("folder", f[3]));
+            bytes += Long.parseLong(f[2]);
+        }
+        return new JSONObject().put("name", top).put("count", files.size()).put("bytes", bytes).put("items", items)
+                .put("skipped", new JSONObject().put("files", skipped[0]).put("bytes", skipped[1]).put("folders", new JSONArray(skippedFolders)));
+    }
+
+    private String treeName(Uri tree) {
+        try (android.database.Cursor c = getContentResolver().query(
+                DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree)),
+                new String[]{DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
+            if (c != null && c.moveToFirst() && c.getString(0) != null) return c.getString(0);
+        } catch (Exception ignored) {
+            // Shown by its address instead.
+        }
+        return tree.getLastPathSegment();
+    }
+
     @Override
     public void onBackPressed() {
+        // Locked: Back leaves the app (the page under the cover is not touched).
+        if (appLock != null && appLock.locked()) {
+            moveTaskToBack(true);
+            return;
+        }
         if (webView == null) {
             super.onBackPressed();
             return;

@@ -7,7 +7,7 @@
 #>
 param(
     [string]$Configuration = "Release",
-    [string]$Version = "0.7.0",
+    [string]$Version = "0.9.0",
     [string]$WinFspVersion = "2.1.25156",
     [switch]$SkipTests
 )
@@ -29,10 +29,13 @@ $rcloneVersion = ($sums.Name -replace '^SHA256SUMS\.', '')
 & $rclone version | Select-Object -First 1 | Write-Host
 
 $dotnet = "dotnet"
-if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-    if (Test-Path "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe") {
-        $dotnet = "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe"
-    }
+# The dotnet on PATH may be a runtime only (no SDK, so "test" and "publish" fail): then use the per-user SDK.
+$pathHasSdk = $false
+if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+    try { $pathHasSdk = [bool](& dotnet --list-sdks 2>$null | Where-Object { $_ }) } catch { $pathHasSdk = $false }
+}
+if (-not $pathHasSdk -and (Test-Path "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe")) {
+    $dotnet = "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe"
 }
 
 # 2. Tests (unit tests always; integration tests need WinFsp and take several minutes).

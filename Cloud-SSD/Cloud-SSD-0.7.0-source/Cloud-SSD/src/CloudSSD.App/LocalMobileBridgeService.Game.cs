@@ -73,6 +73,7 @@ public sealed partial class LocalMobileBridgeService
             _log.LogInformation("Game stream started for {Device}", device);
             var session = new GameStreamSession(stream, settings, GameWindow.InFront, () => GameWindow.Find()?.ProcessId, GameWindow.Area, _log);
             // While the phone plays, the emulator goes before background apps on this busy PC.
+            using (BeginTransfer(DeviceActivityKind.Game, settings.GameName, 0))
             using (GameWindow.Boost())
                 await session.RunAsync(ct);
             _log.LogInformation("Game stream ended for {Device}", device);

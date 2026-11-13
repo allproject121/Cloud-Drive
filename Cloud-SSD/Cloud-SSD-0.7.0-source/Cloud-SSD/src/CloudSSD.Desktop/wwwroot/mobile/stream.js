@@ -30,18 +30,18 @@
     const sub = card.querySelector('.play-sub');
     const btn = card.querySelector('.play-btn');
     const p = server();
-    if (!p) { sub.textContent = 'Pehle is phone ko PC se jodo (Home tab).'; btn.disabled = true; return; }
+    if (!p) { sub.textContent = 'First pair this phone with the PC (Home tab).'; btn.disabled = true; return; }
     try {
       const r = await fetch(`${p.server}/api/game/status?token=${encodeURIComponent(p.token)}`, { cache: 'no-store' });
       const j = await r.json();
-      if (!r.ok) { sub.textContent = j.error || 'PC par "Play on phone" band hai.'; btn.disabled = true; return; }
+      if (!r.ok) { sub.textContent = j.error || '"Play on phone" is off on the PC.'; btn.disabled = true; return; }
       card.querySelector('.play-name').textContent = j.game || 'Game';
-      sub.textContent = j.playing ? 'Abhi koi aur phone khel raha hai.'
-        : j.emulatorRunning ? 'PC par khula hai · ghar ke Wi-Fi par khelo'
-        : 'Play dabao: PC par khud khul jayega';
+      sub.textContent = j.playing ? 'Another phone is playing right now.'
+        : j.emulatorRunning ? 'Open on the PC · play on the home Wi-Fi'
+        : 'Tap Play: it opens on the PC by itself';
       btn.disabled = !!j.playing;
     } catch (e) {
-      sub.textContent = 'PC nahi mila. Ghar ke Wi-Fi par Cloud-SSD PC par khula ho.';
+      sub.textContent = 'PC not found. Cloud-SSD must be open on the PC, on the home Wi-Fi.';
       btn.disabled = true;
     }
   }
@@ -58,14 +58,17 @@
     card.innerHTML = `
       <div class="play-top">
         <div class="play-icon"><svg viewBox="0 0 24 24"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></div>
-        <div><div class="play-name">Free Fire</div><div class="play-sub">PC se pooch raha hai…</div></div>
+        <div><div class="play-name" data-no-i18n>Free Fire</div><div class="play-sub">Asking the PC…</div></div>
       </div>
       <button class="play-btn" type="button">▶ Play on phone</button>
-      <button class="play-backup" type="button">Backup: Artemis se kholo</button>`;
+      <button class="play-backup" type="button">Backup: open with Artemis</button>`;
     tab.insertBefore(card, tab.firstChild);
     card.querySelector('.play-btn').addEventListener('click', () => native.startGameStream());
     card.querySelector('.play-backup').addEventListener('click', () => {
-      if (!native.openArtemis || !native.openArtemis()) alert('Artemis is phone par installed nahi hai.');
+      if (!native.openArtemis || !native.openArtemis()) {
+        const text = 'Artemis is not installed on this phone.';
+        alert(window.CloudSsdI18n ? window.CloudSsdI18n.t(text) : text);
+      }
     });
     refresh(card);
     // Refresh whenever the Gaming tab is opened.

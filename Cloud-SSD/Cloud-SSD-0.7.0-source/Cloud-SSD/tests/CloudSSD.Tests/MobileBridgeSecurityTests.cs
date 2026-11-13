@@ -15,56 +15,11 @@ namespace CloudSSD.Tests;
 /// <summary>Who may use the phone bridge and what they can reach: device keys, signed links, switches, shared places, Tailscale, saves.</summary>
 public class MobileBridgeSecurityTests
 {
-    private const string Shared = "0123456789abcdef0123456789abcdef";
-
-    private sealed record Env(HttpClient Http, string Base, AppHost Host, LocalMobileBridgeService Bridge, string Temp, string Cloud, string Uploads)
-    {
-        public Task<HttpResponseMessage> Get(string url, string? token = Shared) => Http.GetAsync(Base + url + (token is null ? "" : (url.Contains('?') ? "&" : "?") + "token=" + token));
-        public Task<HttpResponseMessage> Post(string url, string? token = Shared) => Http.PostAsync(Base + url + (token is null ? "" : (url.Contains('?') ? "&" : "?") + "token=" + token), null);
-        public async Task<JsonElement> Json(HttpResponseMessage r) => JsonDocument.Parse(await r.Content.ReadAsStringAsync()).RootElement;
-
-        public async Task<string> PairNew(string name, string installId)
-        {
-            var r = await Http.PostAsync($"{Base}/api/pair?code={Bridge.PairingCode}&name={name}&installId={installId}", null);
-            Assert.Equal(HttpStatusCode.OK, r.StatusCode);
-            return (await Json(r)).GetProperty("token").GetString()!;
-        }
-    }
+    private const string Shared = BridgeHarness.Shared;
 
     private static string E(string s) => Uri.EscapeDataString(s);
 
-    private static async Task With(Func<Env, Task> body, Action<LocalMobileBridgeService>? setup = null)
-    {
-        var l = new TcpListener(IPAddress.Loopback, 0);
-        l.Start();
-        int port = ((IPEndPoint)l.LocalEndpoint).Port;
-        l.Stop();
-        var temp = Path.Combine(Path.GetTempPath(), "cpx_sec_test_" + Guid.NewGuid().ToString("N"));
-        var host = AppHost.Create(new AppPaths(temp));
-        var b = host.Settings.MobileBridge;
-        b.Port = port;
-        b.PairingToken = Shared;
-        b.LegacyTokenAccepted = true;
-        var cloud = Directory.CreateDirectory(Path.Combine(temp, "cloud")).FullName;
-        var uploads = Directory.CreateDirectory(Path.Combine(temp, "uploads")).FullName;
-        b.UploadDirectory = uploads;
-        var bridge = new LocalMobileBridgeService(host, NullLogger<LocalMobileBridgeService>.Instance)
-        {
-            CloudRootsOverride = () => [new CloudRoot(AppHost.CombinedMountId, cloud, false, false, temp, "All Accounts")]
-        };
-        setup?.Invoke(bridge);
-        try
-        {
-            bridge.Start();
-            using var http = new HttpClient();
-            await body(new Env(http, $"http://127.0.0.1:{port}", host, bridge, temp, cloud, uploads));
-        }
-        finally
-        {
-            await bridge.DisposeAsync();
-            try { Directory.Delete(temp, true); } catch { }
-        }
-    }
+    private static Task With(Func<BridgeEnv, Task> body, Action<LocalMobileBridgeService>? setup = null) => BridgeHarness.With(body, setup);
 
     // ---- shared places ----------------------------------------------------------------------------------------------
 
@@ -306,7 +261,7 @@ public class MobileBridgeSecurityTests
         finally { TailscaleInfo.Override = null; }
     });
 
-    private static async Task TailscaleChecks(Env env)
+    private static async Task TailscaleChecks(BridgeEnv env)
     {
         var token = await env.PairNew("Phone", "install-ts-0001");
         env.Bridge.RouteOverride = (_, _) => LocalMobileBridgeService.NetRoute.Tailnet;

@@ -101,6 +101,19 @@ public sealed class AppHost : IAsyncDisposable
     public PinKeeper Pins { get; }
     public ArchiveWarmer Archives { get; }
     public LocalMobileBridgeService MobileBridge { get; }
+
+    private Remote.RemotePcManager? _remotePcs;
+    /// <summary>
+    /// The other PCs this one is paired with as a laptop ("Other PCs" page). Made when first used: the command line
+    /// never starts it.
+    /// </summary>
+    public Remote.RemotePcManager RemotePcs => LazyInitializer.EnsureInitialized(ref _remotePcs, () =>
+        new Remote.RemotePcManager(Paths.RemoteDirectory, () => Settings.MobileBridge.PcId,
+            () => MobileBridge.IsRunning ? MobileBridge.Port : null, LoggerFactory.CreateLogger("RemotePcs"),
+            // Pairing back: the other PC gets a key to this one (with nothing allowed yet), while this PC's bridge runs.
+            issueBack: (pcId, name) => MobileBridge.IsRunning ? MobileBridge.IssueTokenForPc(pcId, name, "desktop") : null,
+            revokeBack: deviceId => MobileBridge.RemoveDevice(deviceId)));
+
     public SmartStorageOffloaderService Offloader { get; }
     /// <summary>Space &amp; RAM: where the disks' space and the RAM go, live; started by the desktop app (not by the command line).</summary>
     public SpaceService Space { get; }
@@ -665,6 +678,7 @@ public sealed class AppHost : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (_remotePcs != null) await _remotePcs.DisposeAsync();
         _diskTimer?.Dispose();
         Space.Dispose();
         Archives.Dispose();

@@ -4,13 +4,15 @@
         xmlns:vm="clr-namespace:CloudSSD.Desktop.ViewModels"
         xmlns:v="clr-namespace:CloudSSD.Desktop.Views"
         Title="Cloud-SSD" Height="650" Width="1180" MinWidth="850" MinHeight="500"
-        Background="{StaticResource Bg}" FontFamily="{StaticResource UiFont}" Foreground="{StaticResource Text}"
+        Background="{DynamicResource Bg}" FontFamily="{StaticResource UiFont}" Foreground="{DynamicResource Text}"
         WindowStartupLocation="CenterScreen" Icon="Assets/clouddrive.ico">
     <Window.Resources>
         <DataTemplate DataType="{x:Type vm:DashboardViewModel}"><v:DashboardView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CloudDrivesViewModel}"><v:CloudDrivesView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:GameLibraryViewModel}"><v:GameLibraryView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:MobileHubViewModel}"><v:MobileHubView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DevicesViewModel}"><v:DevicesView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:RemotePcsViewModel}"><v:RemotePcsView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:MemoryViewModel}"><v:MemoryView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SpaceViewModel}"><v:SpaceView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:AcceleratorViewModel}"><v:AcceleratorView /></DataTemplate>
@@ -30,26 +32,31 @@
         </Grid.RowDefinitions>
 
         <!-- Sidebar -->
-        <Border Grid.RowSpan="2" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+        <Border Grid.RowSpan="2" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Margin="22,24,16,22" Orientation="Horizontal">
-                    <Border Width="34" Height="34" CornerRadius="9" Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource Accent}" BorderThickness="1">
-                        <Image Source="Assets/clouddrive.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <Border Width="40" Height="40" CornerRadius="20" Background="{DynamicResource AccentSoft}">
+                        <Image Source="Assets/clouddrive.png" Width="26" Height="26" RenderOptions.BitmapScalingMode="HighQuality" />
                     </Border>
-                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock FontSize="16" FontWeight="Bold">
-                            <Run Text="CLOUD-" /><Run Text="SSD" Foreground="{StaticResource Purple}" />
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock FontSize="17" FontWeight="Bold" FontFamily="{StaticResource DisplayFont}">
+                            <Run Text="Cloud " /><Run Text="SSD" Foreground="{DynamicResource Accent}" />
                         </TextBlock>
-                        <TextBlock Text="{Binding StorageSummary}" FontSize="10.5" Foreground="{StaticResource Dim}" TextTrimming="CharacterEllipsis" MaxWidth="170" />
+                        <TextBlock Text="{Binding StorageSummary}" FontSize="10.5" Foreground="{DynamicResource Dim}" TextTrimming="CharacterEllipsis" MaxWidth="170" />
                     </StackPanel>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Bottom" Margin="18,0,18,14">
                     <StackPanel Orientation="Horizontal" Margin="2,0,0,6">
-                        <TextBlock Text="&#xE774;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{StaticResource Dim}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <TextBlock Text="Language / भाषा" FontSize="11.5" Foreground="{StaticResource Dim}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE774;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="Language / भाषा" FontSize="11.5" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" />
                     </StackPanel>
                     <ComboBox x:Name="CmbLanguage" Height="28" FontSize="12" SelectionChanged="OnLanguageSelectionChanged" />
-                    <TextBlock Text="{Binding Version}" Foreground="{StaticResource Dim}" FontSize="10.5" Margin="2,8,0,0" />
+                    <StackPanel Orientation="Horizontal" Margin="2,10,0,6">
+                        <TextBlock Text="&#xE706;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="Theme / रंग" FontSize="11.5" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ComboBox x:Name="CmbTheme" Height="28" FontSize="12" SelectionChanged="OnThemeSelectionChanged" ToolTip="Dark, Light, ya Windows ki setting jaisa" />
+                    <TextBlock Text="{Binding Version}" Foreground="{DynamicResource Dim}" FontSize="10.5" Margin="2,8,0,0" />
                 </StackPanel>
                 <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0"
                          ItemContainerStyle="{StaticResource NavItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -74,27 +81,106 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <DockPanel Margin="32,26,32,10">
-                <ProgressBar DockPanel.Dock="Right" Width="120" IsIndeterminate="True" VerticalAlignment="Center"
-                             Visibility="{Binding Selected.Busy, Converter={StaticResource Vis}}" />
-                <TextBlock Text="{Binding Selected.Title}" Style="{StaticResource H1}" />
-            </DockPanel>
-            <Border Grid.Row="1" Margin="32,0,32,12" CornerRadius="8" Padding="14,9" Background="{StaticResource Surface2}"
+            <!-- The page's title on the curved blue band (the A+C look). -->
+            <Border Style="{StaticResource Band}">
+                <DockPanel>
+                    <!-- The bell: every note the app showed (requests, devices, files, auto modes); a click opens its place. -->
+                    <Grid DockPanel.Dock="Right" Margin="16,0,0,0" VerticalAlignment="Center">
+                        <ToggleButton x:Name="BellButton" Width="40" Height="40" Cursor="Hand" ToolTip="Notifications"
+                                      IsChecked="{Binding NotificationsOpen, Mode=TwoWay}" Background="Transparent" BorderThickness="0"
+                                      AutomationProperties.Name="Notifications">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Bg" CornerRadius="20" Background="Transparent">
+                                        <TextBlock Text="&#xEA8F;" FontFamily="{StaticResource IconFont}" FontSize="18"
+                                                   Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bg" Property="Background" Value="{DynamicResource OnAccentMuted}" /></Trigger>
+                                        <Trigger Property="IsChecked" Value="True"><Setter TargetName="Bg" Property="Background" Value="{DynamicResource OnAccentMuted}" /></Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-4,0" MinWidth="18" Height="18" CornerRadius="9"
+                                Padding="4,0" Background="{DynamicResource Danger}" IsHitTestVisible="False"
+                                Visibility="{Binding HasUnread, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{Binding UnreadText}" FontSize="10.5" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Popup x:Name="BellPopup" IsOpen="{Binding NotificationsOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=BellButton}"
+                               Placement="Bottom" HorizontalOffset="-340" VerticalOffset="8" StaysOpen="False" AllowsTransparency="True"
+                               PopupAnimation="Fade">
+                            <!-- A popup is its own visual tree: it does not get the window's text colour, so it is set here. -->
+                            <Border Width="380" MaxHeight="480" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1" CornerRadius="14" Padding="0,10,0,8" TextElement.Foreground="{DynamicResource Text}">
+                                <DockPanel>
+                                    <DockPanel DockPanel.Dock="Top" Margin="16,0,10,8">
+                                        <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearNotificationsCommand}" Padding="8,3" FontSize="11.5" Margin="6,0,0,0" />
+                                        <Button DockPanel.Dock="Right" Content="Mark all read" Command="{Binding MarkAllReadCommand}" Padding="8,3" FontSize="11.5" />
+                                        <TextBlock Text="Notifications" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource Text}" />
+                                    </DockPanel>
+                                    <TextBlock DockPanel.Dock="Top" Text="Nothing yet. Requests from devices, files and what the auto modes did show here."
+                                               TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="12" Margin="16,8,16,10"
+                                               Visibility="{Binding HasNotifications, Converter={StaticResource NotVis}}" />
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding Notifications}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Command="{Binding DataContext.OpenNotificationCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}" Cursor="Hand" HorizontalContentAlignment="Stretch">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="Row" Background="Transparent" Padding="16,8">
+                                                                    <ContentPresenter />
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource Surface2}" /></Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                        <DockPanel>
+                                                            <Ellipse DockPanel.Dock="Right" Width="8" Height="8" Fill="{DynamicResource Accent}" VerticalAlignment="Top" Margin="8,5,0,0"
+                                                                     Visibility="{Binding Read, Converter={StaticResource NotVis}}" />
+                                                            <TextBlock DockPanel.Dock="Left" Text="{Binding Icon}" FontFamily="{StaticResource IconFont}" FontSize="15" Width="26"
+                                                                       Foreground="{DynamicResource Accent}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12.5" TextWrapping="Wrap" Foreground="{DynamicResource Text}" />
+                                                                <TextBlock Text="{Binding Text}" FontSize="11.5" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Margin="0,2,0,0" MaxHeight="48" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding When}" FontSize="10.5" Foreground="{DynamicResource Dim}" Margin="0,3,0,0" />
+                                                            </StackPanel>
+                                                        </DockPanel>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </DockPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ProgressBar DockPanel.Dock="Right" Width="120" IsIndeterminate="True" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource OnAccent}" Background="{DynamicResource OnAccentMuted}"
+                                 Visibility="{Binding Selected.Busy, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="{Binding Selected.Title}" Style="{StaticResource BandTitle}" />
+                </DockPanel>
+            </Border>
+            <Border Grid.Row="1" Margin="32,16,32,0" CornerRadius="16" Padding="16,10" Background="{DynamicResource Surface}"
                     BorderBrush="{Binding Selected.MessageTone, Converter={StaticResource Tone}}" BorderThickness="1"
                     Visibility="{Binding Selected.Message, Converter={StaticResource Vis}}">
                 <TextBlock Text="{Binding Selected.Message}" TextWrapping="Wrap" Foreground="{Binding Selected.MessageTone, Converter={StaticResource Tone}}" />
             </Border>
-            <ContentControl Grid.Row="2" Content="{Binding Selected}" Margin="32,0,18,0" Focusable="False" />
+            <ContentControl Grid.Row="2" Content="{Binding Selected}" Margin="32,18,18,0" Focusable="False" />
         </Grid>
 
         <!-- Status bar -->
-        <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal" Margin="32,0" VerticalAlignment="Center">
-                <TextBlock Text="&#xE8CE;" FontFamily="{StaticResource IconFont}" FontSize="11" Foreground="{StaticResource Dim}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                <TextBlock Text="{Binding DrivesStatus}" Foreground="{StaticResource Muted}" FontSize="11.5" />
-                <TextBlock Text="{Binding RateStatus}" Foreground="{StaticResource Accent}" FontSize="11.5" Margin="18,0,0,0" />
-                <TextBlock Text="{Binding EngineStatus}" Foreground="{StaticResource Purple}" FontSize="11.5" Margin="18,0,0,0" />
-                <TextBlock Text="{Binding GameStatus}" Foreground="{StaticResource Success}" FontSize="11.5" Margin="18,0,0,0" />
+                <TextBlock Text="&#xE8CE;" FontFamily="{StaticResource IconFont}" FontSize="11" Foreground="{DynamicResource Dim}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBlock Text="{Binding DrivesStatus}" Foreground="{DynamicResource Muted}" FontSize="11.5" />
+                <TextBlock Text="{Binding RateStatus}" Foreground="{DynamicResource Accent}" FontSize="11.5" Margin="18,0,0,0" />
+                <TextBlock Text="{Binding EngineStatus}" Foreground="{DynamicResource Purple}" FontSize="11.5" Margin="18,0,0,0" />
+                <TextBlock Text="{Binding GameStatus}" Foreground="{DynamicResource Success}" FontSize="11.5" Margin="18,0,0,0" />
             </StackPanel>
         </Border>
     </Grid>

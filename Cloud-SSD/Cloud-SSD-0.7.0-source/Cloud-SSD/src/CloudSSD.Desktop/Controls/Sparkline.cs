@@ -30,8 +30,13 @@ public sealed class Sparkline : FrameworkElement
     public int Capacity { get => (int)GetValue(CapacityProperty); set => SetValue(CapacityProperty, value); }
     public Func<double, string>? Format { get => (Func<double, string>?)GetValue(FormatProperty); set => SetValue(FormatProperty, value); }
 
-    private static readonly Pen GridPen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)), 1) { DashStyle = DashStyles.Dot });
     private static readonly Typeface Face = new("Segoe UI");
+
+    /// <summary>Theme brush by key (follows Dark/Light), or <paramref name="fallback"/> outside the app.</summary>
+    private static Brush ThemeBrush(string key, Brush fallback) => Application.Current?.TryFindResource(key) as Brush ?? fallback;
+
+    private static Pen GridPen() =>
+        Freeze(new Pen(ThemeBrush("GridLine", new SolidColorBrush(Color.FromArgb(40, 255, 255, 255))), 1) { DashStyle = DashStyles.Dot });
 
     private static Pen Freeze(Pen p)
     {
@@ -45,13 +50,14 @@ public sealed class Sparkline : FrameworkElement
         var h = ActualHeight;
         if (w < 4 || h < 4) return;
         dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, w, h));
-        for (int i = 1; i <= 3; i++) dc.DrawLine(GridPen, new Point(0, h * i / 4.0), new Point(w, h * i / 4.0));
+        var grid = GridPen();
+        for (int i = 1; i <= 3; i++) dc.DrawLine(grid, new Point(0, h * i / 4.0), new Point(w, h * i / 4.0));
 
         var all = Values ?? [];
         var data = all.Length > Capacity ? all[^Capacity..] : all;
         if (data.Length == 0 || data.All(v => v is null))
         {
-            var ft = Text("Unavailable", Brushes.Gray);
+            var ft = Text("Unavailable", ThemeBrush("Dim", Brushes.Gray));
             dc.DrawText(ft, new Point((w - ft.Width) / 2, (h - ft.Height) / 2));
             return;
         }
@@ -103,7 +109,7 @@ public sealed class Sparkline : FrameworkElement
 
         if (Format != null)
         {
-            var label = Text("max " + Format(max / 1.15), Brushes.Gray);
+            var label = Text("max " + Format(max / 1.15), ThemeBrush("Dim", Brushes.Gray));
             dc.DrawText(label, new Point(w - label.Width - 2, 2));
         }
     }

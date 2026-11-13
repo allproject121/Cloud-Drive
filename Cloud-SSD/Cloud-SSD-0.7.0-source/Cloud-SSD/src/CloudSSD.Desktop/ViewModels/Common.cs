@@ -16,6 +16,16 @@ public static class Fmt
     public static string Ms(double? ms) => ms is { } v ? (v >= 1000 ? $"{v / 1000:0.00} s" : $"{v:0.0} ms") : NA;
     public static string Count(long? n) => n is { } v ? v.ToString("N0") : NA;
 
+    /// <summary>"just now", "5 min ago", "2 h ago", "3 days ago" (translated).</summary>
+    public static string Ago(DateTimeOffset when, DateTimeOffset now)
+    {
+        var d = now - when;
+        if (d < TimeSpan.FromMinutes(1)) return LocalizationManager.T("just now");
+        if (d < TimeSpan.FromHours(1)) return string.Format(LocalizationManager.T("{0} min ago"), (int)d.TotalMinutes);
+        if (d < TimeSpan.FromDays(1)) return string.Format(LocalizationManager.T("{0} h ago"), (int)d.TotalHours);
+        return string.Format(LocalizationManager.T("{0} days ago"), (int)d.TotalDays);
+    }
+
     public static string Tone(MountState s) => s switch
     {
         MountState.Mounted => "ok",

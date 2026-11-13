@@ -4,7 +4,7 @@
     <UserControl.Resources>
         <!-- One line with a size bar and a ⋮ menu: used for slices, folders, files, apps, RAM and clean-ups. -->
         <DataTemplate x:Key="RowTemplate">
-            <Border Padding="8,6" Margin="0,0,0,4" CornerRadius="8" Background="{StaticResource Surface2}">
+            <Border Padding="8,6" Margin="0,0,0,4" CornerRadius="14" Background="{DynamicResource Surface2}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -17,10 +17,10 @@
                             <Hyperlink Command="{Binding Open}" TextDecorations="None">
                                 <Hyperlink.Style>
                                     <Style TargetType="Hyperlink">
-                                        <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource Text}" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsFolder}" Value="True">
-                                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Accent}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -95,7 +95,7 @@
             </UniformGrid>
 
             <!-- Tabs -->
-            <Border Background="{StaticResource Surface2}" CornerRadius="10" Padding="4" Margin="0,0,0,14">
+            <Border Background="{DynamicResource Surface2}" CornerRadius="20" Padding="4" Margin="0,0,0,14">
                 <UniformGrid Rows="1">
                     <RadioButton x:Name="TabOverview" Content="Overview" IsChecked="True" Style="{StaticResource PillRadio}" Height="34" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
                     <RadioButton x:Name="TabFolders" Content="Folders" Style="{StaticResource PillRadio}" Height="34" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
@@ -135,7 +135,7 @@
                                 <DataTemplate>
                                     <TextBlock Margin="0,0,6,0">
                                         <Hyperlink Command="{Binding Open}"><Run Text="{Binding Name, Mode=OneWay}" /></Hyperlink>
-                                        <Run Text=" ›" Foreground="{StaticResource Dim}" />
+                                        <Run Text=" ›" Foreground="{DynamicResource Dim}" />
                                     </TextBlock>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

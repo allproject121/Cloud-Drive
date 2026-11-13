@@ -60,9 +60,9 @@
                             <DataTemplate>
                                 <Grid Margin="0,1">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="90" /><ColumnDefinition Width="170" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding Time}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="{StaticResource Dim}" />
+                                    <TextBlock Text="{Binding Time}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="{DynamicResource Dim}" />
                                     <TextBlock Grid.Column="1" Text="{Binding Level}" FontSize="11.5" Foreground="{Binding Tone, Converter={StaticResource Tone}}" />
-                                    <TextBlock Grid.Column="2" Text="{Binding Source}" FontSize="11.5" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Source}" FontSize="11.5" Foreground="{DynamicResource Muted}" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Grid.Column="3" Text="{Binding Message}" FontSize="11.5" TextWrapping="Wrap" />
                                 </Grid>
                             </DataTemplate>
@@ -75,7 +75,7 @@
                     <TextBlock Text="rclone mount log (errors and notices)" Style="{StaticResource H2}" />
                     <ItemsControl ItemsSource="{Binding RcloneLog}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate><TextBlock Text="{Binding}" FontFamily="{StaticResource MonoFont}" FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,1" /></DataTemplate>
+                            <DataTemplate><TextBlock Text="{Binding}" FontFamily="{StaticResource MonoFont}" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Margin="0,1" /></DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>

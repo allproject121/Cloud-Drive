@@ -21,12 +21,12 @@ public sealed partial class DashboardViewModel : PageViewModel
         host.Offloader.OffloadCompleted += r =>
         {
             if (r.Automatic && r.FilesMovedCount > 0 && !GameActivity.IsPlaying(host))
-                Notifier.Show(L("Storage auto mode"), L("Moved to the cloud: {0} ({1}).", SmartStorageOffloaderService.HistoryTitle(r.FilesMoved), MemoryHealth.Size(r.BytesFreed)));
+                Notifier.Show(L("Storage auto mode"), L("Moved to the cloud: {0} ({1}).", SmartStorageOffloaderService.HistoryTitle(r.FilesMoved), MemoryHealth.Size(r.BytesFreed)), "page:Space & RAM", "auto");
         };
         host.Offloader.JunkCleaned += (files, bytes) =>
         {
             if (!GameActivity.IsPlaying(host))
-                Notifier.Show(L("Storage auto mode"), L("Removed {0} old junk file(s): {1} freed.", files, MemoryHealth.Size(bytes)));
+                Notifier.Show(L("Storage auto mode"), L("Removed {0} old junk file(s): {1} freed.", files, MemoryHealth.Size(bytes)), "page:Space & RAM", "auto");
         };
     }
 
