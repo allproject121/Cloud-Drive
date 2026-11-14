@@ -102,6 +102,9 @@ public static class MountFlagBuilder
         Flag("vfs-refresh");
         Flag("vfs-read-chunk-size-limit", "256Mi");
         Flag("no-checksum");
+        // The copies devices keep of themselves ("Files when it is off") are not part of the drive: hidden here so a
+        // device that may only browse the drives cannot read them, and so the mount does not load their huge file lists.
+        Flag("filter", "- Cloud-SSD Devices/**");
         Flag("filter", "- desktop.ini");
         Flag("filter", "- folder.jpg");
         Flag("filter", "- folder.gif");

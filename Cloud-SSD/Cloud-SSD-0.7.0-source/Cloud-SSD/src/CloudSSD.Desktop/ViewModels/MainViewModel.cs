@@ -131,6 +131,10 @@ public sealed partial class MainViewModel : ObservableObject
             case "device":
                 Navigate("Devices");
                 return true;
+            case "task":
+                // A send that waits for an OK (or any transfer): Files → Transfers, where it is listed.
+                Navigate("Transfers");
+                return true;
             case "perm":
                 return OpenPermissions(rest);
             case "access":

@@ -408,10 +408,15 @@ public class RemotePcClientTests
 
         for (int round = 1; round <= 2; round++)
         {
-            Assert.NotNull(env.Bridge.SendToDevice(dev, [root]));
+            var sent = env.Bridge.SendToDevice(dev, [root]);
+            Assert.NotNull(sent);
             await s.CheckInboxAsync();
             var files = await s.AcceptAsync(Assert.Single(s.Inbox));
             Assert.Equal(2, files.Count);
+            // The PC marks a file delivered a moment after its last byte went out: the next send waits for that, or the
+            // first offer would still be in the inbox.
+            for (int i = 0; i < 100 && sent!.State != "done"; i++) await Task.Delay(20);
+            Assert.Equal("done", sent!.State);
             var top = round == 1 ? "MyApp" : "MyApp (2)";            // not mixed into the first copy
             var day = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(files.Single(f => f.EndsWith(Path.Combine("src", "index.js")) && !f.Contains("lib"))))!)!;
             Assert.Equal("a", await File.ReadAllTextAsync(Path.Combine(day, top, "src", "index.js")));

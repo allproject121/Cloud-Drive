@@ -485,6 +485,9 @@
     const more = isApp ? `<div class="perm-row perm-row-link" data-act="open-settings-group" data-group="pcmay" role="button" tabindex="0">
         <div class="perm-row-text"><div>More the PC may do</div><div class="perm-row-sub">Phone storage and RAM numbers, removing things, ringing this phone</div></div>${SVG.chevron}</div>` : '';
     if (peer || more) html += permGroup('What the PC may do on this phone', peer + more, 'You decide this here, and can stop it any time.');
+    // 2b. Files when it is off: its own yes, needed here AND on the PC.
+    const whenOff = whenOffRow();
+    if (whenOff) html += permGroup('Files when it is off', whenOff, 'It works only when this phone and the PC both say yes. You can stop it any time.');
     // 3. Android.
     if (isApp) html += permGroup('Android permissions', androidPermRows(), '');
     setText('perm-sub', link.pcName ? 'This phone and ' + link.pcName : 'This phone');
@@ -496,6 +499,32 @@
     if (link.state !== 'online' || !pcHas('access')) return;
     const r = await api('/api/access/mine', { noAsk: true });
     if (r.ok && r.data) { permAccess = Object.assign({ pc: currentDeviceId() }, r.data); if (isOpen('perm-sheet')) renderPermissions(); }
+  }
+
+  /**
+   * "Files when it is off": each device keeps a copy of its files in the cloud so the other can open them while it is
+   * switched off. This phone's own yes; the PC has its own (in the device's permissions there). Not shown for an older
+   * PC, a guest, or while the PC is away.
+   */
+  function whenOffRow() {
+    if (!DATA || link.state !== 'online' || !pcHas('whenoff')) return '';
+    const w = link.status && link.status.whenOff;
+    const state = DATA.whenOffState(w);
+    if (state === 'none') return '';
+    const mine = !!(w && w.device);
+    return `<div class="perm-row ${state === 'on' ? 'on' : ''}">
+        <div class="perm-row-text"><div>Keep copies in the cloud</div><div class="perm-row-sub">${esc(DATA.whenOffText(state, link.pcName))}</div></div>
+        <button class="m3-tonal-btn" data-act="whenoff-set" data-on="${mine ? '0' : '1'}">${mine ? 'Stop' : 'Allow…'}</button>
+      </div>`;
+  }
+  async function setWhenOff(on) {
+    if (on && !await confirmDialog('Files when it is off',
+      'This phone and ' + (link.pcName || 'the PC') + ' will each keep a copy of their files in your cloud drive, so one can open the other\'s files while it is switched off. It starts only when the PC says yes too, and you can stop it here any time.', 'Allow')) return;
+    const r = await api('/api/whenoff/consent', { method: 'POST', params: { on: on ? '1' : '0' }, noAsk: true }).catch(() => null);
+    if (!r || !r.ok || !r.data) { toast(r ? apiError(r, 'Could not change it') : 'PC not reachable'); return; }
+    if (link.status) link.status.whenOff = r.data;
+    if (isOpen('perm-sheet')) renderPermissions();
+    toast(DATA.whenOffText(DATA.whenOffState(r.data), link.pcName));
   }
 
   /** The other direction, in the same sheet: what the PC may see on this phone (this phone decides). */
@@ -1787,6 +1816,28 @@
    * Folders and files chosen in the Phone tab go in one go: the phone walks the folders itself (no picker), keeps
    * their tree and leaves out build output; to the PC (each folder gets a free name there) or to another device.
    */
+  /** Of what is about to be sent (folders at the top, loose files): the names the PC's upload folder already has. An older PC is not asked. */
+  async function pcClashes(folders, files) {
+    const none = { folders: [], files: [], free: Infinity };
+    if (!pcHas('upload-clash') || (!folders.length && !files.length)) return none;
+    const r = await api('/api/upload/clashes', { method: 'POST', body: JSON.stringify({ folders, files }), timeout: 15000 }).catch(() => null);
+    return r && r.ok && r.data ? { folders: r.data.folders || [], files: r.data.files || [], free: typeof r.data.free === 'number' ? r.data.free : Infinity } : none;
+  }
+  /**
+   * Names the receiver already has: asks once for all of them. Gives 'keep' (both stay, the new one gets a number),
+   * 'replace' or 'skip'; nothing comes back when the sheet is closed without a choice, and nothing is sent then.
+   */
+  function askClash(names, where) {
+    return new Promise((resolve) => {
+      const title = names.length === 1 ? '"' + names[0] + '" is already on ' + where : names.length + ' of these are already on ' + where;
+      choiceSheet(title, [
+        { icon: SVG.check, title: 'Keep both', sub: 'The new one gets a number, like "name (2)"', fn: () => resolve('keep') },
+        { icon: SVG.upload || SVG.check, title: 'Replace', sub: 'The one that is there gives way to the new one', danger: true, fn: () => resolve('replace') },
+        { icon: SVG.close, title: 'Skip', sub: 'Leave those out and send the rest', fn: () => resolve('skip') }
+      ]);
+    });
+  }
+
   async function sendPaths(paths) {
     let p;
     try { p = JSON.parse(native.preparePaths(JSON.stringify({ paths }))); } catch (e) { p = { error: String(e) }; }
@@ -1799,14 +1850,27 @@
     const choices = [{
       icon: SVG.pc, title: pcName, sub: 'Into its From phone folder',
       fn: async () => {
+        // Names the PC already has: one question for all of them (keep both, replace, skip).
+        const loose = (p.items || []).filter(i => !i.folder).map(i => i.name);
+        const canAsk = typeof native.sendPreparedToPc2 === 'function';
+        const clash = canAsk ? await pcClashes(p.folders, loose) : { folders: [], files: [], free: Infinity };
+        // It does not fit on the PC: said now, not after half of it went.
+        if (p.bytes > clash.free) { toast('Not enough space on ' + pcName + ': needs ' + fmtBytes(p.bytes) + ', ' + fmtBytes(clash.free) + ' free'); return; }
+        const taken = clash.folders.concat(clash.files);
+        const onClash = taken.length ? await askClash(taken, pcName) : 'keep';
+        const skip = onClash === 'skip' ? taken : [];
+        if (skip.length >= p.folders.length + loose.length) { toast('Nothing to send'); return; }
         const renames = {};
         for (const top of p.folders) {
-          const r = await api('/api/upload/folder', { params: { name: top } });
+          if (skip.includes(top)) continue;
+          const params = onClash === 'replace' && clash.folders.includes(top) ? { name: top, onClash: 'replace' } : { name: top };
+          const r = await api('/api/upload/folder', { params });
           if (!r.ok || !r.data || !r.data.name) { toast(apiError(r, 'Could not send')); return; }
           renames[top] = r.data.name;
         }
-        native.sendPreparedToPc(JSON.stringify(renames));
-        toast('Sending ' + what + ' to ' + pcName);
+        if (canAsk) native.sendPreparedToPc2(JSON.stringify(renames), JSON.stringify(skip), onClash);
+        else native.sendPreparedToPc(JSON.stringify(renames));
+        toast(skip.length ? 'Sending to ' + pcName + ' · ' + skip.length + ' left out' : 'Sending ' + what + ' to ' + pcName);
       }
     }];
     if (pcHas('share')) {
@@ -1847,9 +1911,15 @@
     const choices = [{
       icon: SVG.pc, title: pcName, sub: 'Into its From phone folder',
       fn: async () => {
-        const r = await api('/api/upload/folder', { params: { name: p.name } });
+        // The PC has a folder of this name already: keep both, replace, or do not send.
+        const canAsk = typeof native.sendFolderToPc2 === 'function';
+        const clash = canAsk ? await pcClashes([p.name], []) : { folders: [], free: Infinity };
+        if (p.bytes > clash.free) { toast('Not enough space on ' + pcName + ': needs ' + fmtBytes(p.bytes) + ', ' + fmtBytes(clash.free) + ' free'); return; }
+        const onClash = clash.folders.length ? await askClash([p.name], pcName) : 'keep';
+        if (onClash === 'skip') { toast('Nothing to send'); return; }
+        const r = await api('/api/upload/folder', { params: onClash === 'replace' ? { name: p.name, onClash: 'replace' } : { name: p.name } });
         if (!r.ok || !r.data || !r.data.name) { toast(apiError(r, 'Could not send')); return; }
-        native.sendFolderToPc(r.data.name);
+        if (canAsk) native.sendFolderToPc2(r.data.name, onClash); else native.sendFolderToPc(r.data.name);
         toast('Sending ' + what + ' to ' + pcName);
       }
     }];
@@ -3495,13 +3565,18 @@
    * light with colourful icons; "raat" — dark navy with teal; "auto" — A+C by day, Raat when the phone is dark.
    * The old Light / Dark choice carries over (Dark → Raat).
    */
-  const LOOKS = ['ac', 'saaf', 'raat', 'auto'];
+  // Three more (newlooks.css): "kit" — pale page, a blue PC card, rounded-square tiles; "paper" — black on white with
+  // thin lines; "glow" — black with lime and round gauges.
+  const LOOKS = ['kit', 'paper', 'glow', 'ac', 'saaf', 'raat', 'auto'];
   // What the system bars show under each look: the colour behind the status bar (the top band), behind the
   // navigation bar (the bottom bar), and whether their icons are dark.
   const LOOK_BARS = {
     ac: { top: '#2563EB', rest: '#FFFFFF', statusDark: false, navDark: true },
     saaf: { top: '#F4F6FA', rest: '#FFFFFF', statusDark: true, navDark: true },
-    raat: { top: '#0B0F17', rest: '#0B0F17', statusDark: false, navDark: false }
+    raat: { top: '#0B0F17', rest: '#0B0F17', statusDark: false, navDark: false },
+    kit: { top: '#F3F5F9', rest: '#FFFFFF', statusDark: true, navDark: true },
+    paper: { top: '#FFFFFF', rest: '#FFFFFF', statusDark: true, navDark: true },
+    glow: { top: '#0A0A0C', rest: '#0A0A0C', statusDark: false, navDark: false }
   };
   function lookMode() {
     const m = ls.get('cloudssd_look');
@@ -3514,7 +3589,8 @@
     '#F48FB1': '#1E3A8A', '#EF9A9A': '#1D4ED8', '#FDD663': '#2563EB', '#78D9EC': '#3B82F6', '#6DD58C': '#60A5FA',
     '#B39DDB': '#93C5FD', '#8E918F': '#94A3B8', '#60A5FA': '#2563EB', '#34D399': '#60A5FA', '#C084FC': '#93C5FD', '#FBBF24': '#1E3A8A'
   };
-  function tint(color) { return document.documentElement.dataset.look === 'ac' ? (AC_SHADES[String(color).toUpperCase()] || color) : color; }
+  // Kit has one colour too: the same shades.
+  function tint(color) { return ['ac', 'kit'].includes(document.documentElement.dataset.look) ? (AC_SHADES[String(color).toUpperCase()] || color) : color; }
   function phoneIsDark() {
     if (isApp && typeof appInfo.night === 'boolean') return appInfo.night;
     return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -3526,7 +3602,7 @@
     const look = mode === 'auto' ? (phoneIsDark() ? 'raat' : 'ac') : mode;
     const root = document.documentElement;
     root.dataset.look = look;
-    root.dataset.theme = look === 'raat' ? 'dark' : 'light';
+    root.dataset.theme = look === 'raat' || look === 'glow' ? 'dark' : 'light';
     // Glass effect (glass.css): frosted bars and see-through cards, in whichever look is chosen.
     root.dataset.glass = ls.get('cloudssd_glass') === 'on' ? 'on' : 'off';
     const bars = LOOK_BARS[look];
@@ -3587,11 +3663,28 @@
   function onOff(on) { return `<span class="settings-pill ${on ? 'on' : 'off'}">${on ? 'On' : 'Off'}</span>`; }
   /** The app's looks: [saved key, name, what it is like]. The keys (ac, saaf, raat) are what is saved; only the names people see changed. */
   const LOOK_CARDS = [
+    ['kit', 'Kit', 'Blue PC card, soft square tiles'],
+    ['paper', 'Paper', 'Black on white, thin lines'],
+    ['glow', 'Glow', 'Black with lime, round gauges'],
     ['ac', 'Ocean', 'One calm blue, curved band'],
     ['saaf', 'Colourful', 'Light page, colourful icons'],
     ['raat', 'Midnight', 'Dark navy with teal'],
     ['auto', 'Like the phone', 'Ocean by day, Midnight at night']
   ];
+  /** The icons the app can have on the phone's home screen: [key (MainActivity.APP_ICONS), name, its picture]. */
+  const ICON_CARDS = [
+    ['ocean', 'Ocean', 'icon-ocean.svg'],
+    ['kit', 'Kit', 'icon-kit.svg'],
+    ['paper', 'Paper', 'icon-paper.svg'],
+    ['glow', 'Glow', 'icon-glow.svg'],
+    ['midnight', 'Midnight', 'icon-midnight.svg'],
+    ['sunset', 'Sunset', 'icon-sunset.svg'],
+    ['classic', 'Classic', 'icon-classic.png']
+  ];
+  /** The key of the icon the app has now; '' in a browser and in an app from before the icons. */
+  function appIconNow() {
+    try { return isApp && typeof native.appIcon === 'function' ? String(native.appIcon() || '') : ''; } catch (e) { return ''; }
+  }
   /** Settings → Customize: everything about how the app looks, on one page. */
   function renderCustomize() {
     let html = '';
@@ -3600,6 +3693,13 @@
     html += settingsSection('App look', `<div class="look-picker">${LOOK_CARDS.map(([k, name, sub]) => `<button class="look-card ${look === k ? 'active' : ''}" data-act="look" data-look="${k}" aria-pressed="${look === k}">
         <span class="look-swatch look-swatch-${k}" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="look-name">${name}</span><span class="look-sub">${sub}</span></button>`).join('')}</div>`);
+    // The app's icon on the home screen (the Android app only: a page in a browser has no icon to change).
+    const icon = appIconNow();
+    if (icon) {
+      html += settingsSection('App icon', `<div class="icon-picker">${ICON_CARDS.map(([k, name, pic]) => `<button class="icon-card ${icon === k ? 'active' : ''}" data-act="app-icon" data-icon="${k}" aria-pressed="${icon === k}">
+        <img src="${pic}" alt="" width="52" height="52"><span class="icon-name">${name}</span></button>`).join('')}</div>
+        <div class="settings-row-sub icon-note">The home screen shows the new icon after a few seconds.</div>`);
+    }
     // Glass effect: one switch, for every look.
     html += settingsSection('Window', `<label class="settings-row glass-row"><div class="settings-row-text"><div>Glass effect</div><div class="settings-row-sub">Frosted glass: see-through bars and cards, like on an iPhone</div></div>
         <input type="checkbox" data-act="glass" ${ls.get('cloudssd_glass') === 'on' ? 'checked' : ''}></label>`);
@@ -3955,6 +4055,7 @@
     'peer-deny': () => peerAnswer(-1),
     'peer-hour': () => peerAnswer(60),
     'peer-always': () => peerAnswer(0),
+    'whenoff-set': (el) => setWhenOff(el.dataset.on === '1'),
     'peer-stop': () => { try { native.peerRevoke(currentDeviceId()); } catch (e) { } toast((link.pcName || 'The PC') + ' can no longer see this phone'); openPermissions(); },
     'peer-open': () => { closeSheet('perm-sheet'); showPeerAsk({ pc: currentDeviceId(), name: link.pcName }); },
     'inbox-accept': (el) => { const o = inbox.offers[+el.dataset.i]; if (o) acceptOffer(o); },
@@ -3998,6 +4099,12 @@
       if (isOpen('customize-modal')) renderCustomize();
     },
     'glass': (el) => { ls.set('cloudssd_glass', el.checked ? 'on' : 'off'); applyTheme(); },
+    'app-icon': (el) => {
+      let ok = false;
+      try { ok = !!native.setAppIcon(el.dataset.icon); } catch (e) { }
+      toast(ok ? 'App icon changed' : 'Could not change it');
+      if (isOpen('customize-modal')) renderCustomize();
+    },
     'look': (el) => {
       ls.set('cloudssd_look', el.dataset.look);
       ls.del('cloudssd_theme');

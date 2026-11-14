@@ -48,6 +48,10 @@ public sealed partial class LocalMobileBridgeService
                 catch (FsException e) { await SendFsErrorAsync(stream, e, ct); }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException) { await SendFsErrorAsync(stream, e, ct); }
                 return true;
+            case "/api/upload/clashes":
+                try { await SendJsonAsync(stream, 200, "OK", UploadClashes(await ReadSmallBodyAsync(stream, headers, 2 * 1024 * 1024, ct) ?? "{}"), ct); }
+                catch (FsException e) { await SendFsErrorAsync(stream, e, ct); }
+                return true;
             case "/api/upload/status":
                 try { await SendJsonAsync(stream, 200, "OK", UploadStatus(q), ct); }
                 catch (FsException e) { await SendFsErrorAsync(stream, e, ct); }

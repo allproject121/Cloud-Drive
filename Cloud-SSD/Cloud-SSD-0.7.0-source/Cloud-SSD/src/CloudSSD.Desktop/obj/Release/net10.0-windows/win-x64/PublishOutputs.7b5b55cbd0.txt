@@ -7,6 +7,7 @@ C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\CloudDrive.apk
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\cloudssd.apk
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\data.js
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\fs.js
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\glass.css
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\i18n-words.js
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\i18n.js
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-192.svg
@@ -14,8 +15,11 @@ C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-512.svg
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\index.html
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\looks.css
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\manifest.json
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\newlooks.css
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\newlooks.js
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\pages.css
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\pages.js
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\space-grotesk.woff2
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\space.js
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\stream.js
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\sw.js

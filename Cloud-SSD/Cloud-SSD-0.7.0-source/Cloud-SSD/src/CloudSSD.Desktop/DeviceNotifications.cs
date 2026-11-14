@@ -30,6 +30,10 @@ public static class DeviceNotifications
         host.MobileBridge.Shares.Changed += OnShareChanged;
         host.MobileBridge.FileReceived += OnFileReceived;
         host.MobileBridge.ClipboardReceived += OnClipboard;
+        host.MobileBridge.Tasks.Changed += OnTaskChanged;
+        lock (WhenOffSeen)
+            foreach (var d in host.Settings.MobileBridge.PairedDevices) WhenOffSeen[d.Id] = d.WhenOffDevice;
+        host.MobileBridge.WhenOffChanged += OnWhenOffChanged;
         // A request answered (here, in its window, or it ran out): its line in the list is done.
         host.MobileBridge.Access.RequestEnded += r => NotificationCenter.MarkRead(AccessTarget(r));
     }
@@ -49,6 +53,45 @@ public static class DeviceNotifications
     }
 
     // ---- files between devices --------------------------------------------------------------------------------------
+
+    private static readonly HashSet<string> AskedAbout = new();
+
+    /// <summary>
+    /// A device's files wait for an OK here (a guest's, or everyone's when the setting says always ask): one note per
+    /// send, shown even while a game is in front (the sender is waiting); a click opens Files → Transfers, where the
+    /// "Files to receive" card has Accept and Decline. Answered: its line in the bell is done.
+    /// </summary>
+    private static readonly Dictionary<string, bool> WhenOffSeen = new();
+
+    /// <summary>
+    /// A device said yes to "Files when it is off": a note that leads to its permissions, where this PC's own yes is
+    /// (it works only when both said yes). Nothing is shown when the answer was given here, or taken back.
+    /// </summary>
+    private static void OnWhenOffChanged(CloudSSD.Core.PairedDevice d)
+    {
+        bool before;
+        lock (WhenOffSeen) { WhenOffSeen.TryGetValue(d.Id, out before); WhenOffSeen[d.Id] = d.WhenOffDevice; }
+        if (!d.WhenOffDevice || before) return;
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+            Notifier.Show(string.Format(LocalizationManager.T("{0} said yes to \"Files when it is off\""), d.Name),
+                LocalizationManager.T(d.WhenOffPc ? "It is on for both now." : "Say yes for it here too: open its permissions."), "perm:" + d.Id, "access"));
+    }
+
+    private static void OnTaskChanged(TransferTask t)
+    {
+        var target = "task:" + t.Id;
+        if (t.State != "asking")
+        {
+            bool was;
+            lock (AskedAbout) was = AskedAbout.Remove(t.Id);
+            if (was) Application.Current?.Dispatcher.BeginInvoke(() => NotificationCenter.MarkRead(target));
+            return;
+        }
+        lock (AskedAbout) { if (!AskedAbout.Add(t.Id)) return; }
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+            Notifier.Show(string.Format(LocalizationManager.T("{0} wants to send {1} file(s)"), t.Device, t.Files),
+                LocalizationManager.T("Accept or decline in Files → Transfers."), target, "files"));
+    }
 
     /// <summary>A device took (or turned down) files from this PC.</summary>
     private static void OnShareChanged(ShareOffer o)

@@ -575,6 +575,32 @@
     return { folders: tops, text: all.slice(0, n).join(', ') + (all.length > n ? ` and ${all.length - n} more` : '') };
   }
 
+  // ------------------------------------------------------------------ files when it is off
+
+  /**
+   * How "Files when it is off" stands with a PC, from its status ({pc, device, active, guest}): 'none' (an older PC, or
+   * a guest: not offered), 'off' (nobody said yes), 'waiting-pc' (this phone said yes, the PC has not), 'waiting-phone'
+   * (the PC said yes, this phone has not), 'on' (both said yes).
+   */
+  function whenOffState(w) {
+    if (!w || typeof w !== 'object' || w.guest) return 'none';
+    if (w.active || (w.pc && w.device)) return 'on';
+    if (w.device) return 'waiting-pc';
+    if (w.pc) return 'waiting-phone';
+    return 'off';
+  }
+
+  /** The line under the switch for each state (pcName as written on the PC). */
+  function whenOffText(state, pcName) {
+    const pc = pcName || 'the PC';
+    switch (state) {
+      case 'on': return 'On: this phone and ' + pc + ' both said yes';
+      case 'waiting-pc': return 'Waiting for a yes on ' + pc;
+      case 'waiting-phone': return pc + ' said yes · waiting for a yes here';
+      default: return 'Off';
+    }
+  }
+
   // ------------------------------------------------------------------ transfers as tasks
 
   /** The model's link (wifi, usb, hotspot, tailscale) from how the page reaches the PC (route) and what the PC saw (kind). */
@@ -703,7 +729,7 @@
     covers, pinFor, sameCopy, fmtSize, pinStatus, keptListing,
     linkLabel, sameSubnet, accessName, grantText, safeFolder, peerText,
     friendlyPath, syncStatus, wakeHint,
-    TRANSFER_KINDS, transferKind, groupTransfers, shareSavePath, offerSummary, taskLink, upsertTask
+    TRANSFER_KINDS, transferKind, groupTransfers, shareSavePath, offerSummary, taskLink, upsertTask, whenOffState, whenOffText
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

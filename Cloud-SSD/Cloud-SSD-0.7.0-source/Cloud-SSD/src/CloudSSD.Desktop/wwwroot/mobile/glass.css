@@ -76,6 +76,18 @@
   border: 1px solid var(--glass-edge) !important;
   box-shadow: var(--glass-shadow) !important;
 }
+/* The strip the search bar sits in (it stays at the top while the page scrolls): no solid block of colour with a hard
+   edge under it — what scrolls behind is blurred. Ocean keeps its blue band, as blue glass. */
+:root[data-glass="on"]:is([data-look="saaf"], [data-look="raat"]) .search-header {
+  background: transparent !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+:root[data-glass="on"][data-look="ac"] .search-header {
+  background: rgba(37, 99, 235, 0.80) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
 /* The bottom bar floats as a rounded pane in every look, so the page shows around and behind it. */
 :root[data-glass="on"][data-look="ac"] .material-bottom-nav,
 :root[data-glass="on"][data-look="saaf"] .material-bottom-nav {

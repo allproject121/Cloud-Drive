@@ -19,7 +19,15 @@ public sealed partial class LocalMobileBridgeService
 
     private TransferTasks? _tasks;
     /// <summary>All transfers of this PC as tasks (offers, uploads, passed-on files, phone folders); screens bind to them.</summary>
-    public TransferTasks Tasks => LazyInitializer.EnsureInitialized(ref _tasks, () => new TransferTasks(() => Now()))!;
+    public TransferTasks Tasks => LazyInitializer.EnsureInitialized(ref _tasks, () =>
+    {
+        var t = new TransferTasks(() => Now());
+        // Files a device sends to this PC ("up-"): the OK or No given here decides what its next requests get.
+        t.HandleAsking("up-", accept: (task, _) => { lock (_uploadAnswers) _uploadAnswers[task.Id] = true; return true; },
+            decline: task => { lock (_uploadAnswers) _uploadAnswers[task.Id] = false; return true; });
+        t.Handle("up-", cancel: task => { lock (_uploadAnswers) _uploadAnswers[task.Id] = false; return true; });
+        return t;
+    })!;
 
     /// <summary>A device sent a file to this PC ("Send to PC"); the PC shows a note.</summary>
     public event Action<PairedDevice, string>? FileReceived;

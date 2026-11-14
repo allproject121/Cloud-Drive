@@ -204,7 +204,7 @@ public sealed partial class LocalMobileBridgeService
     private static string StatusText(int status) => status switch
     {
         200 => "OK", 400 => "Bad Request", 401 => "Unauthorized", 403 => "Forbidden", 404 => "Not Found", 405 => "Method Not Allowed",
-        409 => "Conflict", 411 => "Length Required", 415 => "Unsupported Media Type", 429 => "Too Many Requests",
+        409 => "Conflict", 411 => "Length Required", 423 => "Locked", 415 => "Unsupported Media Type", 429 => "Too Many Requests",
         503 => "Service Unavailable", 507 => "Insufficient Storage", _ => "Internal Server Error"
     };
 

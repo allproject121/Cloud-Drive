@@ -348,6 +348,19 @@ public class MainActivity extends Activity {
         return o;
     }
 
+    /**
+     * The icons the person can give the app on the home screen: {key the page uses, the activity-alias in the manifest
+     * that carries the icon}. The first one is the alias that is on in a new install.
+     */
+    private static final String[][] APP_ICONS = {
+        { "ocean", "IconOcean" }, { "kit", "IconKit" }, { "paper", "IconPaper" }, { "glow", "IconGlow" },
+        { "midnight", "IconMidnight" }, { "sunset", "IconSunset" }, { "classic", "IconClassic" }
+    };
+
+    private android.content.ComponentName iconAlias(String alias) {
+        return new android.content.ComponentName(getPackageName(), "com.cloudssd.mobile." + alias);
+    }
+
     // ------------------------------------------------------------------ the page's native interface
 
     public class AndroidBridge {
@@ -636,8 +649,22 @@ public class MainActivity extends Activity {
          */
         @JavascriptInterface
         public void sendPreparedToPc(String renamesJson) {
-            java.util.List<String[]> files = sendFolderFiles;
-            if (files == null || files.isEmpty()) return;
+            sendPreparedToPc2(renamesJson, "[]", "keep");
+        }
+
+        /**
+         * The same, after the page asked about names the PC already has: skip lists the folders (at the top) and loose
+         * files to leave out; onClash "replace" has the PC's files of the same name give way to these.
+         */
+        @JavascriptInterface
+        public void sendPreparedToPc2(String renamesJson, String skipJson, String onClash) {
+            java.util.List<String[]> all = sendFolderFiles;
+            if (all == null || all.isEmpty()) return;
+            java.util.HashSet<String> skip = new java.util.HashSet<>();
+            try { JSONArray a = new JSONArray(skipJson == null ? "[]" : skipJson); for (int i = 0; i < a.length(); i++) skip.add(a.optString(i)); } catch (Exception ignored) { }
+            java.util.List<String[]> files = new ArrayList<>();
+            for (String[] f : all) if (!skip.contains(f[3].isEmpty() ? f[1] : f[3].split("/")[0])) files.add(f);
+            if (files.isEmpty()) return;
             TransferHub hub = TransferHub.get(MainActivity.this);
             JSONObject renames;
             try { renames = new JSONObject(renamesJson == null ? "{}" : renamesJson); } catch (Exception e) { renames = new JSONObject(); }
@@ -647,7 +674,7 @@ public class MainActivity extends Activity {
             boolean oneFolder = tops.size() == 1 && !loose;
             String first = tops.isEmpty() ? "" : renames.optString(tops.iterator().next(), tops.iterator().next());
             startTask(meta("dir", "toPc", "kind", oneFolder ? "folder" : "files", "folder", oneFolder ? first : "",
-                    "saveTo", hub.pcName + " › Uploads" + (oneFolder ? " › " + first : "")));
+                    "saveTo", hub.pcName + " › Uploads" + (oneFolder ? " › " + first : ""), "onClash", "replace".equals(onClash) ? "replace" : "keep"));
             try {
                 for (String[] f : files) {
                     String target = "";
@@ -666,10 +693,17 @@ public class MainActivity extends Activity {
         /** The picked folder goes to the PC, into the folder it named for it ("MyApp" or "MyApp (2)"). */
         @JavascriptInterface
         public void sendFolderToPc(String top) {
+            sendFolderToPc2(top, "keep");
+        }
+
+        /** The same; onClash "replace" when the PC has this folder already and its files are to give way. */
+        @JavascriptInterface
+        public void sendFolderToPc2(String top, String onClash) {
             java.util.List<String[]> files = sendFolderFiles;
             if (files == null || top == null || top.isEmpty()) return;
             TransferHub hub = TransferHub.get(MainActivity.this);
-            startTask(meta("dir", "toPc", "kind", "folder", "folder", top, "saveTo", hub.pcName + " › Uploads › " + top));
+            startTask(meta("dir", "toPc", "kind", "folder", "folder", top, "saveTo", hub.pcName + " › Uploads › " + top,
+                    "onClash", "replace".equals(onClash) ? "replace" : "keep"));
             try {
                 for (String[] f : files) {
                     int slash = f[3].indexOf('/');
@@ -1104,6 +1138,40 @@ public class MainActivity extends Activity {
                     toast("Open Settings > Apps > Cloud-SSD");
                 }
             });
+        }
+
+        /** The app's icon on the home screen now: one of the keys of APP_ICONS ("ocean" when none was picked). */
+        @JavascriptInterface
+        public String appIcon() {
+            PackageManager pm = getPackageManager();
+            for (String[] icon : APP_ICONS) {
+                int state = pm.getComponentEnabledSetting(iconAlias(icon[1]));
+                if (state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) return icon[0];
+            }
+            return APP_ICONS[0][0];
+        }
+
+        /**
+         * Changes the app's icon on the home screen: the alias of the picked icon is switched on and the others off
+         * (the launcher shows the new one a few seconds later). False for a key that is not an icon.
+         */
+        @JavascriptInterface
+        public boolean setAppIcon(String key) {
+            String[] picked = null;
+            for (String[] icon : APP_ICONS) if (icon[0].equals(key)) picked = icon;
+            if (picked == null) return false;
+            try {
+                PackageManager pm = getPackageManager();
+                // On first, then the others off: there is no moment without an icon.
+                pm.setComponentEnabledSetting(iconAlias(picked[1]), PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+                for (String[] icon : APP_ICONS) {
+                    if (icon == picked) continue;
+                    pm.setComponentEnabledSetting(iconAlias(icon[1]), PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+                }
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
         }
 
         @JavascriptInterface

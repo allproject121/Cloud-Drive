@@ -149,4 +149,33 @@ public class PhoneFilesTests
         Assert.All(ended.Failed, f => Assert.Equal("denied", f.Reason));
         Directory.Delete(root, true);
     });
+
+    [Fact]
+    public Task Cancelling_while_a_file_is_on_its_way_ends_the_phone_task_too() => BridgeHarness.With(async env =>
+    {
+        var token = await env.PairNew("Pixel", "inst-pf-05", "&kind=phone");
+        var root = Temp("cancel");
+        for (int i = 0; i < 5; i++) await File.WriteAllTextAsync(Path.Combine(root, $"f{i}.txt"), "x");
+        var pulls = new SemaphoreSlim(0);
+        string? ended = null;
+        using var stop = new CancellationTokenSource();
+        var phone = FakePhone(env, token, async (kind, args) =>
+        {
+            if (kind == "fs.pullEnd") { ended = args.GetProperty("task").GetString() + ":" + args.GetProperty("reason").GetString(); return new StringContent("{\"ok\":true}", Encoding.UTF8, "application/json"); }
+            pulls.Release();
+            await Task.Delay(1500);                                   // the file is still on its way when Cancel comes
+            return new StringContent("{\"path\":\"x\",\"skipped\":false}", Encoding.UTF8, "application/json");
+        }, stop.Token);
+
+        var task = env.Bridge.SendToPhoneFolder(Dev(env, "Pixel"), Directory.GetFiles(root), "Download");
+        Assert.True(await pulls.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.True(env.Bridge.Tasks.Cancel(task.Id));
+        for (int i = 0; i < 100 && ended is null; i++) await Task.Delay(100);
+        stop.Cancel();
+        await phone;
+
+        Assert.Equal(task.Id + ":cancelled", ended);                                 // the phone was told the run is over
+        Assert.Equal("cancelled", env.Bridge.Tasks.Get(task.Id)!.State);
+        Directory.Delete(root, true);
+    });
 }

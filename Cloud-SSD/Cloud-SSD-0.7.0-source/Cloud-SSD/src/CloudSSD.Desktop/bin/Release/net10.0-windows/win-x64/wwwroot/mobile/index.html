@@ -21,6 +21,10 @@
   <link rel="stylesheet" href="looks.css?v=0.12.0">
   <!-- Every sheet opens as a full page with a back bar; the compact sizes. -->
   <link rel="stylesheet" href="pages.css?v=0.12.0">
+  <!-- Glass effect (frosted bars and cards), only while it is switched on: glass.css -->
+  <!-- The looks Kit, Paper and Glow (before glass.css, which lies over every look). -->
+  <link rel="stylesheet" href="newlooks.css?v=0.12.0">
+  <link rel="stylesheet" href="glass.css?v=0.12.0">
 </head>
 <body>
 
@@ -207,51 +211,6 @@
       <div id="transfers-active" class="transfers-active-list"></div>
       <div id="home-xfer-now"></div>
       <div id="home-xfer-done"></div>
-    </div>
-    <!-- PC connection card -->
-    <div class="section-container">
-      <div class="pc-connection-banner-card" id="home-connection-card" data-act="open-connection">
-        <div class="pc-conn-left">
-          <div class="pc-conn-icon-halo">
-            <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
-            <div class="pc-conn-pulse-dot offline" id="home-conn-dot"></div>
-          </div>
-          <div class="pc-conn-info">
-            <div class="pc-conn-title" id="home-conn-title">Not connected</div>
-            <div class="pc-conn-sub" id="home-conn-sub">Looking for your PC…</div>
-            <div class="pc-conn-pills-row">
-              <span class="pc-conn-pill" id="home-conn-time">—</span>
-              <span class="pc-conn-pill ping" id="home-conn-ping" style="display: none;"></span>
-            </div>
-          </div>
-        </div>
-        <div class="pc-conn-actions">
-          <button class="pc-conn-toggle-btn connect" id="home-conn-toggle-btn" data-act="toggle-link">Connect</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Laptop Smart Storage Saver Card -->
-    <div class="section-container" id="laptop-storage-saver-card" style="display: none;">
-      <div class="pc-connection-banner-card saver-card">
-        <div class="pc-conn-left">
-          <div class="pc-conn-icon-halo saver-halo">
-            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13h-3v4h-2v-4H6l5-5 5 5h-2z"/></svg>
-          </div>
-          <div class="pc-conn-info">
-            <div class="pc-conn-title">Laptop Space Saver</div>
-            <div class="pc-conn-sub" id="laptop-storage-sub">Moves old files to the cloud drive when the laptop is nearly full</div>
-            <div class="pc-conn-pills-row">
-              <span class="pc-conn-pill speed" id="laptop-free-pill">—</span>
-              <span class="pc-conn-pill" id="laptop-threshold-pill">—</span>
-              <span class="pc-conn-pill ping" id="laptop-status-pill">—</span>
-            </div>
-          </div>
-        </div>
-        <div class="pc-conn-actions">
-          <button class="pc-conn-toggle-btn saver-btn" data-act="offload-now">Free Up Space</button>
-        </div>
-      </div>
     </div>
 
   </main>
@@ -537,6 +496,56 @@
     </div>
     <div class="section-container">
       <div class="more-list" id="more-list"></div>
+    </div>
+
+    <!-- The PC in use, its space saver and this phone's camera backup (they were at the bottom of Home) -->
+    <div class="section-header more-cards-title">
+      <div class="section-title">PC and backup</div>
+    </div>
+    <!-- PC connection card -->
+    <div class="section-container">
+      <div class="pc-connection-banner-card" id="home-connection-card" data-act="open-connection">
+        <div class="pc-conn-left">
+          <div class="pc-conn-icon-halo">
+            <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
+            <div class="pc-conn-pulse-dot offline" id="home-conn-dot"></div>
+          </div>
+          <div class="pc-conn-info">
+            <div class="pc-conn-title" id="home-conn-title">Not connected</div>
+            <div class="pc-conn-sub" id="home-conn-sub">Looking for your PC…</div>
+            <div class="pc-conn-pills-row">
+              <span class="pc-conn-pill" id="home-conn-time">—</span>
+              <span class="pc-conn-pill ping" id="home-conn-ping" style="display: none;"></span>
+            </div>
+          </div>
+        </div>
+        <div class="pc-conn-actions">
+          <button class="pc-conn-toggle-btn connect" id="home-conn-toggle-btn" data-act="toggle-link">Connect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Laptop Smart Storage Saver Card -->
+    <div class="section-container" id="laptop-storage-saver-card" style="display: none;">
+      <div class="pc-connection-banner-card saver-card">
+        <div class="pc-conn-left">
+          <div class="pc-conn-icon-halo saver-halo">
+            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13h-3v4h-2v-4H6l5-5 5 5h-2z"/></svg>
+          </div>
+          <div class="pc-conn-info">
+            <div class="pc-conn-title">Laptop Space Saver</div>
+            <div class="pc-conn-sub" id="laptop-storage-sub">Moves old files to the cloud drive when the laptop is nearly full</div>
+            <div class="pc-conn-pills-row">
+              <span class="pc-conn-pill speed" id="laptop-free-pill">—</span>
+              <span class="pc-conn-pill" id="laptop-threshold-pill">—</span>
+              <span class="pc-conn-pill ping" id="laptop-status-pill">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="pc-conn-actions">
+          <button class="pc-conn-toggle-btn saver-btn" data-act="offload-now">Free Up Space</button>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -1148,5 +1157,6 @@
   <script src="app.js?v=0.12.0"></script>
   <script src="pages.js?v=0.12.0"></script>
   <script src="transfers.js?v=0.12.0"></script>
+  <script src="newlooks.js?v=0.12.0"></script>
 </body>
 </html>

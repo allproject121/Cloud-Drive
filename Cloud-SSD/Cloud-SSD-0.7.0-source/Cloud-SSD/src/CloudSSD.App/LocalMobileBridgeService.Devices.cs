@@ -135,6 +135,7 @@ public sealed partial class LocalMobileBridgeService
             if (Presence.Sweep().Count > 0) RaiseDevicesChanged();
             FlushLastSeen(force: false);
             EndExpiredGuests();
+            SweepUploadTasks();
         }
         catch (Exception ex)
         {

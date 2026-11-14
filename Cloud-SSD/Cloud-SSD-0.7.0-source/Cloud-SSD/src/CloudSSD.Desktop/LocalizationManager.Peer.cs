@@ -143,6 +143,16 @@ public static partial class LocalizationManager
         ["or drop files here"] = "ya files yahan chhodo",
         ["app not open"] = "app khula nahi",
         ["No phone is paired yet. Open Devices → Add or connect, then come back: its storage shows here, like a phone on a USB cable."] = "Abhi koi phone pair nahi hai. Devices → Jodo ya connect karo kholo, phir wapas aao: uska storage yahan dikhega, jaise USB cable par phone.",
+        // Transfers: files waiting for an OK.
+        ["Files to receive"] = "Aane wali files",
+        ["From {0}"] = "{0} se",
+        ["Nothing is saved until you accept. A name already there is kept too, as \"name (2)\"."] = "Jab tak aap accept nahi karte, kuch save nahi hota. Usi naam ki file pehle se ho to dono rehti hain, \"naam (2)\" banakar.",
+        // Transfers: ask before receiving.
+        ["Ask me before receiving, also from my own devices"] = "Lene se pehle mujhse poochho, mere apne devices se bhi",
+        ["Every send waits here for your OK."] = "Har bheji hui cheez yahan aapke OK ka intezaar karegi.",
+        // Transfers: the two places files land.
+        ["Sent from a phone"] = "Phone se bheji hui",
+        ["Taken here with \"Save to PC\""] = "Yahan \"Save to PC\" se li hui",
     };
 
     public static readonly IReadOnlyDictionary<string, string> PeerTextsHindi = new Dictionary<string, string>
@@ -285,5 +295,15 @@ public static partial class LocalizationManager
         ["or drop files here"] = "या फ़ाइलें यहाँ छोड़ें",
         ["app not open"] = "ऐप खुला नहीं",
         ["No phone is paired yet. Open Devices → Add or connect, then come back: its storage shows here, like a phone on a USB cable."] = "अभी कोई फ़ोन पेयर नहीं है। Devices → जोड़ें या कनेक्ट करें खोलें, फिर वापस आएँ: उसका स्टोरेज यहाँ दिखेगा, जैसे USB केबल पर फ़ोन।",
+        // Transfers: files waiting for an OK.
+        ["Files to receive"] = "आने वाली फ़ाइलें",
+        ["From {0}"] = "{0} से",
+        ["Nothing is saved until you accept. A name already there is kept too, as \"name (2)\"."] = "जब तक आप स्वीकार नहीं करते, कुछ सेव नहीं होता। उसी नाम की फ़ाइल पहले से हो तो दोनों रहती हैं, \"नाम (2)\" बनाकर।",
+        // Transfers: ask before receiving.
+        ["Ask me before receiving, also from my own devices"] = "लेने से पहले मुझसे पूछें, मेरे अपने डिवाइस से भी",
+        ["Every send waits here for your OK."] = "हर भेजी हुई चीज़ यहाँ आपकी अनुमति का इंतज़ार करेगी।",
+        // Transfers: the two places files land.
+        ["Sent from a phone"] = "फ़ोन से भेजी हुई",
+        ["Taken here with \"Save to PC\""] = "यहाँ \"Save to PC\" से ली हुई",
     };
 }

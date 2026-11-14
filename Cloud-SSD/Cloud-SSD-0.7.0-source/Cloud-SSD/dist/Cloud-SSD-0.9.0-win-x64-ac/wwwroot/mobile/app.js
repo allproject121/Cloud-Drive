@@ -3495,13 +3495,18 @@
    * light with colourful icons; "raat" — dark navy with teal; "auto" — A+C by day, Raat when the phone is dark.
    * The old Light / Dark choice carries over (Dark → Raat).
    */
-  const LOOKS = ['ac', 'saaf', 'raat', 'auto'];
+  // Three more (newlooks.css): "kit" — pale page, a blue PC card, rounded-square tiles; "paper" — black on white with
+  // thin lines; "glow" — black with lime and round gauges.
+  const LOOKS = ['kit', 'paper', 'glow', 'ac', 'saaf', 'raat', 'auto'];
   // What the system bars show under each look: the colour behind the status bar (the top band), behind the
   // navigation bar (the bottom bar), and whether their icons are dark.
   const LOOK_BARS = {
     ac: { top: '#2563EB', rest: '#FFFFFF', statusDark: false, navDark: true },
     saaf: { top: '#F4F6FA', rest: '#FFFFFF', statusDark: true, navDark: true },
-    raat: { top: '#0B0F17', rest: '#0B0F17', statusDark: false, navDark: false }
+    raat: { top: '#0B0F17', rest: '#0B0F17', statusDark: false, navDark: false },
+    kit: { top: '#F3F5F9', rest: '#FFFFFF', statusDark: true, navDark: true },
+    paper: { top: '#FFFFFF', rest: '#FFFFFF', statusDark: true, navDark: true },
+    glow: { top: '#0A0A0C', rest: '#0A0A0C', statusDark: false, navDark: false }
   };
   function lookMode() {
     const m = ls.get('cloudssd_look');
@@ -3514,7 +3519,8 @@
     '#F48FB1': '#1E3A8A', '#EF9A9A': '#1D4ED8', '#FDD663': '#2563EB', '#78D9EC': '#3B82F6', '#6DD58C': '#60A5FA',
     '#B39DDB': '#93C5FD', '#8E918F': '#94A3B8', '#60A5FA': '#2563EB', '#34D399': '#60A5FA', '#C084FC': '#93C5FD', '#FBBF24': '#1E3A8A'
   };
-  function tint(color) { return document.documentElement.dataset.look === 'ac' ? (AC_SHADES[String(color).toUpperCase()] || color) : color; }
+  // Kit has one colour too: the same shades.
+  function tint(color) { return ['ac', 'kit'].includes(document.documentElement.dataset.look) ? (AC_SHADES[String(color).toUpperCase()] || color) : color; }
   function phoneIsDark() {
     if (isApp && typeof appInfo.night === 'boolean') return appInfo.night;
     return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -3526,7 +3532,9 @@
     const look = mode === 'auto' ? (phoneIsDark() ? 'raat' : 'ac') : mode;
     const root = document.documentElement;
     root.dataset.look = look;
-    root.dataset.theme = look === 'raat' ? 'dark' : 'light';
+    root.dataset.theme = look === 'raat' || look === 'glow' ? 'dark' : 'light';
+    // Glass effect (glass.css): frosted bars and see-through cards, in whichever look is chosen.
+    root.dataset.glass = ls.get('cloudssd_glass') === 'on' ? 'on' : 'off';
     const bars = LOOK_BARS[look];
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.content = bars.top; });
     if (isApp && typeof native.setBars === 'function') {
@@ -3585,6 +3593,9 @@
   function onOff(on) { return `<span class="settings-pill ${on ? 'on' : 'off'}">${on ? 'On' : 'Off'}</span>`; }
   /** The app's looks: [saved key, name, what it is like]. The keys (ac, saaf, raat) are what is saved; only the names people see changed. */
   const LOOK_CARDS = [
+    ['kit', 'Kit', 'Blue PC card, soft square tiles'],
+    ['paper', 'Paper', 'Black on white, thin lines'],
+    ['glow', 'Glow', 'Black with lime, round gauges'],
     ['ac', 'Ocean', 'One calm blue, curved band'],
     ['saaf', 'Colourful', 'Light page, colourful icons'],
     ['raat', 'Midnight', 'Dark navy with teal'],
@@ -3598,6 +3609,9 @@
     html += settingsSection('App look', `<div class="look-picker">${LOOK_CARDS.map(([k, name, sub]) => `<button class="look-card ${look === k ? 'active' : ''}" data-act="look" data-look="${k}" aria-pressed="${look === k}">
         <span class="look-swatch look-swatch-${k}" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="look-name">${name}</span><span class="look-sub">${sub}</span></button>`).join('')}</div>`);
+    // Glass effect: one switch, for every look.
+    html += settingsSection('Window', `<label class="settings-row glass-row"><div class="settings-row-text"><div>Glass effect</div><div class="settings-row-sub">Frosted glass: see-through bars and cards, like on an iPhone</div></div>
+        <input type="checkbox" data-act="glass" ${ls.get('cloudssd_glass') === 'on' ? 'checked' : ''}></label>`);
     // The app's words: English, Hinglish or Hindi (i18n.js); the names stay as they are written.
     if (I18N) {
       html += settingsSection('Language', `<div class="transfer-chips-row settings-chips" data-no-i18n>${Object.keys(I18N.LANGS).map(k =>
@@ -3992,6 +4006,7 @@
       renderSettings();
       if (isOpen('customize-modal')) renderCustomize();
     },
+    'glass': (el) => { ls.set('cloudssd_glass', el.checked ? 'on' : 'off'); applyTheme(); },
     'look': (el) => {
       ls.set('cloudssd_look', el.dataset.look);
       ls.del('cloudssd_theme');

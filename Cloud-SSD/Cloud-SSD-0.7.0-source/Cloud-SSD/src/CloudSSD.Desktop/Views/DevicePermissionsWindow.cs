@@ -58,6 +58,36 @@ public sealed class DevicePermissionsWindow : Window
             panel.Children.Add(row);
         }
 
+        // "Files when it is off": its own yes/no, apart from the list above (never switched on by "everything"), and it
+        // needs a yes on the device too. A guest cannot have it.
+        if (device.GuestUntil is null)
+        {
+            var woHead = new TextBlock { Text = T("Files when it is off"), Margin = new Thickness(0, 16, 0, 4) };
+            if (Application.Current?.TryFindResource("Label") is Style woLabel) woHead.Style = woLabel;
+            panel.Children.Add(woHead);
+            var woRow = new DockPanel { Margin = new Thickness(0, 3, 0, 3) };
+            var woState = new TextBlock { FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
+            DockPanel.SetDock(woState, Dock.Right);
+            woRow.Children.Add(woState);
+            _whenOff = new CheckBox
+            {
+                Content = T("Keep copies in the cloud, so each can open the other's files while it is off"),
+                IsChecked = device.WhenOffPc, VerticalAlignment = VerticalAlignment.Center
+            };
+            void ShowWhenOff()
+            {
+                bool pc = _whenOff.IsChecked == true;
+                woState.Text = !pc ? "" : device.WhenOffDevice ? T("On: both said yes") : T("Waiting for a yes on the device");
+                woState.SetResourceReference(TextBlock.ForegroundProperty, pc && device.WhenOffDevice ? "Success" : "Warning");
+            }
+            _whenOff.Checked += (_, _) => ShowWhenOff();
+            _whenOff.Unchecked += (_, _) => ShowWhenOff();
+            ShowWhenOff();
+            woRow.Children.Add(_whenOff);
+            panel.Children.Add(woRow);
+            panel.Children.Add(Caption(T("Off until this PC and the device both say yes. Nothing is copied yet: the copies come with a later update."), new Thickness(0, 2, 0, 0)));
+        }
+
         // What it did lately.
         var log = bridge.AccessLog.Read(device.Id, 40);
         var logHead = new TextBlock { Text = T("Recent access"), Margin = new Thickness(0, 16, 0, 6) };
@@ -122,7 +152,17 @@ public sealed class DevicePermissionsWindow : Window
     }
 
     /// <summary>The ticks become the device's permissions (one taken away stops at once).</summary>
-    public void Save() => _host.MobileBridge.Access.Set(_device, _boxes.Where(kv => kv.Value.IsChecked == true).Select(kv => kv.Key));
+    public void Save()
+    {
+        _host.MobileBridge.Access.Set(_device, _boxes.Where(kv => kv.Value.IsChecked == true).Select(kv => kv.Key));
+        if (_whenOff != null) _host.MobileBridge.SetWhenOffPc(_device.Id, _whenOff.IsChecked == true);
+    }
+
+    /// <summary>This PC's yes/no for "Files when it is off" (null for a guest, who cannot have it).</summary>
+    private readonly CheckBox? _whenOff;
+
+    /// <summary>For tests and the render tool: tick or untick "Files when it is off".</summary>
+    public void SetWhenOff(bool on) { if (_whenOff != null) _whenOff.IsChecked = on; }
 
     /// <summary>For tests and the render tool: tick or untick one category.</summary>
     internal void Tick(string category, bool on) => _boxes[category].IsChecked = on;

@@ -76,6 +76,8 @@ final class TransferHub {
     private final Map<Long, AtomicBoolean> cancel = new ConcurrentHashMap<>();
     private final Map<Long, double[]> speed = new ConcurrentHashMap<>();   // {bytesPerSec, lastBytes, lastAt}
     private final Map<Long, Long> retryAt = new ConcurrentHashMap<>();
+    /** Uploads the PC is asking its person about: since when (so they give up after a while). */
+    private final Map<Long, Long> askedSince = new ConcurrentHashMap<>();
 
     private TransferHub(Context c) {
         ctx = c;
@@ -171,12 +173,22 @@ final class TransferHub {
         // Work done outside the hub: open until it is finished; then what never came counts as failed.
         int expected = meta.optInt("files", 0);
         boolean outside = meta.has("open");
+        // Whoever ran it went away without saying so (the PC crashed, the app was killed): no file for five minutes
+        // ends it, so it does not stay "running" for ever.
+        if (outside && meta.optBoolean("open", false)
+                && System.currentTimeMillis() - Math.max(ended, Math.max(meta.optLong("touched", 0), meta.optLong("started", 0))) > EXTERNAL_IDLE_MS) {
+            try { meta.put("open", false).put("endReason", "network"); } catch (Exception ignored) { }
+            store.putTask(id, meta);
+        }
         if (outside && meta.optBoolean("open", false)) open = true;
         else if (outside && expected > done + failed + cancelled) {
-            for (int i = done + failed + cancelled; i < expected; i++) {
-                try { fails.put(new JSONObject().put("name", "").put("reason", "network")); } catch (Exception ignored) { }
+            // What never came: stopped on purpose ("cancelled") or lost on the way ("network").
+            String why = "cancelled".equals(meta.optString("endReason")) ? "cancelled" : "network";
+            int missing = expected - (done + failed + cancelled);
+            for (int i = 0; i < missing; i++) {
+                try { fails.put(new JSONObject().put("name", "").put("reason", why)); } catch (Exception ignored) { }
             }
-            failed += expected - (done + failed + cancelled);
+            if ("cancelled".equals(why)) cancelled += missing; else failed += missing;
         }
         String state;
         if (outside && open) state = done + failed > 0 ? "running" : "waiting";
@@ -226,7 +238,7 @@ final class TransferHub {
         if (e.contains("space") || e.contains("full")) return "space";
         if (e.contains("not reachable") || e.contains("connection") || e.contains("network") || e.contains("timed out") || e.contains("stopped when")) return "network";
         if (e.contains("no longer") || e.contains("not found") || e.contains("missing") || e.contains("gone")) return "missing";
-        if (e.contains("denied") || e.contains("permission") || e.contains("not allowed") || e.contains("403")) return "denied";
+        if (e.contains("declined") || e.contains("nobody answered") || e.contains("denied") || e.contains("permission") || e.contains("not allowed") || e.contains("403")) return "denied";
         if (e.contains("cancel")) return "cancelled";
         return "other";
     }
@@ -253,11 +265,16 @@ final class TransferHub {
         try {
             if (old != null) { for (java.util.Iterator<String> k = old.keys(); k.hasNext(); ) { String key = k.next(); if (!meta.has(key)) meta.put(key, old.get(key)); } }
             meta.put("open", true);
+            meta.put("touched", System.currentTimeMillis());
+            meta.remove("endReason");
         } catch (Exception ignored) { }
         store.putTask(id, meta);
         raiseTask(id);
         return id;
     }
+
+    /** An outside task with no file for this long is taken as ended (see taskJson). */
+    private static final long EXTERNAL_IDLE_MS = 5 * 60_000L;
 
     /** One file of an outside task arrived (ok) or did not (reason: network, space, missing, cancelled, denied, other). */
     void externalFile(String id, String name, long size, boolean ok, String reason) {
@@ -274,11 +291,19 @@ final class TransferHub {
         raiseTask(id);
     }
 
-    /** An outside task ends: what did not arrive by now counts as failed. */
+    /** An outside task ends: what did not arrive by now counts as failed (lost on the way). */
     void externalFinish(String id) {
+        externalFinish(id, "network");
+    }
+
+    /** The same, saying why the rest did not come: "cancelled" (stopped on purpose) or "network". */
+    void externalFinish(String id, String reason) {
         JSONObject meta = store.taskMeta(id);
-        if (meta == null) return;
-        try { meta.put("open", false); } catch (Exception ignored) { }
+        if (meta == null || !meta.has("open")) return;
+        try {
+            meta.put("open", false);
+            meta.put("endReason", "cancelled".equals(reason) ? "cancelled" : "network");
+        } catch (Exception ignored) { }
         store.putTask(id, meta);
         raiseTask(id);
     }
@@ -302,6 +327,12 @@ final class TransferHub {
     }
 
     void taskCancel(String id) {
+        // Work run from elsewhere (the PC adding files): this phone can only stop listing it as running.
+        JSONObject meta = store.taskMeta(id);
+        if (meta != null && meta.optBoolean("open", false)) {
+            externalFinish(id, "cancelled");
+            return;
+        }
         for (JSONObject r : store.rowsOf(id)) {
             String st = r.optString("state");
             if (!"done".equals(st) && !"failed".equals(st) && !"cancelled".equals(st)) cancel(r.optLong("id"));
@@ -559,6 +590,35 @@ final class TransferHub {
         boolean refused = e instanceof Uploader.Refused && ((Uploader.Refused) e).status > 0
                 || e instanceof CloudBackend.BackendException && ((CloudBackend.BackendException) e).status > 0;
         String msg = friendly(e);
+        // The PC is asking its person first (423: a guest's files, or "always ask"): wait and look again every 5 s, for
+        // up to 15 minutes; an OK there lets the next try through, a No comes back as a refusal.
+        if (e instanceof Uploader.Refused && ((Uploader.Refused) e).status == 423 && row != null) {
+            Long since = askedSince.get(id);
+            if (since == null) askedSince.put(id, since = System.currentTimeMillis());
+            if (System.currentTimeMillis() - since > 15 * 60_000L) {
+                askedSince.remove(id);
+                setState(id, "failed", "Nobody answered on the PC");
+                notifyFailed(id, "Nobody answered on the PC");
+                return;
+            }
+            ContentValues v = new ContentValues();
+            v.put("state", "waiting");
+            v.put("error", "Waiting for an OK on the PC");
+            store.update(id, v);
+            publish(id);
+            retryAt.put(id, System.currentTimeMillis() + 5_000);
+            timer.schedule(() -> {
+                retryAt.remove(id);
+                JSONObject r = store.row(id);
+                if (r == null || !"waiting".equals(r.optString("state"))) return;
+                ContentValues q = new ContentValues();
+                q.put("state", "queued");
+                store.update(id, q);
+                submit(id);
+            }, 5_000, TimeUnit.MILLISECONDS);
+            return;
+        }
+        askedSince.remove(id);
         // The PC is away (not refusing): after one quick retry the transfer waits for it and goes on by itself when it
         // is reachable again, instead of failing. A file shared by another app cannot wait (it may not be readable later).
         boolean pcAway = !refused && unreachable(e) && row != null && !"uri-temp".equals(row.optString("srcKind"))
@@ -682,6 +742,19 @@ final class TransferHub {
         } else route = target.isEmpty()
                 ? "/api/upload?filename=" + Uploader.enc(name)
                 : "/api/fs/write?overwrite=0&mkdirs=1&path=" + Uploader.enc(target + (target.endsWith(":") ? "" : "/") + cleanName(name));
+        // The PC shows one send (a folder, a few files) as one task, and asks once when it has to: tell it which send
+        // this file belongs to and how big that is.
+        String task = row.optString("task", "");
+        if (route.startsWith("/api/upload?") && !task.isEmpty()) {
+            List<JSONObject> all = store.rowsOf(task);
+            long bytes = 0;
+            for (JSONObject r : all) bytes += Math.max(0, r.optLong("size", 0));
+            JSONObject meta = store.taskMeta(task);
+            route += "&task=" + Uploader.enc(task) + "&files=" + all.size() + "&bytes=" + bytes
+                    + "&kind=" + Uploader.enc(meta == null ? "files" : meta.optString("kind", "files"));
+            // "Replace" was picked for names the PC already has: its file gives way to this one.
+            if (meta != null && "replace".equals(meta.optString("onClash"))) route += "&onClash=replace";
+        }
         try {
             Uploader.send(ctx, route, opener(row), size, row.optString("uploadId"), (done, total) -> progress(id, done), stop);
         } catch (Uploader.Refused r) {

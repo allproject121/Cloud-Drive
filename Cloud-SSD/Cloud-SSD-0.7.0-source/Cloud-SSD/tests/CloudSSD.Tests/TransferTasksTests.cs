@@ -101,6 +101,47 @@ public class TransferTasksTests
     }
 
     [Fact]
+    public void A_task_from_a_guest_waits_for_an_OK_and_accept_or_decline_goes_to_its_part()
+    {
+        var tasks = new TransferTasks();
+        string? said = null;
+        tasks.HandleAsking("up-", accept: (t, clash) => { said = "yes:" + clash; return true; }, decline: _ => { said = "no"; return true; });
+
+        var a = tasks.BeginAsking("up-1", "toPc", "Guest phone", "wifi", 3, 300, name: "holiday.jpg");
+        Assert.Equal("asking", a.State);
+        Assert.True(a.IsOpen);
+        Assert.False(a.CanCancel);                       // it is answered, not cancelled
+        Assert.Equal("holiday.jpg", a.Name);
+        tasks.Sweep(TimeSpan.Zero);                      // waiting for a person is not "went away"
+        Assert.Equal("asking", a.State);
+
+        Assert.True(tasks.Accept("up-1", "replace"));
+        Assert.Equal("yes:replace", said);
+        Assert.Equal("waiting", a.State);
+        Assert.Equal("replace", a.OnClash);
+        Assert.True(a.CanCancel);
+        Assert.False(tasks.Accept("up-1"));              // only once
+        Assert.False(tasks.Decline("up-1"));             // no longer asking
+
+        var b = tasks.BeginAsking("up-2", "toPc", "Guest phone", "wifi", 1, 10);
+        Assert.True(tasks.Accept("up-2", "nonsense"));
+        Assert.Equal("keep", b.OnClash);                 // an unknown choice keeps both
+
+        var c = tasks.BeginAsking("up-3", "toPc", "Guest phone", "wifi", 1, 10);
+        Assert.True(tasks.Decline("up-3"));
+        Assert.Equal("no", said);
+        Assert.Equal("cancelled", c.State);
+        Assert.False(c.CanRetry);
+        Assert.NotNull(c.Ended);
+
+        // The sender took it back meanwhile: accepting says so and it stays asking for its part to end it.
+        tasks.HandleAsking("of-", accept: (_, _) => false);
+        var d = tasks.BeginAsking("of-1", "toPc", "Guest phone", "wifi", 1, 10);
+        Assert.False(tasks.Accept("of-1"));
+        Assert.Equal("asking", d.State);
+    }
+
+    [Fact]
     public void Links_map_to_the_model()
     {
         Assert.Equal("usb", TransferTasks.LinkOf(LinkKinds.UsbAdb));

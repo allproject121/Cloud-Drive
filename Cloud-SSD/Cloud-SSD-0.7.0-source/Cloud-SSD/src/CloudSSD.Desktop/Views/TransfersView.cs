@@ -20,6 +20,11 @@ public sealed class TransfersView : UserControl
 {
     private readonly StackPanel _now = new();
     private readonly StackPanel _done = new();
+    private readonly StackPanel _asking = new();
+    private readonly Border _askingCard;
+    private readonly CheckBox _askAlways;
+    private readonly TextBlock _askNote;
+    private bool _syncingAsk;
     private readonly TextBlock _nowEmpty, _doneEmpty, _savedIn;
     private readonly Dictionary<string, RadioButton> _filters = new();
     private readonly DispatcherTimer _later = new() { Interval = TimeSpan.FromMilliseconds(250) };
@@ -70,8 +75,17 @@ public sealed class TransfersView : UserControl
         Grid.SetColumn(left, 0);
         grid.Children.Add(left);
 
-        // Right: done today, and where files are saved.
+        // Right: files waiting for an OK (a guest's, or everyone's when "always ask" is on), done today, where files are saved.
         var right = new StackPanel();
+        _askingCard = Card();
+        var askBox = new StackPanel();
+        askBox.Children.Add(Title(T("Files to receive")));
+        askBox.Children.Add(_asking);
+        askBox.Children.Add(Muted(T("Nothing is saved until you accept. A name already there is kept too, as \"name (2)\".")));
+        _askingCard.Child = askBox;
+        _askingCard.SetResourceReference(Border.BorderBrushProperty, "Accent");
+        _askingCard.Visibility = Visibility.Collapsed;
+        right.Children.Add(_askingCard);
         var doneCard = Card();
         var doneBox = new StackPanel();
         doneBox.Children.Add(Title(T("Done today")));
@@ -84,13 +98,16 @@ public sealed class TransfersView : UserControl
         var whereCard = Card();
         var where = new StackPanel();
         where.Children.Add(Title(T("Files from phones are saved in")));
-        _savedIn = new TextBlock { Text = "Downloads › Cloud-SSD › Received", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 10) };
-        where.Children.Add(_savedIn);
-        var open = Btn(T("Open folder"));
-        open.HorizontalAlignment = HorizontalAlignment.Left;
-        open.Click += (_, _) => { var d = ReceivedRoot(); Directory.CreateDirectory(d); Explore(d); };
-        where.Children.Add(open);
-        where.Children.Add(Muted(T("Files from your own devices are saved without asking.")));
+        // Two places: what a phone sends lands in the upload folder; what is taken here with "Save to PC" in Received.
+        _savedIn = SavedRow(where, T("Sent from a phone"), UploadRoot);
+        SavedRow(where, T("Taken here with \"Save to PC\""), ReceivedRoot).Text = Pretty(ReceivedRoot());
+        // Off (the default): your own devices save at once and only a guest's files wait. On: every send waits for an OK.
+        _askAlways = new CheckBox { Content = T("Ask me before receiving, also from my own devices"), FontSize = 12, Margin = new Thickness(0, 12, 0, 0) };
+        _askAlways.Checked += OnAskChanged;
+        _askAlways.Unchecked += OnAskChanged;
+        where.Children.Add(_askAlways);
+        _askNote = Muted("");
+        where.Children.Add(_askNote);
         whereCard.Child = where;
         right.Children.Add(whereCard);
         Grid.SetColumn(right, 2);
@@ -110,6 +127,11 @@ public sealed class TransfersView : UserControl
         if (_host is null) return;
         _host.MobileBridge.Tasks.Changed -= OnChanged;
         _host.MobileBridge.Tasks.Changed += OnChanged;
+        _savedIn.Text = Pretty(UploadRoot());
+        _syncingAsk = true;
+        _askAlways.IsChecked = _host.Settings.MobileBridge.AskBeforeReceiving == "always";
+        _syncingAsk = false;
+        ShowAskNote();
         Refresh();
     }
 
@@ -118,8 +140,48 @@ public sealed class TransfersView : UserControl
         if (_host != null) _host.MobileBridge.Tasks.Changed -= OnChanged;
     }
 
+    private void OnAskChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncingAsk || _host is null) return;
+        _host.Settings.MobileBridge.AskBeforeReceiving = _askAlways.IsChecked == true ? "always" : "never-mine";
+        _host.SaveSettings();
+        ShowAskNote();
+    }
+
+    private void ShowAskNote() => _askNote.Text = _askAlways.IsChecked == true
+        ? T("Every send waits here for your OK.")
+        : T("Files from your own devices are saved without asking.");
+
     /// <summary>Many changes a second while files move: drawn at most 4 times a second.</summary>
     private void OnChanged(TransferTask _) => Dispatcher.BeginInvoke(() => { if (!_later.IsEnabled) _later.Start(); });
+
+    /// <summary>One place files land: what it is for, the folder in words, and a button that opens it.</summary>
+    private static TextBlock SavedRow(Panel into, string label, Func<string> folder)
+    {
+        into.Children.Add(Muted(label, 10));
+        var row = new DockPanel { Margin = new Thickness(0, 2, 0, 0) };
+        var open = Btn(T("Open folder"));
+        open.Margin = new Thickness(8, 0, 0, 0);
+        open.Click += (_, _) => { var d = folder(); Directory.CreateDirectory(d); Explore(d); };
+        DockPanel.SetDock(open, Dock.Right);
+        row.Children.Add(open);
+        var path = new TextBlock { TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+        row.Children.Add(path);
+        into.Children.Add(row);
+        return path;
+    }
+
+    /// <summary>"C:UsersmeDownloadsX" as "Downloads › X" (under the user's folder), else the path as it is.</summary>
+    private static string Pretty(string path)
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return path.StartsWith(home, StringComparison.OrdinalIgnoreCase) && path.Length > home.Length
+            ? path[(home.Length + 1)..].Replace("\\", " › ") : path;
+    }
+
+    /// <summary>Where a phone's sends land: the bridge's upload folder (DownloadsCloud-SSD_Uploads unless changed).</summary>
+    private string UploadRoot() => _host?.Settings.MobileBridge.UploadDirectory
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Cloud-SSD_Uploads");
 
     private static string ReceivedRoot() =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Cloud-SSD", "Received");
@@ -135,7 +197,12 @@ public sealed class TransfersView : UserControl
     {
         if (_host is null) return;
         var all = _host.MobileBridge.Tasks.All;
-        var now = all.Where(t => t.IsOpen && Shows(t)).ToList();
+        var now = all.Where(t => t.IsOpen && t.State != "asking" && Shows(t)).ToList();
+        // Waiting for an OK: shown whatever the filter says, so none is missed.
+        var asking = all.Where(t => t.State == "asking").ToList();
+        _asking.Children.Clear();
+        foreach (var t in asking) _asking.Children.Add(AskingRow(t));
+        _askingCard.Visibility = asking.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         var today = DateTime.Today;
         var done = all.Where(t => !t.IsOpen && Shows(t) && (t.Ended ?? t.Started).LocalDateTime >= today).Take(12).ToList();
 
@@ -219,6 +286,25 @@ public sealed class TransfersView : UserControl
         if (t.SaveTo.Length > 0) box.Children.Add(Muted(L("Saving to {0}", t.SaveTo), 4));
         card.Child = box;
         return card;
+    }
+
+    /// <summary>One send waiting for an OK: what, from whom, how big; Accept (a taken name is kept too) or Decline.</summary>
+    private UIElement AskingRow(TransferTask t)
+    {
+        var box = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
+        box.Children.Add(new TextBlock { Text = What(t), FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+        box.Children.Add(Muted(L("From {0}", t.Device) + " · " + Count(t.Files) + (t.Bytes > 0 ? " · " + ByteSize.Format(t.Bytes) : ""), 2));
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
+        var accept = Btn(T("Accept"));
+        if (Application.Current?.TryFindResource("Primary") is Style p) accept.Style = p;
+        accept.Click += (_, _) => { _host?.MobileBridge.Tasks.Accept(t.Id); Refresh(); };
+        var decline = Btn(T("Decline"));
+        decline.Margin = new Thickness(8, 0, 0, 0);
+        decline.Click += (_, _) => { _host?.MobileBridge.Tasks.Decline(t.Id); Refresh(); };
+        buttons.Children.Add(accept);
+        buttons.Children.Add(decline);
+        box.Children.Add(buttons);
+        return box;
     }
 
     private static string Speed(TransferTask t)

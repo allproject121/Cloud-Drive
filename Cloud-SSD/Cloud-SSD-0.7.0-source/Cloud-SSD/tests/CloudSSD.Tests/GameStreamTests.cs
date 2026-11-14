@@ -96,10 +96,15 @@ public class GameStreamTests
 
     private static async Task With(Func<Env, Task> body, Action<LocalMobileBridgeService>? setup = null)
     {
-        var l = new TcpListener(IPAddress.Loopback, 0);
-        l.Start();
-        int port = ((IPEndPoint)l.LocalEndpoint).Port;
-        l.Stop();
+        static int FreePort()
+        {
+            var l = new TcpListener(IPAddress.Loopback, 0);
+            l.Start();
+            int p = ((IPEndPoint)l.LocalEndpoint).Port;
+            l.Stop();
+            return p;
+        }
+        int port = FreePort();
         var temp = Path.Combine(Path.GetTempPath(), "cpx_game_test_" + Guid.NewGuid().ToString("N"));
         var host = AppHost.Create(new AppPaths(temp));
         var b = host.Settings.MobileBridge;
@@ -111,6 +116,15 @@ public class GameStreamTests
         try
         {
             bridge.Start();
+            // Tests run side by side: another one may have taken the port meanwhile (Start does not throw then, and this
+            // test would talk to the other test's bridge). Try another port.
+            for (int i = 0; i < 10 && !bridge.IsRunning; i++)
+            {
+                port = FreePort();
+                b.Port = port;
+                bridge.Start();
+            }
+            Assert.True(bridge.IsRunning, "No free port for the test bridge");
             using var http = new HttpClient();
             await body(new Env(http, $"http://127.0.0.1:{port}", host, bridge));
         }

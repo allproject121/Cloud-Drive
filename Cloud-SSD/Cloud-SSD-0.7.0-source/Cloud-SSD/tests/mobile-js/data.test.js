@@ -423,3 +423,16 @@ test('a changed task replaces the old one and the list stays newest first', () =
   for (let i = 0; i < 50; i++) list = data.upsertTask(list, { id: 'x' + i, started: '2026-11-14T00:00:' + String(i).padStart(2, '0') });
   assert.equal(list.length, 40);
 });
+
+test('files when it is off: on only when the phone and the PC both said yes', () => {
+  assert.equal(data.whenOffState(undefined), 'none');                       // an older PC
+  assert.equal(data.whenOffState({ pc: true, device: true, guest: true }), 'none');   // a guest never has it
+  assert.equal(data.whenOffState({ pc: false, device: false }), 'off');
+  assert.equal(data.whenOffState({ pc: false, device: true }), 'waiting-pc');
+  assert.equal(data.whenOffState({ pc: true, device: false }), 'waiting-phone');
+  assert.equal(data.whenOffState({ pc: true, device: true, active: true }), 'on');
+  assert.equal(data.whenOffText('waiting-pc', 'My PC'), 'Waiting for a yes on My PC');
+  assert.equal(data.whenOffText('waiting-phone', 'My PC'), 'My PC said yes · waiting for a yes here');
+  assert.equal(data.whenOffText('on', ''), 'On: this phone and the PC both said yes');
+  assert.equal(data.whenOffText('off', 'My PC'), 'Off');
+});

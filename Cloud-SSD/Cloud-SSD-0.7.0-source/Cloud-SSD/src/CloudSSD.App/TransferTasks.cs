@@ -58,7 +58,12 @@ public sealed class TransferTask : INotifyPropertyChanged
     public bool CanRetry { get => _canRetry; set => Set(ref _canRetry, value); }
     public bool CanCancel { get => _canCancel; set => Set(ref _canCancel, value); }
 
-    [JsonIgnore] public bool IsOpen => State is "waiting" or "running" or "paused";
+    private string _onClash = "keep";
+    /// <summary>What to do when a name is taken where it is saved: keep (both), replace or skip. Chosen when it was accepted.</summary>
+    public string OnClash { get => _onClash; set => Set(ref _onClash, value); }
+
+    /// <summary>Not finished: asking (waits for an OK here), waiting, running or paused.</summary>
+    [JsonIgnore] public bool IsOpen => State is "asking" or "waiting" or "running" or "paused";
     /// <summary>The device on the other side (or the sender of a passed-on offer); not shown.</summary>
     [JsonIgnore] public string DeviceId { get; init; } = "";
     /// <summary>The offer behind it, when there is one.</summary>
@@ -129,7 +134,12 @@ public sealed class TransferTasks
                 // Told more about it (a later file says how many there are).
                 if (files > t.Files) t.Files = files;
                 if (bytes > t.Bytes) t.Bytes = bytes;
-                if (t.State is "done" or "partial" or "failed" or "cancelled") { t.State = "running"; t.Ended = null; t.CanCancel = true; }
+                if (t.State is "done" or "partial" or "failed" or "cancelled")
+                {
+                    // It goes on (a cut-off send that came back): what was only counted as "never came" is open again.
+                    t.State = "running"; t.Ended = null; t.CanCancel = true; t.CanRetry = false;
+                    t.Failed = t.Failed.Where(f => f.Name.Length > 0).ToList();
+                }
             }
         }
         if (isNew) Raise(t, force: true);
@@ -246,6 +256,76 @@ public sealed class TransferTasks
 
     public TransferTask? Retry(string id) => Get(id) is { CanRetry: true } t ? HandlersFor(id).Retry?.Invoke(t) : null;
 
+    // ---- files that wait for an OK ("Files to receive": from a guest, or from anyone when the setting says always ask) ----
+
+    private readonly List<(string Prefix, Func<TransferTask, string, bool>? Accept, Func<TransferTask, bool>? Decline)> _answers = new();
+
+    /// <summary>
+    /// What accepting or declining does for the asking tasks whose id starts with <paramref name="prefix"/>: accept gets
+    /// the task and the name-clash choice and returns false when it can no longer be taken; decline tells the sender.
+    /// </summary>
+    public void HandleAsking(string prefix, Func<TransferTask, string, bool>? accept = null, Func<TransferTask, bool>? decline = null)
+    {
+        lock (_lock)
+        {
+            _answers.RemoveAll(h => h.Prefix == prefix);
+            _answers.Add((prefix, accept, decline));
+        }
+    }
+
+    private (Func<TransferTask, string, bool>? Accept, Func<TransferTask, bool>? Decline) AnswersFor(string id)
+    {
+        lock (_lock)
+        {
+            var h = _answers.Where(x => id.StartsWith(x.Prefix, StringComparison.Ordinal)).OrderByDescending(x => x.Prefix.Length).FirstOrDefault();
+            return (h.Accept, h.Decline);
+        }
+    }
+
+    /// <summary>A task that waits for an OK here before anything moves (same arguments as <see cref="Begin"/>).</summary>
+    public TransferTask BeginAsking(string id, string dir, string device, string link, int files, long bytes, string saveTo = "", string openPath = "",
+        string kind = "files", string folder = "", string deviceId = "", string offerId = "", string name = "")
+    {
+        var t = Begin(id, dir, device, link, files, bytes, saveTo, openPath, kind, folder, deviceId, offerId);
+        lock (_lock)
+        {
+            if (t.State != "waiting" || t.DoneFiles > 0) return t;   // already moving (asked twice)
+            t.State = "asking";
+            t.CanCancel = false;
+            if (name.Length > 0) t.Name = name;
+        }
+        Raise(t, force: true);
+        return t;
+    }
+
+    /// <summary>Says yes to an asking task; onClash: keep (both), replace or skip. False when it is not asking (any more).</summary>
+    public bool Accept(string id, string onClash = "keep")
+    {
+        var t = Get(id);
+        if (t is null || t.State != "asking") return false;
+        onClash = onClash is "replace" or "skip" ? onClash : "keep";
+        if (AnswersFor(id).Accept is { } h && !h(t, onClash)) return false;
+        lock (_lock)
+        {
+            if (t.State != "asking") return false;
+            t.OnClash = onClash;
+            t.State = "waiting";
+            t.CanCancel = true;
+        }
+        Raise(t, force: true);
+        return true;
+    }
+
+    /// <summary>Says no to an asking task: nothing is saved and the sender is told. False when it is not asking.</summary>
+    public bool Decline(string id)
+    {
+        var t = Get(id);
+        if (t is null || t.State != "asking") return false;
+        if (AnswersFor(id).Decline is { } h && !h(t)) return false;
+        Finish(id, "cancelled", "cancelled");
+        return true;
+    }
+
     public bool Cancel(string id)
     {
         var t = Get(id);
@@ -256,11 +336,14 @@ public sealed class TransferTasks
     }
 
     /// <summary>Open tasks that have not moved for <paramref name="idle"/> end (a batch without a count, a device that went away).</summary>
-    public void Sweep(TimeSpan idle)
+    public void Sweep(TimeSpan idle) => Sweep(idle, "");
+
+    /// <summary>The same for the tasks whose id starts with <paramref name="prefix"/> only (each part sweeps its own).</summary>
+    public void Sweep(TimeSpan idle, string prefix)
     {
         List<TransferTask> stale;
         lock (_lock)
-            stale = _tasks.Where(t => t.IsOpen && t.State != "waiting" && _now() - (_sample.TryGetValue(t.Id, out var s) ? s.At : t.Started) > idle).ToList();
+            stale = _tasks.Where(t => t.Id.StartsWith(prefix, StringComparison.Ordinal) && t.IsOpen && t.State is not ("waiting" or "asking") && _now() - (_sample.TryGetValue(t.Id, out var s) ? s.At : t.Started) > idle).ToList();
         foreach (var t in stale) Finish(t.Id, reasonForTheRest: "network");
     }
 

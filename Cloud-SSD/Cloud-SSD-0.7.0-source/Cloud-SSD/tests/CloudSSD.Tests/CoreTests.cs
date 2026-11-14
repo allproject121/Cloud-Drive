@@ -244,6 +244,14 @@ public class MountPlanningTests
         'X', new CacheSettings(), new NetworkSettings(), @"C:\cache\m-a", @"C:\logs\r.log", 20 * ByteSize.GiB, true, 5572, "drive");
 
     [Fact]
+    public void The_copies_devices_keep_of_themselves_are_hidden_from_the_drive()
+    {
+        // "Files when it is off": a device that may only browse the drives must not reach the copies through Z: or Y:.
+        var plan = MountFlagBuilder.Build(Input(), FakeRclone());
+        Assert.Contains("- Cloud-SSD Devices/**", string.Join(' ', plan.Arguments));
+    }
+
+    [Fact]
     public void Builds_full_cache_mount_with_safe_defaults()
     {
         var plan = MountFlagBuilder.Build(Input(), FakeRclone());

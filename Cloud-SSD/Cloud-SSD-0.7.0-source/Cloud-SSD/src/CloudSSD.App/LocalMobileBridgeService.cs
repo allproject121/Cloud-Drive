@@ -446,6 +446,7 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         if (await TryHandleRelayRouteAsync(path, queryParams, headers, stream, caller, ct)) return;
         // Files offered to this device, or sent by it to another device (LocalMobileBridgeService.Share.cs).
         if (await TryHandleShareRouteAsync(method, path, queryParams, headers, stream, clientIp, caller, ct)) return;
+        if (await TryHandleWhenOffRouteAsync(method, path, queryParams, stream, caller, ct)) return;
         // The phone's clipboard for this PC (LocalMobileBridgeService.Handy.cs).
         if (await TryHandleClipRouteAsync(method, path, queryParams, stream, caller, ct)) return;
 
@@ -790,6 +791,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
             myBytes = caller.Device is { } mine ? MyBytes(mine) : null,
             // A guest: when its time on this PC ends (it is removed then).
             guestUntil = caller.Device?.GuestUntil?.ToUnixTimeMilliseconds(),
+            // "Files when it is off": this PC's answer, the device's own, and whether both said yes.
+            whenOff = caller.Device is { } w ? WhenOffDto(w) : null,
             // How this phone reached the PC now, and every way it can reach it without the internet (hotspot, cable…).
             link,
             addresses = DirectAddressesDto(),
@@ -1469,6 +1472,18 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         {
             await SendJsonAsync(stream, 411, "Length Required", new { success = false, error = "Upload needs a Content-Length or chunked transfer encoding." }, ct);
             return;
+        }
+
+        // A send that has to wait for an OK here (a guest's) waits on this older path too.
+        if (CurrentCaller.Value?.Device is { } sender && MustAskBeforeReceiving(sender))
+        {
+            try { UploadTask(queryParams, filename, Math.Max(0, contentLength), ""); }
+            catch (FsException e)
+            {
+                await DrainBrieflyAsync(stream, ct);
+                await SendFsErrorAsync(stream, e, ct);
+                return;
+            }
         }
 
         // Keep the same 10 GB reserve the cache uses, so a phone can never fill the PC's disk.

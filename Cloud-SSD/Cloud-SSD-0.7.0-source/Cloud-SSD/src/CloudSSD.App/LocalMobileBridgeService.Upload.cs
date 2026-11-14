@@ -126,7 +126,7 @@ public sealed partial class LocalMobileBridgeService
                     throw new FsException(507, $"Not enough free space on the PC ({ByteSize.Format(Math.Max(0, free))} free, 10 GB is kept in reserve).");
             }
 
-            long saved = 0;
+            long saved = 0, told = 0;
             bool bodyComplete;
             var sw = Stopwatch.StartNew();
             using var activity = BeginTransfer(route == "backup" ? DeviceActivityKind.Backup : DeviceActivityKind.Upload, name, total, offset);
@@ -146,6 +146,12 @@ public sealed partial class LocalMobileBridgeService
                     await file.WriteAsync(buffer.AsMemory(0, read), ct);
                     saved += read;
                     TrackBytes(read, fromDevice: true);
+                    // The task this file belongs to shows how far it is (a few times a second, not for every piece).
+                    if (CurrentUploadTask.Value is { } taskId && sw.ElapsedMilliseconds - told >= 200)
+                    {
+                        told = sw.ElapsedMilliseconds;
+                        Tasks.Progress(taskId, id, name, offset + saved);
+                    }
                 }
                 bodyComplete = chunked ? ((ChunkedBodyStream)body).Finished : saved == contentLength;
             }
@@ -200,6 +206,12 @@ public sealed partial class LocalMobileBridgeService
         var name = ProjectFilter.SafeFolder(q.GetValueOrDefault("name")).Split('/')[0];
         if (name.Length == 0) throw new FsException(400, "name is needed.");
         Directory.CreateDirectory(UploadDirectory);
+        // "Replace" was picked on the phone for a folder that is here already: its files go into that one.
+        if (q.GetValueOrDefault("onClash") == "replace" && CanReplaceUploads())
+        {
+            Directory.CreateDirectory(Path.Combine(UploadDirectory, name));
+            return new { name };
+        }
         lock (_folderReserveLock)
         {
             var free = ProjectFilter.FreeFolderName(UploadDirectory, name);
@@ -208,6 +220,89 @@ public sealed partial class LocalMobileBridgeService
         }
     }
     private readonly object _folderReserveLock = new();
+
+    /// <summary>
+    /// May the calling device have a file here replaced by the one it sends? My own devices, yes; a device whose sends
+    /// wait for an OK (a guest, or everyone with "ask always") gets what was answered here instead.
+    /// </summary>
+    private bool CanReplaceUploads() => CurrentCaller.Value?.Device is { } device && !MustAskBeforeReceiving(device);
+
+    private sealed class ClashQuestion
+    {
+        public List<string>? Files { get; set; }
+        public List<string>? Folders { get; set; }
+    }
+
+    /// <summary>
+    /// /api/upload/clashes with {"files": [...], "folders": [...]} (names at the top of a send): the ones the upload
+    /// folder already has, so the phone can ask "Keep both, Replace or Skip" before it sends. "free" is how much a send
+    /// may bring (the drive's free space less the reserve an upload keeps), so a send that cannot fit is not started.
+    /// </summary>
+    private object UploadClashes(string json)
+    {
+        ClashQuestion? ask;
+        try { ask = JsonSerializer.Deserialize<ClashQuestion>(json, JsonOpts); }
+        catch (JsonException) { throw new FsException(400, "The names must be a JSON object with files and folders."); }
+        var root = UploadDirectory;
+        var files = (ask?.Files ?? []).Take(ShareStore.MaxFolderItems)
+            .Where(n => File.Exists(Path.Combine(root, SafeUploadName(n)))).ToList();
+        var folders = (ask?.Folders ?? []).Take(ShareStore.MaxFolderItems)
+            .Where(n => ProjectFilter.SafeFolder(n).Split('/')[0] is { Length: > 0 } top && Directory.Exists(Path.Combine(root, top))).ToList();
+        Directory.CreateDirectory(root);
+        long free = Math.Max(0, new DriveInfo(Path.GetPathRoot(Path.GetFullPath(root))!).AvailableFreeSpace - CacheReserveBytes);
+        return new { files, folders, free };
+    }
+
+    /// <summary>The task the file being received belongs to (its progress is told from the receive loop).</summary>
+    private static readonly AsyncLocal<string?> CurrentUploadTask = new();
+    /// <summary>What was answered here to sends that had to ask: true = OK, false = No (or cancelled here).</summary>
+    private readonly Dictionary<string, bool> _uploadAnswers = new();
+
+    /// <summary>Does this device have to wait for an OK before its files are saved? A guest always; my own devices only when the setting says so.</summary>
+    internal bool MustAskBeforeReceiving(PairedDevice device) =>
+        device.GuestUntil != null || _host.Settings.MobileBridge.AskBeforeReceiving == "always";
+
+    /// <summary>
+    /// The task of the send this upload is part of ("task", "files", "bytes", "kind" and "top" come from the phone; an
+    /// older phone sends none and each device's uploads share one task while it is open). Null for a request without a
+    /// paired device behind it. Throws 423 while the send waits for an OK here, 403 once it was declined or cancelled.
+    /// </summary>
+    private TransferTask? UploadTask(Dictionary<string, string> q, string fileName, long total, string sub)
+    {
+        if (CurrentCaller.Value?.Device is not { } device) return null;
+        var given = q.GetValueOrDefault("task") ?? "";
+        bool named = given.Length is > 0 and <= 40 && given.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
+        string id = named ? $"up-{device.Id}-{given}"
+            : Tasks.All.FirstOrDefault(t => t.IsOpen && t.Id.StartsWith($"up-{device.Id}-auto", StringComparison.Ordinal))?.Id
+              ?? $"up-{device.Id}-auto{Now().ToUnixTimeSeconds()}";
+        int files = (int)Math.Clamp(QueryLong(q, "files") ?? 1, 1, ShareStore.MaxFolderItems);
+        long bytes = Math.Max(QueryLong(q, "bytes") ?? total, total);
+        var top = sub.Length > 0 ? sub.Split('/')[0] : "";
+        bool folderSend = q.GetValueOrDefault("kind") == "folder" && top.Length > 0;
+        var into = folderSend ? Path.Combine(UploadDirectory, top) : UploadDirectory;
+        var saveTo = "This PC › " + Path.GetFileName(UploadDirectory.TrimEnd(Path.DirectorySeparatorChar)) + (folderSend ? " › " + top : "");
+        var link = TransferTasks.LinkOf(device.LastLink);
+
+        bool? answer;
+        lock (_uploadAnswers) answer = _uploadAnswers.TryGetValue(id, out var a) ? a : null;
+        if (answer == false) throw new FsException(403, "Declined on the PC.");
+        if (answer is null && MustAskBeforeReceiving(device))
+        {
+            var asking = Tasks.BeginAsking(id, "toPc", device.Name, link, files, bytes, saveTo, into, folderSend ? "folder" : "files",
+                folderSend ? top : "", device.Id, name: fileName);
+            if (asking.State == "asking") throw new FsException(423, "Waiting for an OK on the PC.");
+        }
+        return Tasks.Begin(id, "toPc", device.Name, link, files, bytes, saveTo, into, folderSend ? "folder" : "files", folderSend ? top : "", device.Id);
+    }
+
+    /// <summary>Run with the presence sweep: sends that stopped coming end ("N done, M failed"), unanswered questions go after 15 minutes.</summary>
+    private void SweepUploadTasks()
+    {
+        if (_tasks is not { } tasks) return;
+        tasks.Sweep(TimeSpan.FromMinutes(2), "up-");
+        foreach (var t in tasks.All.Where(t => t.State == "asking" && t.Id.StartsWith("up-", StringComparison.Ordinal) && Now() - t.Started > TimeSpan.FromMinutes(15)))
+            tasks.Decline(t.Id);
+    }
 
     /// <summary>/api/upload with an upload id: the phone's "Send to PC", continuing after a broken connection.</summary>
     private async Task HandleResumableUploadAsync(Dictionary<string, string> q, Dictionary<string, string> headers, NetworkStream stream, string clientIp, CancellationToken ct)
@@ -221,9 +316,31 @@ public sealed partial class LocalMobileBridgeService
             // for the folder's name first (/api/upload/folder), so a second "MyApp" is "MyApp (2)", not mixed in.
             var sub = ProjectFilter.SafeFolder(q.GetValueOrDefault("folder"));
             var folder = sub.Length > 0 ? Path.Combine(UploadDirectory, sub.Replace('/', Path.DirectorySeparatorChar)) : UploadDirectory;
+            var fileName = SafeUploadName(q.GetValueOrDefault("filename"));
+            // One send (a folder, a few files) is one task here; a guest's send waits for an OK before a byte is saved.
+            var task = UploadTask(q, fileName, total, sub);
             Directory.CreateDirectory(folder);
-            var r = await ReceiveResumableAsync(id!, "upload", folder, SafeUploadName(q.GetValueOrDefault("filename")), false, ModifiedTime(q),
-                QueryLong(q, "offset") ?? 0, total, UploadDirectory, headers, stream, clientIp, ct);
+            CurrentUploadTask.Value = task?.Id;
+            // A file of the same name: replaced when that was answered here (a send that had to ask) or picked on the
+            // phone (my own device); otherwise both are kept ("name (2)").
+            bool replace = task?.OnClash == "replace" || (q.GetValueOrDefault("onClash") == "replace" && CanReplaceUploads());
+            ResumeResult r;
+            try
+            {
+                r = await ReceiveResumableAsync(id!, "upload", folder, fileName, replace, ModifiedTime(q),
+                    QueryLong(q, "offset") ?? 0, total, UploadDirectory, headers, stream, clientIp, ct);
+            }
+            catch (FsException e) when (task != null && e is not FsOffsetException && e.Status is 507 or 403)
+            {
+                Tasks.FileFailed(task.Id, id!, fileName, e.Status == 507 ? "space" : e.Status == 403 ? "denied" : "other");
+                throw;
+            }
+            finally { CurrentUploadTask.Value = null; }
+            if (task != null)
+            {
+                if (r.Complete) Tasks.FileDone(task.Id, id!, Path.GetFileName(r.FinalPath) ?? fileName, r.Size);
+                else Tasks.Progress(task.Id, id!, fileName, r.Offset);
+            }
             if (r.Complete) RaiseFileReceived(r.FinalPath!);
             if (!r.Complete)
                 await SendJsonAsync(stream, 200, "OK", new { success = true, complete = false, offset = r.Offset }, ct);

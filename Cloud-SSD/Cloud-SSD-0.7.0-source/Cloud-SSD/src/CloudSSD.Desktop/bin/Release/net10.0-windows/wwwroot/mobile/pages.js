@@ -60,12 +60,18 @@
   const LOOK_BARS = {
     ac: { top: '#2563EB', rest: '#FFFFFF', statusDark: false, navDark: true },
     saaf: { top: '#F4F6FA', rest: '#FFFFFF', statusDark: true, navDark: true },
-    raat: { top: '#0B0F17', rest: '#0B0F17', statusDark: false, navDark: false }
+    raat: { top: '#0B0F17', rest: '#0B0F17', statusDark: false, navDark: false },
+    kit: { top: '#F3F5F9', rest: '#FFFFFF', statusDark: true, navDark: true },
+    paper: { top: '#FFFFFF', rest: '#FFFFFF', statusDark: true, navDark: true },
+    glow: { top: '#0A0A0C', rest: '#0A0A0C', statusDark: false, navDark: false }
   };
   const PAGE_BARS = {
     ac: { top: '#FFFFFF', rest: '#F4F6FA', statusDark: true, navDark: true },
     saaf: { top: '#FFFFFF', rest: '#F4F6FA', statusDark: true, navDark: true },
-    raat: { top: '#121826', rest: '#0B0F17', statusDark: false, navDark: false }
+    raat: { top: '#121826', rest: '#0B0F17', statusDark: false, navDark: false },
+    kit: { top: '#FFFFFF', rest: '#F3F5F9', statusDark: true, navDark: true },
+    paper: { top: '#FFFFFF', rest: '#FFFFFF', statusDark: true, navDark: true },
+    glow: { top: '#17171A', rest: '#0A0A0C', statusDark: false, navDark: false }
   };
   let pageShown = null;
   function syncBars() {

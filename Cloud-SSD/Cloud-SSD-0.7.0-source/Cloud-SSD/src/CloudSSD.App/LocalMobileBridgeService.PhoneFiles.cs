@@ -111,6 +111,7 @@ public sealed partial class LocalMobileBridgeService
         _ = Task.Run(async () =>
         {
             try { await RunSaveToPcAsync(id, deviceName, ask, items, destFolder, cts.Token); }
+            catch (OperationCanceledException) { Tasks.Finish(id, "cancelled", "cancelled"); }
             catch (Exception e) { _log.LogWarning("Phone files: saving from {Device} stopped: {Error}", deviceName, e.Message); Tasks.Finish(id, "failed", "other"); }
             finally { lock (_phoneRuns) _phoneRuns.Remove(id); }
         });
@@ -192,7 +193,14 @@ public sealed partial class LocalMobileBridgeService
         _ = Task.Run(async () =>
         {
             try { await RunSendToPhoneAsync(id, device, localPaths, phoneFolder, onClash, everything, cts.Token); }
-            catch (Exception e) { _log.LogWarning("Phone files: sending to {Device} stopped: {Error}", device.Name, e.Message); Tasks.Finish(id, "failed", "other"); }
+            // Cancelled while a file was on its way (the wait for the phone is cut short): the phone's task ends too.
+            catch (OperationCanceledException) { Tasks.Finish(id, "cancelled", "cancelled"); await EndPhoneTaskAsync(device.Id, id, "cancelled"); }
+            catch (Exception e)
+            {
+                _log.LogWarning("Phone files: sending to {Device} stopped: {Error}", device.Name, e.Message);
+                Tasks.Finish(id, "failed", "other");
+                await EndPhoneTaskAsync(device.Id, id, "network");
+            }
             finally { lock (_phoneRuns) _phoneRuns.Remove(id); }
         });
         return task;
@@ -216,8 +224,7 @@ public sealed partial class LocalMobileBridgeService
         Tasks.Begin(id, "toPhone", device.Name, "", todo.Count, total);
         var top = localPaths.Count == 1 && Directory.Exists(localPaths[0]) ? Path.GetFileName(localPaths[0].TrimEnd('\\', '/')) : "";
         // The phone shows the run as one task too; told when it ends early.
-        async Task EndOnPhone() =>
-            await AskDeviceAsync(device.Id, "fs.pullEnd", new Dictionary<string, string> { ["task"] = id }, TimeSpan.FromSeconds(20), CancellationToken.None);
+        Task EndOnPhone() => EndPhoneTaskAsync(device.Id, id, "cancelled");
         for (int n = 0; n < todo.Count; n++)
         {
             var f = todo[n];
@@ -244,6 +251,16 @@ public sealed partial class LocalMobileBridgeService
             if (r.Status == "needs-permission") { Tasks.Finish(id, null, "denied"); return; }
         }
         Tasks.Finish(id);
+    }
+
+    /// <summary>Tells the phone a run of adds ended early and why ("cancelled" or "network"): its task for the run ends. Never throws.</summary>
+    private async Task EndPhoneTaskAsync(string deviceId, string taskId, string reason)
+    {
+        try
+        {
+            await AskDeviceAsync(deviceId, "fs.pullEnd", new Dictionary<string, string> { ["task"] = taskId, ["reason"] = reason }, TimeSpan.FromSeconds(20), CancellationToken.None);
+        }
+        catch (Exception e) { _log.LogDebug("Phone files: could not end the phone's task {Task}: {Error}", taskId, e.Message); }
     }
 
     /// <summary>A new folder <paramref name="name"/> inside <paramref name="phoneFolder"/> on the phone.</summary>

@@ -48,7 +48,10 @@
     return s < 60 ? Math.max(1, Math.round(s)) + ' s left' : s < 3600 ? Math.ceil(s / 60) + ' min left' : (s / 3600).toFixed(1) + ' h left';
   }
   function reason(t) {
-    const r = (t.failed && t.failed[0] && t.failed[0].reason) || 'other';
+    // Why most of them failed (one file caught mid-way may say something else than the rest).
+    const count = {};
+    (t.failed || []).forEach(f => { count[f.reason] = (count[f.reason] || 0) + 1; });
+    const r = Object.keys(count).sort((a, b) => count[b] - count[a])[0] || 'other';
     return ({ denied: 'not allowed on the device', network: 'the connection dropped', space: 'not enough space', missing: 'the file is gone', cancelled: 'cancelled' })[r] || 'something went wrong';
   }
   const UP = '<path d="M12 19V5M5 12l7-7 7 7"/>', DOWN = '<path d="M12 5v14M5 12l7 7 7-7"/>';

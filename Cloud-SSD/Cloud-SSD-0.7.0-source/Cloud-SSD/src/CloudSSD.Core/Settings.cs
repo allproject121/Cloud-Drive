@@ -147,6 +147,11 @@ public sealed class MobileBridgeSettings
     public static string NewPairingToken() =>
         Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
     public string? UploadDirectory { get; set; }
+    /// <summary>
+    /// "never-mine" (default): files from my own paired devices are saved without asking, a guest's wait for an OK.
+    /// "always": every device's files wait for an OK on this PC.
+    /// </summary>
+    public string AskBeforeReceiving { get; set; } = "never-mine";
     public string? PhotoBackupDirectory { get; set; }
     public bool AllowDriveBrowsing { get; set; } = true;
     public bool AllowStreaming { get; set; } = true;
@@ -249,6 +254,13 @@ public sealed class PairedDevice
     public long BytesFromDevice { get; set; }
     /// <summary>The name was changed on this PC: the device pairing again does not overwrite it.</summary>
     public bool NameSetOnPc { get; set; }
+    /// <summary>
+    /// "Files when it is off": this PC said yes for the device / the device said yes for this PC / since when both do.
+    /// Off until both say yes; never part of "allow everything", never for a guest.
+    /// </summary>
+    public bool WhenOffPc { get; set; }
+    public bool WhenOffDevice { get; set; }
+    public DateTimeOffset? WhenOffSince { get; set; }
     /// <summary>The device is itself a Cloud-SSD PC (a laptop): its own bridge id, name and port, for pairing back later.</summary>
     public string? PeerPcId { get; set; }
     public string? PeerName { get; set; }

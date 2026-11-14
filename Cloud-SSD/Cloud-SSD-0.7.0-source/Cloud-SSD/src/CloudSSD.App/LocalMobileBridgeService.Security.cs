@@ -34,7 +34,7 @@ public sealed partial class LocalMobileBridgeService
     [
         "device-tokens", "media-url", "settings", "save-restore", "pc-control", "upload-resume", "download-range",
         "fs-search", "fs-details", "tailnet", "pair-link", "space", "space-phone", "game-stream", "hello-proof",
-        "device-kind", "presence", "ping", "read-purpose", "fs-local-roots", "links", "access", "share", "peer", "ring", "clip", "vitals", "relay", "pairback", "wol",
+        "device-kind", "presence", "ping", "read-purpose", "fs-local-roots", "links", "access", "share", "peer", "ring", "clip", "vitals", "relay", "pairback", "wol", "whenoff", "upload-clash",
         .. (ThumbnailFactory != null ? new[] { "fs-thumb" } : Array.Empty<string>())
     ];
 
@@ -343,7 +343,7 @@ public sealed partial class LocalMobileBridgeService
             "/api/files" or "/api/preview" or "/api/drives" => [Browsing],
             "/api/stream" or "/api/download" or "/api/media-url" => [Streaming],
             "/api/open-pc" => [Streaming, PcControl],
-            "/api/upload" or "/api/upload/status" or "/api/upload/folder" => [Uploads],
+            "/api/upload" or "/api/upload/status" or "/api/upload/folder" or "/api/upload/clashes" => [Uploads],
             // Sending to another device goes through this PC like an upload; receiving needs only the pairing.
             "/api/share/offer" or "/api/share/upload" => [Uploads],
             "/api/clip" => [Uploads],

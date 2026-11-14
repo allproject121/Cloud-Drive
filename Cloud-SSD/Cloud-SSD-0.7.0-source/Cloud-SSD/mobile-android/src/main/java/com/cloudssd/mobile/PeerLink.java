@@ -210,7 +210,11 @@ final class PeerLink {
             }
             if ("fs.pullEnd".equals(kind)) {
                 String task = args == null ? "" : args.optString("task", "");
-                if (!task.isEmpty()) TransferHub.get(ctx).externalFinish(task);
+                // Why the PC stopped: "cancelled" (someone pressed Cancel there) or "network" (it broke off).
+                if (!task.isEmpty()) {
+                    endedRuns.put(task, args.optString("reason", "network"));
+                    TransferHub.get(ctx).externalFinish(task, args.optString("reason", "network"));
+                }
                 answerJson(server, token, id, new JSONObject().put("ok", true));
                 return;
             }
@@ -508,6 +512,9 @@ final class PeerLink {
         return new JSONObject().put("path", relOf(target)).put("name", target.getName()).put("skipped", false);
     }
 
+    /** Runs the PC ended early (fs.pullEnd), with why: a file of such a run that fails afterwards failed for that reason. */
+    private final java.util.concurrent.ConcurrentHashMap<String, String> endedRuns = new java.util.concurrent.ConcurrentHashMap<>();
+
     /**
      * fs.pull as part of the PC's run (args.task = its id): the phone's Transfers page shows the run as one task —
      * files and size from the PC, each file as it lands, ended with the last one (args.last) or fs.pullEnd.
@@ -533,7 +540,9 @@ final class PeerLink {
             return r;
         } catch (IOException e) {
             String m = String.valueOf(e.getMessage());
-            hub.externalFile(task, name, 0, false, m.contains("space") || m.contains("ENOSPC") ? "space" : "network");
+            // The PC ended the run while this file was on its way: it failed for that reason, not the network.
+            String why = endedRuns.get(task);
+            hub.externalFile(task, name, 0, false, why != null ? why : m.contains("space") || m.contains("ENOSPC") ? "space" : "network");
             throw e;
         } finally {
             if ("1".equals(args.optString("last", ""))) hub.externalFinish(task);
