@@ -81,7 +81,7 @@ public sealed class TransfersView : UserControl
         var askBox = new StackPanel();
         askBox.Children.Add(Title(T("Files to receive")));
         askBox.Children.Add(_asking);
-        askBox.Children.Add(Muted(T("Nothing is saved until you accept. A name already there is kept too, as \"name (2)\".")));
+        askBox.Children.Add(Muted(T("Nothing is saved until you accept. A name already there is kept too, as \"name (2)\", unless your own device asked to replace it.")));
         _askingCard.Child = askBox;
         _askingCard.SetResourceReference(Border.BorderBrushProperty, "Accent");
         _askingCard.Visibility = Visibility.Collapsed;

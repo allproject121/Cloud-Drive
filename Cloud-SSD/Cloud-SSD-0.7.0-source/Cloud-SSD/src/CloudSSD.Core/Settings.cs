@@ -21,6 +21,36 @@ public sealed class AppSettings
     public MobileBridgeSettings MobileBridge { get; set; } = new();
     public SmartOffloadSettings SmartOffload { get; set; } = new();
     public MemorySettings Memory { get; set; } = new();
+    public MirrorSettings Mirror { get; set; } = new();
+}
+
+/// <summary>
+/// "Files when it is off": this PC keeps a copy of its own files in the cloud, so a paired device can open them while
+/// the PC is switched off (docs/WHEN_OFF_PLAN.md). It runs only while a device and this PC both said yes.
+/// </summary>
+public sealed class MirrorSettings
+{
+    /// <summary>The account (an rclone remote) the copies go to. Chosen once, the one with the most free space, and kept.</summary>
+    public string? Account { get; set; }
+    /// <summary>
+    /// Also Windows, the programs and their data. They go last, after the person's own files, and are a copy of files,
+    /// not a system image: Windows cannot be started again from them.
+    /// </summary>
+    public bool IncludeSystem { get; set; } = true;
+    /// <summary>Folders the person left out, on top of what is never copied.</summary>
+    public List<string> Excluded { get; set; } = new();
+    /// <summary>
+    /// When not empty, only these folders are copied instead of the whole PC (a small first try, or a test). There is
+    /// no switch for it on the page; it is set in settings.json.
+    /// </summary>
+    public List<string> OnlyFolders { get; set; } = new();
+    /// <summary>Upload speed limit in megabits a second; 0 = no limit.</summary>
+    public double UploadLimitMbps { get; set; }
+    public bool PauseOnBattery { get; set; } = true;
+    /// <summary>Paused by the person ("Pause" on the page) until they continue.</summary>
+    public bool Paused { get; set; }
+    /// <summary>How long a deleted or replaced file's copy stays in the cloud's trash folder.</summary>
+    public int KeepTrashDays { get; set; } = 30;
 }
 
 public sealed class CacheSettings

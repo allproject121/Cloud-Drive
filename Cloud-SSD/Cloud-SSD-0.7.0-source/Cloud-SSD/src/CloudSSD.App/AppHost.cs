@@ -43,6 +43,7 @@ public sealed class AppHost : IAsyncDisposable
         CacheIndex = new CacheIndex();
         MobileBridge = new LocalMobileBridgeService(this, LoggerFactory.CreateLogger<LocalMobileBridgeService>());
         Offloader = new SmartStorageOffloaderService(this, LoggerFactory.CreateLogger<SmartStorageOffloaderService>());
+        Mirror = new Mirror.DeviceMirrorService(this, LoggerFactory.CreateLogger<Mirror.DeviceMirrorService>());
         Space = new SpaceService(this);
         Engine = new StreamingEngine(Settings.Streaming, Settings.Network, Profiles,
             new MountReadExecutor(id => Mounts.Get(id) is { State: MountState.Mounted } s ? s.Root : null, id => Mounts.Get(id)?.Attribution),
@@ -115,6 +116,8 @@ public sealed class AppHost : IAsyncDisposable
             revokeBack: deviceId => MobileBridge.RemoveDevice(deviceId)));
 
     public SmartStorageOffloaderService Offloader { get; }
+    /// <summary>"Files when it is off": the copy of this PC's own files in the cloud (runs only while a device and this PC both said yes).</summary>
+    public Mirror.DeviceMirrorService Mirror { get; }
     /// <summary>Space &amp; RAM: where the disks' space and the RAM go, live; started by the desktop app (not by the command line).</summary>
     public SpaceService Space { get; }
     /// <summary>RAM auto mode and game mode. Kept here, not in a page, so the Dashboard can show what they last did.</summary>
@@ -488,6 +491,8 @@ public sealed class AppHost : IAsyncDisposable
             {
                 _ = Offloader.CheckAndOffloadIfNeededAsync();
             }
+
+            _ = Mirror.TickAsync();
         }
         catch (Exception) { }
     }
@@ -680,6 +685,7 @@ public sealed class AppHost : IAsyncDisposable
     {
         if (_remotePcs != null) await _remotePcs.DisposeAsync();
         _diskTimer?.Dispose();
+        Mirror.Dispose();
         Space.Dispose();
         Archives.Dispose();
         Pins.Dispose();

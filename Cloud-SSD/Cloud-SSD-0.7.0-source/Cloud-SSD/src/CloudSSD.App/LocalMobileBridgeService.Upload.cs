@@ -222,10 +222,10 @@ public sealed partial class LocalMobileBridgeService
     private readonly object _folderReserveLock = new();
 
     /// <summary>
-    /// May the calling device have a file here replaced by the one it sends? My own devices, yes; a device whose sends
-    /// wait for an OK (a guest, or everyone with "ask always") gets what was answered here instead.
+    /// May the calling device have a file here replaced by the one it sends? My own devices, yes (with "ask always"
+    /// the send still waits for its OK here first); a guest never: a guest's files are only ever put beside mine.
     /// </summary>
-    private bool CanReplaceUploads() => CurrentCaller.Value?.Device is { } device && !MustAskBeforeReceiving(device);
+    private bool CanReplaceUploads() => CurrentCaller.Value?.Device is { GuestUntil: null };
 
     private sealed class ClashQuestion
     {

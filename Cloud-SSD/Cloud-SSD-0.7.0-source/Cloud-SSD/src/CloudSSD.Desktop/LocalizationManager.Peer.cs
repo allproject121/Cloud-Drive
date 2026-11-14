@@ -146,7 +146,7 @@ public static partial class LocalizationManager
         // Transfers: files waiting for an OK.
         ["Files to receive"] = "Aane wali files",
         ["From {0}"] = "{0} se",
-        ["Nothing is saved until you accept. A name already there is kept too, as \"name (2)\"."] = "Jab tak aap accept nahi karte, kuch save nahi hota. Usi naam ki file pehle se ho to dono rehti hain, \"naam (2)\" banakar.",
+        ["Nothing is saved until you accept. A name already there is kept too, as \"name (2)\", unless your own device asked to replace it."] = "Jab tak aap accept nahi karte, kuch save nahi hota. Usi naam ki file pehle se ho to dono rehti hain, \"naam (2)\" banakar; purani tabhi badalti hai jab aapka apna device \"badal do\" kahe.",
         // Transfers: ask before receiving.
         ["Ask me before receiving, also from my own devices"] = "Lene se pehle mujhse poochho, mere apne devices se bhi",
         ["Every send waits here for your OK."] = "Har bheji hui cheez yahan aapke OK ka intezaar karegi.",
@@ -298,7 +298,7 @@ public static partial class LocalizationManager
         // Transfers: files waiting for an OK.
         ["Files to receive"] = "आने वाली फ़ाइलें",
         ["From {0}"] = "{0} से",
-        ["Nothing is saved until you accept. A name already there is kept too, as \"name (2)\"."] = "जब तक आप स्वीकार नहीं करते, कुछ सेव नहीं होता। उसी नाम की फ़ाइल पहले से हो तो दोनों रहती हैं, \"नाम (2)\" बनाकर।",
+        ["Nothing is saved until you accept. A name already there is kept too, as \"name (2)\", unless your own device asked to replace it."] = "जब तक आप स्वीकार नहीं करते, कुछ सेव नहीं होता। उसी नाम की फ़ाइल पहले से हो तो दोनों रहती हैं, \"नाम (2)\" बनाकर; पुरानी तभी बदलती है जब आपका अपना डिवाइस \"बदल दें\" कहे।",
         // Transfers: ask before receiving.
         ["Ask me before receiving, also from my own devices"] = "लेने से पहले मुझसे पूछें, मेरे अपने डिवाइस से भी",
         ["Every send waits here for your OK."] = "हर भेजी हुई चीज़ यहाँ आपकी अनुमति का इंतज़ार करेगी।",

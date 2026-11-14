@@ -100,6 +100,8 @@ final class TransferHub {
     /** The PC in use, by name (told by the page), for tasks made here. */
     volatile String pcName = "PC";
     private final Map<String, Long> taskRaised = new ConcurrentHashMap<>();
+    /** How often a transfer that waits for the PC ("held") has looked again by itself: each time it waits longer. */
+    private final Map<Long, Integer> heldTries = new ConcurrentHashMap<>();
     private final Map<String, String> taskLastState = new ConcurrentHashMap<>();
 
     /**
@@ -562,6 +564,7 @@ final class TransferHub {
                 }
             }
             store.update(id, v);
+            heldTries.remove(id);
             releaseUri(store.row(id));
             notifyDone(id);
         } catch (Exception e) {
@@ -626,6 +629,16 @@ final class TransferHub {
         if (pcAway && attempts >= 1) {
             String pc = row.optString("pcId", "");
             setState(id, "held", "Waiting for " + pcName(pc) + " — sends when it is reachable");
+            // The page says when the PC is back, and a new network does too. A PC that was only slow for a moment (it
+            // was starting) gives neither sign: the transfer looks again by itself, after 30 s, 1 min, 2 min… up to 15.
+            int tries = heldTries.merge(id, 1, Integer::sum);
+            long delay = Math.min(15 * 60_000L, 30_000L << Math.min(tries - 1, 5));
+            timer.schedule(() -> {
+                JSONObject r = store.row(id);
+                if (r == null || !"held".equals(r.optString("state"))) return;
+                String forPc = r.optString("pcId", "");
+                if (forPc.isEmpty() || forPc.equals(PcProfiles.activeId(ctx))) retry(id);
+            }, delay, TimeUnit.MILLISECONDS);
             return;
         }
         if (!refused && attempts < RETRY_DELAYS_MS.length && row != null && !"uri-temp-gone".equals(msg)) {

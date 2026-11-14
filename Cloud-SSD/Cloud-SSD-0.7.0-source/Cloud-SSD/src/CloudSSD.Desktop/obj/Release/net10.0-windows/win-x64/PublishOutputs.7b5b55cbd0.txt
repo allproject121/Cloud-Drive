@@ -12,6 +12,13 @@ C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\i18n-words.js
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\i18n.js
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-192.svg
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-512.svg
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-classic.png
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-glow.svg
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-kit.svg
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-midnight.svg
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-ocean.svg
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-paper.svg
+C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\icon-sunset.svg
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\index.html
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\looks.css
 C:\Users\Roshan\AppData\Local\Temp\cpx-stage-0.9.0\wwwroot\mobile\manifest.json

@@ -378,7 +378,9 @@ final class CameraBackup {
      */
     static List<Object[]> backedUp(Context c, long minAgeMs) {
         List<Object[]> out = new ArrayList<>();
-        Map<String, long[]> done = new Ledger(c).all();
+        Map<String, long[]> done;
+        Ledger ledger = new Ledger(c);
+        try { done = ledger.all(); } finally { ledger.close(); }   // left open, Android warns of a leaked connection
         if (done.isEmpty()) return out;
         long before = System.currentTimeMillis() - minAgeMs;
         Uri[] tables = {MediaStore.Images.Media.EXTERNAL_CONTENT_URI, MediaStore.Video.Media.EXTERNAL_CONTENT_URI};

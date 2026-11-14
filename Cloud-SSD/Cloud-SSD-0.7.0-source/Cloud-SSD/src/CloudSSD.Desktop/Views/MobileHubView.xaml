@@ -18,6 +18,8 @@
                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
                     <RadioButton x:Name="TabPermissions" Content="Permissions" Style="{StaticResource PillRadio}" Height="34" Padding="18,0"
                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                    <RadioButton x:Name="TabWhenOff" Content="When off" Style="{StaticResource PillRadio}" Height="34" Padding="18,0"
+                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
                     <RadioButton x:Name="TabOther" Content="Other PCs" Style="{StaticResource PillRadio}" Height="34" Padding="18,0" Checked="OnOtherPcsShown"
                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
             </StackPanel>
@@ -31,6 +33,9 @@
             <local:DevicesView x:Name="DevicesHost" Visibility="{Binding IsChecked, ElementName=TabDevices, Converter={StaticResource Vis}}"
                                DataContext="{Binding DataContext.Devices, RelativeSource={RelativeSource AncestorType=Window}}"
                                PreviewMouseWheel="OnInnerWheel" />
+
+            <!-- "When off": the copy of this PC's own files in the cloud ("Files when it is off"), how far it is, its choices. -->
+            <local:WhenOffView Visibility="{Binding IsChecked, ElementName=TabWhenOff, Converter={StaticResource Vis}}" />
 
             <!-- 2. Add or connect: the bridge's state, then the QR code, pairing code and address -->
             <StackPanel Visibility="{Binding IsChecked, ElementName=TabConnect, Converter={StaticResource Vis}}">

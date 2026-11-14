@@ -7,6 +7,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        // Started by Windows at sign-in ("Start Cloud-SSD with Windows"): the window stays out of the way.
+        if (Environment.GetCommandLineArgs().Contains(CloudSSD.App.StartWithWindows.MinimizedArgument)) WindowState = System.Windows.WindowState.Minimized;
     }
 
     /// <summary>The section already chosen, clicked again from a page inside it: back to the section's own page.</summary>

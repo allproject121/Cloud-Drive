@@ -1816,6 +1816,28 @@
    * Folders and files chosen in the Phone tab go in one go: the phone walks the folders itself (no picker), keeps
    * their tree and leaves out build output; to the PC (each folder gets a free name there) or to another device.
    */
+  /** Of what is about to be sent (folders at the top, loose files): the names the PC's upload folder already has. An older PC is not asked. */
+  async function pcClashes(folders, files) {
+    const none = { folders: [], files: [], free: Infinity };
+    if (!pcHas('upload-clash') || (!folders.length && !files.length)) return none;
+    const r = await api('/api/upload/clashes', { method: 'POST', body: JSON.stringify({ folders, files }), timeout: 15000 }).catch(() => null);
+    return r && r.ok && r.data ? { folders: r.data.folders || [], files: r.data.files || [], free: typeof r.data.free === 'number' ? r.data.free : Infinity } : none;
+  }
+  /**
+   * Names the receiver (where, for a longer text some day) already has: asks once for all of them. Gives 'keep' (both stay, the new one gets a number),
+   * 'replace' or 'skip'; nothing comes back when the sheet is closed without a choice, and nothing is sent then.
+   */
+  function askClash(names, where) {
+    return new Promise((resolve) => {
+      const title = names.length === 1 ? '"' + names[0] + '" is already there' : names.length + ' of these are already there';
+      choiceSheet(title, [
+        { icon: SVG.check, title: 'Keep both', sub: 'The new one gets a number, like "name (2)"', fn: () => resolve('keep') },
+        { icon: SVG.upload || SVG.check, title: 'Replace', sub: 'The one that is there gives way to the new one', danger: true, fn: () => resolve('replace') },
+        { icon: SVG.close, title: 'Skip', sub: 'Leave those out and send the rest', fn: () => resolve('skip') }
+      ]);
+    });
+  }
+
   async function sendPaths(paths) {
     let p;
     try { p = JSON.parse(native.preparePaths(JSON.stringify({ paths }))); } catch (e) { p = { error: String(e) }; }
@@ -1828,14 +1850,27 @@
     const choices = [{
       icon: SVG.pc, title: pcName, sub: 'Into its From phone folder',
       fn: async () => {
+        // Names the PC already has: one question for all of them (keep both, replace, skip).
+        const loose = (p.items || []).filter(i => !i.folder).map(i => i.name);
+        const canAsk = typeof native.sendPreparedToPc2 === 'function';
+        const clash = canAsk ? await pcClashes(p.folders, loose) : { folders: [], files: [], free: Infinity };
+        // It does not fit on the PC: said now, not after half of it went.
+        if (p.bytes > clash.free) { toast('Not enough space on ' + pcName + ': needs ' + fmtBytes(p.bytes) + ', ' + fmtBytes(clash.free) + ' free'); return; }
+        const taken = clash.folders.concat(clash.files);
+        const onClash = taken.length ? await askClash(taken, pcName) : 'keep';
+        const skip = onClash === 'skip' ? taken : [];
+        if (skip.length >= p.folders.length + loose.length) { toast('Nothing to send'); return; }
         const renames = {};
         for (const top of p.folders) {
-          const r = await api('/api/upload/folder', { params: { name: top } });
+          if (skip.includes(top)) continue;
+          const params = onClash === 'replace' && clash.folders.includes(top) ? { name: top, onClash: 'replace' } : { name: top };
+          const r = await api('/api/upload/folder', { params });
           if (!r.ok || !r.data || !r.data.name) { toast(apiError(r, 'Could not send')); return; }
           renames[top] = r.data.name;
         }
-        native.sendPreparedToPc(JSON.stringify(renames));
-        toast('Sending ' + what + ' to ' + pcName);
+        if (canAsk) native.sendPreparedToPc2(JSON.stringify(renames), JSON.stringify(skip), onClash);
+        else native.sendPreparedToPc(JSON.stringify(renames));
+        toast(skip.length ? 'Sending to ' + pcName + ' · ' + skip.length + ' left out' : 'Sending ' + what + ' to ' + pcName);
       }
     }];
     if (pcHas('share')) {
@@ -1876,9 +1911,15 @@
     const choices = [{
       icon: SVG.pc, title: pcName, sub: 'Into its From phone folder',
       fn: async () => {
-        const r = await api('/api/upload/folder', { params: { name: p.name } });
+        // The PC has a folder of this name already: keep both, replace, or do not send.
+        const canAsk = typeof native.sendFolderToPc2 === 'function';
+        const clash = canAsk ? await pcClashes([p.name], []) : { folders: [], free: Infinity };
+        if (p.bytes > clash.free) { toast('Not enough space on ' + pcName + ': needs ' + fmtBytes(p.bytes) + ', ' + fmtBytes(clash.free) + ' free'); return; }
+        const onClash = clash.folders.length ? await askClash([p.name], pcName) : 'keep';
+        if (onClash === 'skip') { toast('Nothing to send'); return; }
+        const r = await api('/api/upload/folder', { params: onClash === 'replace' ? { name: p.name, onClash: 'replace' } : { name: p.name } });
         if (!r.ok || !r.data || !r.data.name) { toast(apiError(r, 'Could not send')); return; }
-        native.sendFolderToPc(r.data.name);
+        if (canAsk) native.sendFolderToPc2(r.data.name, onClash); else native.sendFolderToPc(r.data.name);
         toast('Sending ' + what + ' to ' + pcName);
       }
     }];
@@ -1935,9 +1976,26 @@
     choiceSheet('Send ' + label + ' to', choices);
   }
 
-  function sendPhoneFiles(files) {
+  async function sendPhoneFiles(files) {
     if (!isApp) return;
     if (link.state === 'unpaired' || !link.token) { toast('Pair with your PC first'); showPair(''); return; }
+    // The PC is there: one send for all of them, after asking about names it already has and whether they fit.
+    if (link.state === 'online' && pcHas('upload-clash') && typeof native.sendPreparedToPc2 === 'function' && typeof native.preparePaths === 'function') {
+      let p = null;
+      try { p = JSON.parse(native.preparePaths(JSON.stringify({ paths: files.map(f => f.path) }))); } catch (e) { }
+      if (p && p.count && !p.error) {
+        const pcName = link.pcName || 'the PC';
+        const names = (p.items || []).map(i => i.name);
+        const clash = await pcClashes([], names);
+        if (p.bytes > clash.free) { toast('Not enough space on ' + pcName + ': needs ' + fmtBytes(p.bytes) + ', ' + fmtBytes(clash.free) + ' free'); return; }
+        const onClash = clash.files.length ? await askClash(clash.files, pcName) : 'keep';
+        const skip = onClash === 'skip' ? clash.files : [];
+        if (skip.length >= names.length) { toast('Nothing to send'); return; }
+        native.sendPreparedToPc2('{}', JSON.stringify(skip), onClash);
+        toast(skip.length ? 'Sending to ' + pcName + ' · ' + skip.length + ' left out' : files.length === 1 ? 'Sending ' + files[0].name : 'Sending ' + files.length + ' files to the PC');
+        return;
+      }
+    }
     files.forEach(f => { try { native.uploadFileByPath(f.path); } catch (e) { } });
     // The PC away: they wait in the transfers list and go by themselves when it is back.
     toast(link.state !== 'online' ? (files.length === 1 ? files[0].name : files.length + ' files') + ' will go when ' + (link.pcName || 'the PC') + ' is back'
@@ -3630,6 +3688,20 @@
     ['raat', 'Midnight', 'Dark navy with teal'],
     ['auto', 'Like the phone', 'Ocean by day, Midnight at night']
   ];
+  /** The icons the app can have on the phone's home screen: [key (MainActivity.APP_ICONS), name, its picture]. */
+  const ICON_CARDS = [
+    ['ocean', 'Ocean', 'icon-ocean.svg'],
+    ['kit', 'Kit', 'icon-kit.svg'],
+    ['paper', 'Paper', 'icon-paper.svg'],
+    ['glow', 'Glow', 'icon-glow.svg'],
+    ['midnight', 'Midnight', 'icon-midnight.svg'],
+    ['sunset', 'Sunset', 'icon-sunset.svg'],
+    ['classic', 'Classic', 'icon-classic.png']
+  ];
+  /** The key of the icon the app has now; '' in a browser and in an app from before the icons. */
+  function appIconNow() {
+    try { return isApp && typeof native.appIcon === 'function' ? String(native.appIcon() || '') : ''; } catch (e) { return ''; }
+  }
   /** Settings → Customize: everything about how the app looks, on one page. */
   function renderCustomize() {
     let html = '';
@@ -3638,6 +3710,13 @@
     html += settingsSection('App look', `<div class="look-picker">${LOOK_CARDS.map(([k, name, sub]) => `<button class="look-card ${look === k ? 'active' : ''}" data-act="look" data-look="${k}" aria-pressed="${look === k}">
         <span class="look-swatch look-swatch-${k}" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="look-name">${name}</span><span class="look-sub">${sub}</span></button>`).join('')}</div>`);
+    // The app's icon on the home screen (the Android app only: a page in a browser has no icon to change).
+    const icon = appIconNow();
+    if (icon) {
+      html += settingsSection('App icon', `<div class="icon-picker">${ICON_CARDS.map(([k, name, pic]) => `<button class="icon-card ${icon === k ? 'active' : ''}" data-act="app-icon" data-icon="${k}" aria-pressed="${icon === k}">
+        <img src="${pic}" alt="" width="52" height="52"><span class="icon-name">${name}</span></button>`).join('')}</div>
+        <div class="settings-row-sub icon-note">The app closes once when its icon changes. Open it again from the new icon.</div>`);
+    }
     // Glass effect: one switch, for every look.
     html += settingsSection('Window', `<label class="settings-row glass-row"><div class="settings-row-text"><div>Glass effect</div><div class="settings-row-sub">Frosted glass: see-through bars and cards, like on an iPhone</div></div>
         <input type="checkbox" data-act="glass" ${ls.get('cloudssd_glass') === 'on' ? 'checked' : ''}></label>`);
@@ -4037,6 +4116,15 @@
       if (isOpen('customize-modal')) renderCustomize();
     },
     'glass': (el) => { ls.set('cloudssd_glass', el.checked ? 'on' : 'off'); applyTheme(); },
+    'app-icon': async (el) => {
+      if (el.classList.contains('active')) return;
+      // Android closes the app's screen when its icon is changed (the old icon is what opened it): said first.
+      if (!await confirmDialog('Change the app icon?', 'The app closes once. Open it again from its new icon on the home screen.', 'Change')) return;
+      let ok = false;
+      try { ok = !!native.setAppIcon(el.dataset.icon); } catch (e) { }
+      toast(ok ? 'App icon changed' : 'Could not change it');
+      if (isOpen('customize-modal')) renderCustomize();
+    },
     'look': (el) => {
       ls.set('cloudssd_look', el.dataset.look);
       ls.del('cloudssd_theme');

@@ -85,7 +85,7 @@ public sealed class DevicePermissionsWindow : Window
             ShowWhenOff();
             woRow.Children.Add(_whenOff);
             panel.Children.Add(woRow);
-            panel.Children.Add(Caption(T("Off until this PC and the device both say yes. Nothing is copied yet: the copies come with a later update."), new Thickness(0, 2, 0, 0)));
+            panel.Children.Add(Caption(T("Off until this PC and the device both say yes. The copies then start by themselves; Devices → When off shows how far they are."), new Thickness(0, 2, 0, 0)));
         }
 
         // What it did lately.

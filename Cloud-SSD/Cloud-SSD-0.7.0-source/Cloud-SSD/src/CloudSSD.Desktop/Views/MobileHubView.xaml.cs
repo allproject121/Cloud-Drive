@@ -25,7 +25,7 @@ public partial class MobileHubView : UserControl
     private void ApplyTab()
     {
         if (Main is not { HubTab: { } tab } main) return;
-        var chip = tab switch { "Devices" => TabDevices, "Connect" => TabConnect, "Permissions" => TabPermissions, "Other PCs" => TabOther, _ => null };
+        var chip = tab switch { "Devices" => TabDevices, "Connect" => TabConnect, "Permissions" => TabPermissions, "When off" => TabWhenOff, "Other PCs" => TabOther, _ => null };
         if (chip != null) chip.IsChecked = true;
         main.HubTab = null;
     }
