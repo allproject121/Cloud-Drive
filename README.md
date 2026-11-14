@@ -171,10 +171,17 @@ Screenshots of the latest version, taken on a phone-sized screen. This is the we
 
 <div align="center">
 
-| Connect | Home | Cloud SSD | Gaming |
+| Connect | Home | Files When Off | Game Library |
 |:---:|:---:|:---:|:---:|
-| <img src="screenshots/phone-connect.png" width="200" alt="Connect to your PC with a 6-digit code" /> | <img src="screenshots/phone-home.png" width="200" alt="Home: storage, PC drives, send to PC, transfers" /> | <img src="screenshots/phone-cloud-ssd.png" width="200" alt="Cloud SSD: browse the All Accounts and Each Account drives" /> | <img src="screenshots/phone-gaming.png" width="200" alt="Gaming: live PC numbers and media remote" /> |
-| Pair with the 6-digit code from the PC | Cloud space, PC drives, send to PC, transfers | Browse `Z:` All Accounts and `Y:` Each Account | Live PC numbers and media remote |
+| <img src="screenshots/phone-connect.png" width="200" alt="Connect to your PC and customize icons" /> | <img src="screenshots/phone-home.png" width="200" alt="Home: storage, PC drives, send to PC, transfers" /> | <img src="screenshots/phone-cloud-ssd.png" width="200" alt="Files when off permission" /> | <img src="screenshots/phone-gaming.png" width="200" alt="Clean Game Library" /> |
+| Pair with the 6-digit code & icon picker | Cloud space, PC drives, send to PC, transfers | Keep copies in cloud to access when PC is off | Game Library and local performance |
+
+<br />
+
+| PC App Home | PC Cloud Drives |
+|:---:|:---:|
+| <img src="screenshots/pc-home.png" width="380" alt="PC App Home" /> | <img src="screenshots/pc-cloud-drives.png" width="380" alt="PC Cloud Drives" /> |
+| Desktop App with native card views | Mounted Cloud Drives & Storage Management |
 
 </div>
 

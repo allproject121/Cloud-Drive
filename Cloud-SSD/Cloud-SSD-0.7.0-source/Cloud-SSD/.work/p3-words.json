@@ -1,0 +1,33 @@
+{
+  "Opens while the PC is off": { "hinglish": "PC band ho tab bhi khulta hai", "hindi": "PC बंद हो तब भी खुलता है" },
+  "Not ready yet": { "hinglish": "Abhi taiyaar nahi", "hindi": "अभी तैयार नहीं" },
+  "Sign in": { "hinglish": "Sign in karo", "hindi": "साइन इन करें" },
+  "{0} still signs in to Google with the shared key. On the PC open Cloud Drives and switch to your own Google key; then this phone can open its files while it is off.": {
+    "hinglish": "{0} abhi Google mein saajhi key se sign in karta hai. PC par Cloud Drives kholo aur apni Google key par badlo; tab yeh phone uski files band hone par bhi khol payega.",
+    "hindi": "{0} अभी Google में साझा key से साइन इन करता है. PC पर Cloud Drives खोलें और अपनी Google key पर बदलें; तब यह फ़ोन उसकी फ़ाइलें बंद होने पर भी खोल पाएगा."
+  },
+  "One step left: sign in to Google on this phone, so the files of {0} open while it is off.": {
+    "hinglish": "Ek kadam baaki: is phone par Google mein sign in karo, taaki {0} ki files uske band hone par bhi khulen.",
+    "hindi": "एक कदम बाकी: इस फ़ोन पर Google में साइन इन करें, ताकि {0} की फ़ाइलें उसके बंद होने पर भी खुलें."
+  },
+  "Ready. While {0} is off, its files are in the Cloud SSD tab as \"{1} (cloud copy)\".": {
+    "hinglish": "Taiyaar. {0} band ho to uski files Cloud SSD tab mein \"{1} (cloud copy)\" naam se milengi.",
+    "hindi": "तैयार. {0} बंद हो तो उसकी फ़ाइलें Cloud SSD टैब में \"{1} (cloud copy)\" नाम से मिलेंगी."
+  },
+  "{0} (cloud copy)": { "hinglish": "{0} (cloud copy)", "hindi": "{0} (क्लाउड कॉपी)" },
+  "{0} is off or away": { "hinglish": "{0} band hai ya door hai", "hindi": "{0} बंद है या दूर है" },
+  "cloud copy up to {0}": { "hinglish": "cloud copy {0} tak ki", "hindi": "क्लाउड कॉपी {0} तक की" },
+  "cloud copy": { "hinglish": "cloud copy", "hindi": "क्लाउड कॉपी" },
+  "{0}% copied so far": { "hinglish": "ab tak {0}% copy hua", "hindi": "अब तक {0}% कॉपी हुआ" },
+  "The PC has not copied anything yet.": { "hinglish": "PC ne abhi kuch copy nahi kiya hai.", "hindi": "PC ने अभी कुछ कॉपी नहीं किया है." },
+  "No copy of this PC is on Google Drive yet, or its Google account is not signed in on this phone.": {
+    "hinglish": "Is PC ki copy abhi Google Drive par nahi hai, ya uska Google account is phone par sign in nahi hai.",
+    "hindi": "इस PC की कॉपी अभी Google Drive पर नहीं है, या उसका Google खाता इस फ़ोन पर साइन इन नहीं है."
+  },
+  "A PC's cloud copy can only be read.": { "hinglish": "PC ki cloud copy sirf padhi ja sakti hai.", "hindi": "PC की क्लाउड कॉपी सिर्फ़ पढ़ी जा सकती है." },
+  "\"Files when it is off\" is not switched on for this PC.": { "hinglish": "Is PC ke liye \"Band hone par bhi files\" chalu nahi hai.", "hindi": "इस PC के लिए \"बंद होने पर भी फ़ाइलें\" चालू नहीं है." },
+  "This phone has no Google key yet. Switch on \"Files when it is off\" with a PC that uses its own Google key.": {
+    "hinglish": "Is phone ke paas abhi Google key nahi hai. Aise PC ke saath \"Band hone par bhi files\" chalu karo jo apni Google key use karta ho.",
+    "hindi": "इस फ़ोन के पास अभी Google key नहीं है. ऐसे PC के साथ \"बंद होने पर भी फ़ाइलें\" चालू करें जो अपनी Google key इस्तेमाल करता हो."
+  }
+}
