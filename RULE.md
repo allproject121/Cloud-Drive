@@ -11,7 +11,7 @@
 
 * **Workspace Root:** `C:\Users\Roshan\Downloads\Cloud-Drive`
 * **Git Repository Root:** `C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive` (Branch: `feature/multi-device`)
-* **Active Codebase & Solution:** `C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD`
+* **Active Codebase & Solution:** `C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD\Cloud-SSD`
 * **Solution File:** `CloudSSD.slnx` (.NET 10 WPF + Windows Service + WinFsp + rclone)
 * **Mobile App:** `mobile-android/` (Android APK + WebView JS)
 * **Central Documentation Directory:** `docs/` (Inside the active codebase directory)
