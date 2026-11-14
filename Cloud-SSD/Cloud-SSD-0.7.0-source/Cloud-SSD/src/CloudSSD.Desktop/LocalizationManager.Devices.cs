@@ -163,6 +163,8 @@ public static partial class LocalizationManager
         Merge("हिन्दी (Hindi)", PermissionTextsHindi);
         Merge("Hinglish", ShareTextsHinglish);
         Merge("हिन्दी (Hindi)", ShareTextsHindi);
+        Merge("Hinglish", NativeTextsHinglish);
+        Merge("हिन्दी (Hindi)", NativeTextsHindi);
         Merge("Hinglish", PeerTextsHinglish);
         Merge("हिन्दी (Hindi)", PeerTextsHindi);
         Merge("Hinglish", ExtraTextsHinglish);

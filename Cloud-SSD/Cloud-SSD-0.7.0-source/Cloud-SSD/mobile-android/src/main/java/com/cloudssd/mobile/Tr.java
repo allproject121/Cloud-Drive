@@ -25,9 +25,9 @@ final class Tr {
         put("Allow only if you are at that PC. It can add files and folders for 1 hour.",
                 "Tabhi allow karo jab aap us PC ke paas ho. 1 ghante tak wo files aur folders daal sakega.",
                 "तभी अनुमति दें जब आप उस पीसी के पास हों। 1 घंटे तक वह फ़ाइलें और फ़ोल्डर डाल सकेगा।");
-        put("Allow only if you are at that PC. Photos, Downloads and Documents for 1 hour.",
-                "Tabhi allow karo jab aap us PC ke paas ho. Photos, Downloads aur Documents 1 ghante ke liye.",
-                "तभी अनुमति दें जब आप उस पीसी के पास हों। Photos, Downloads और Documents 1 घंटे के लिए।");
+        put("Allow only if you are at that PC. Its whole storage for 1 hour.",
+                "Tabhi allow karo jab aap us PC ke paas ho. Poora phone storage 1 ghante ke liye.",
+                "तभी अनुमति दें जब आप उस पीसी के पास हों। पूरा फ़ोन स्टोरेज 1 घंटे के लिए।");
         put("Allow 1 hour", "1 ghante allow karo", "1 घंटे की अनुमति दें");
         put("Deny", "Mana karo", "मना करें");
         put("Cloud-SSD is listening for {0}", "Cloud-SSD {0} ki sun raha hai", "Cloud-SSD {0} की सुन रहा है");

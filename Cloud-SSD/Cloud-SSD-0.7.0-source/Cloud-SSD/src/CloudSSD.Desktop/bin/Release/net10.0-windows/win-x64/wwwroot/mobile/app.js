@@ -394,7 +394,7 @@
   function showPeerAsk(ev) {
     peer.pc = ev.pc || currentDeviceId();
     peer.name = ev.name || link.pcName || 'Your PC';
-    peer.scope = 'shared';
+    peer.scope = ev.scope === 'shared' ? 'shared' : 'all';
     // Both ways, like the phone's own PC suite: it may also add files and folders (untick to only let it look).
     peer.write = true;
     setText('peer-title', peer.name + ' wants to see this phone\'s files');
@@ -2099,7 +2099,10 @@
     rerenderSsd();
     if (isOpen('offline-sheet')) renderOfflineSheet();
   }
-  function rerenderSsd() { const c = ssd.cache.get(ssd.path); if (c && activeTab === 'ssd') renderSsd(c); }
+  function rerenderSsd() {
+    if (!ssd.path && pcHomeOn()) { if (activeTab === 'ssd') renderPcHome(); return; }
+    const c = ssd.cache.get(ssd.path); if (c && activeTab === 'ssd') renderSsd(c);
+  }
   function openOfflineSheet() {
     if (!canKeep()) { toast('Keeping files offline needs the Cloud-SSD app'); return; }
     refreshKept();
@@ -2601,7 +2604,8 @@
     const strip = $('ssd-drives-strip');
     if (!strip) return;
     const cur = placeOf(ssd.path);
-    const html = ssdPlaces().map(pl => `
+    const home = pcHomeOn() ? `<button class="ssd-drive-pill ${ssd.path ? '' : 'active'}" data-act="ssd-home">${HOME_ICON}<span>Home</span></button>` : '';
+    const html = home + ssdPlaces().map(pl => `
       <button class="ssd-drive-pill ${cur && cur.root === pl.root ? 'active' : ''} ${pl.mounted ? '' : 'off'}" data-act="ssd-place" data-root="${esc(pl.root)}">
         ${pl.cloud ? SVG.cloud : pl.label === 'From phone' ? SVG.upload : SVG.pc}<span>${esc(pl.label)}${pl.mounted ? '' : ' · off'}</span>
       </button>`).join('');
@@ -2652,6 +2656,73 @@
     const first = places.find(p => p.id === 'cloudssd' && p.mounted) || places.find(p => p.cloud && p.mounted) || places[0];
     return first ? first.root : '';
   }
+  // ---- the PC's start, as File Explorer shows it: Quick access (pinned folders), then This PC's drives ----
+  const pcHome = { data: null, at: 0, pc: '' };
+  /** The PC is here and can tell its Quick access: a device opens on its "Home", like Explorer. */
+  function pcHomeOn() { return link.state === 'online' && cloudSource() !== 'drive' && pcHas('pc-home'); }
+  const QA_ICONS = { desktop: SVG.desktop, downloads: SVG.download, documents: SVG.doc, pictures: SVG.image, music: SVG.audio, videos: SVG.video, folder: SVG.folder };
+  const HOME_ICON = '<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>';
+  const HDD_ICON = '<svg viewBox="0 0 24 24"><path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>';
+  async function loadPcHome(force) {
+    endSsdSelect();
+    ssd.path = '';
+    ssd.kind = '';
+    ssd.root = '';
+    ssd.seq++;
+    renderCrumbs();
+    renderSsdDrives();
+    const mine = pcHome.data && pcHome.pc === link.pcId;
+    if (mine) renderPcHome();
+    else { $('ssd-items-container').className = 'ssd-items-container pc-home'; $('ssd-items-container').innerHTML = skeleton(6); }
+    if (!force && mine && Date.now() - pcHome.at < 30000) return;
+    if (!ssd.localDrives.length) loadLocalDrives();
+    const r = await api('/api/pc/home', { timeout: 15000 }).catch(() => null);
+    if (ssd.path) return;
+    if (r && r.ok && r.data) { pcHome.data = r.data; pcHome.at = Date.now(); pcHome.pc = link.pcId; }
+    renderPcHome();
+  }
+  /** Explorer's drive name: "ACER (C:)", "Cloud SSD (Z:)". */
+  function pcDriveName(d, pl) {
+    const letter = d.driveLetter || pl.root.slice(0, 2);
+    return (d.displayName || (pl.cloud ? 'Cloud drive' : 'Local disk')) + ' (' + letter + ')';
+  }
+  function renderPcHome() {
+    if (ssd.path || ssd.level !== 'device') return;
+    const box = $('ssd-items-container');
+    const d = pcHome.data && pcHome.pc === link.pcId ? pcHome.data : { pinned: [], hidden: 0 };
+    const st = link.status || {};
+    // Quick access: what is pinned on the PC, in its order; then the folder phone files land in.
+    let tiles = (d.pinned || []).map(f => `<div class="cat-grid-card pc-qa-card" data-act="ssd-place" data-root="${esc(f.path)}">
+        <div class="cat-grid-icon-box pc-qa-icon pc-qa-${esc(f.kind)}">${QA_ICONS[f.kind] || SVG.folder}</div>
+        <div class="cat-grid-name" data-no-i18n>${esc(f.name)}</div><div class="cat-grid-meta">Pinned</div></div>`).join('');
+    if (st.uploadDirectory) tiles += `<div class="cat-grid-card pc-qa-card" data-act="ssd-place" data-root="${esc(st.uploadDirectory)}">
+        <div class="cat-grid-icon-box pc-qa-icon pc-qa-received">${SVG.upload}</div>
+        <div class="cat-grid-name">From phone</div><div class="cat-grid-meta">Cloud-SSD</div></div>`;
+    const note = d.hidden ? `<div class="pc-home-note">${esc(d.hidden + ' pinned folders are on the PC\'s own disk. Turn on "PC disks" in Cloud-SSD on the PC to open them here.')}</div>` : '';
+    // This PC: its disks and the Cloud SSD drives, by letter, like "Devices and drives".
+    const drives = drivesData || st.drives || [];
+    const seen = new Set();
+    const rows = ssdPlaces().filter(pl => pl.label !== 'From phone' && /^[A-Za-z]:\\/.test(pl.root))
+      .filter(pl => { const k = pl.root.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+      .map(pl => ({ pl, d: drives.find(x => x.root && x.root.toLowerCase() === pl.root.toLowerCase()) || drives.find(x => x.id && x.id === pl.id) || {} }))
+      .sort((a, b) => a.pl.root.localeCompare(b.pl.root))
+      .map(({ pl, d: dd }) => {
+        const cloud = dd.isCloud != null ? !!dd.isCloud : pl.cloud;
+        const used = dd.totalBytes > 0 ? dd.totalBytes - dd.freeBytes : 0;
+        const space = !pl.mounted ? 'Not connected on the PC' : dd.totalBytes > 0 ? fmtBytes(dd.freeBytes) + ' free of ' + fmtBytes(dd.totalBytes) : '';
+        return `<div class="pc-drive-row ${pl.mounted ? '' : 'off'}" data-act="ssd-place" data-root="${esc(pl.root)}">
+          <div class="pc-drive-icon ${cloud ? 'cloud' : ''}">${cloud ? SVG.cloud : HDD_ICON}</div>
+          <div class="pc-drive-text"><div class="pc-drive-name" data-no-i18n>${esc(pcDriveName(dd, pl))}</div>
+          ${pl.mounted && dd.totalBytes > 0 ? `<div class="usage-bar"><div style="width:${Math.max(1, pct(used, dd.totalBytes)).toFixed(1)}%"></div></div>` : ''}
+          ${space ? `<div class="pc-drive-sub">${esc(space)}</div>` : ''}</div></div>`;
+      }).join('');
+    box.className = 'ssd-items-container pc-home';
+    box.innerHTML = `<div class="section-container pc-home-sec"><div class="section-header"><div class="section-title">Quick access</div></div>
+        ${tiles ? `<div class="categories-grid-m3 pc-qa-grid">${tiles}</div>` : `<div class="pc-home-note">Nothing is pinned to Quick access on the PC.</div>`}${note}</div>
+      <div class="section-container pc-home-sec"><div class="section-header"><div class="section-title">This PC</div></div>
+        ${rows ? `<div class="pc-drive-list">${rows}</div>` : `<div class="pc-home-note">No drives yet.</div>`}</div>`;
+  }
+
   function openSsdTab() {
     // The tab starts with the list of devices; a device's folders show once one is opened.
     if (ssd.level !== 'device') { showDevices(); return; }
@@ -2682,6 +2753,7 @@
       return;
     }
     if (!ssd.localDrives.length) loadLocalDrives();
+    if (!ssd.path && pcHomeOn()) { loadPcHome(); return; }
     if (!ssd.path) {
       const root = firstPlaceRoot();
       if (!root) { renderSsdDrives(); $('ssd-items-container').innerHTML = skeleton(6); return; }
@@ -2802,6 +2874,7 @@
       if (p && p.url && p.url !== link.server) { link.server = p.url; link.route = /:\/\/100\.|\.ts\.net/.test(p.url) ? 'tailnet' : 'lan'; }
     }
     ssd.level = 'device';
+    if (pcHas('pc-home')) ssd.path = '';
     openSsdTab();
   }
   function renderDeviceHeader() {
@@ -2989,6 +3062,7 @@
         ssd.localDrives = r.data.filter(d => !d.isCloud && d.root);
         saveSnap({ drives: r.data, drivesAt: Date.now() });
         renderSsdDrives();
+        if (!ssd.path && activeTab === 'ssd') renderPcHome();
       }
     } catch (e) { }
   }
@@ -3005,12 +3079,17 @@
   function renderCrumbs() {
     const pl = placeOf(ssd.path);
     const box = $('ssd-breadcrumbs-path');
-    if (!ssd.path) { box.innerHTML = ''; return; }
+    if (!ssd.path) {
+      box.innerHTML = pcHomeOn() ? '<span class="crumb">Home</span>' : '';
+      $('ssd-back-btn').classList.add('disabled');
+      return;
+    }
     const sep = sepOf(ssd.path);
     const root = pl ? pl.root : isCloudId(ssd.path) ? ssd.path.slice(0, ssd.path.indexOf(':') + 1) : ssd.path.slice(0, 3);
     const rest = ssd.path.slice(root.length).split(sep).filter(Boolean);
     let acc = root.replace(/\\$/, '');
-    let html = `<span class="crumb" data-act="ssd-crumb" data-path="${esc(root)}">${esc(pl ? pl.label : root)}</span>`;
+    let html = (pcHomeOn() ? '<span class="crumb" data-act="ssd-home">Home</span><span class="crumb-sep">›</span>' : '')
+      + `<span class="crumb" data-act="ssd-crumb" data-path="${esc(root)}">${esc(pl ? pl.label : root)}</span>`;
     for (const seg of rest) {
       acc += (acc.endsWith(':') && sep === '/' ? '' : sep) + seg;
       html += `<span class="crumb-sep">›</span><span class="crumb" data-act="ssd-crumb" data-path="${esc(acc)}" data-no-i18n>${esc(seg)}</span>`;
@@ -3018,7 +3097,7 @@
     box.innerHTML = html;
     box.scrollLeft = box.scrollWidth;
     ssd.root = root;
-    $('ssd-back-btn').classList.toggle('disabled', !rest.length);
+    $('ssd-back-btn').classList.toggle('disabled', !rest.length && !pcHomeOn());
   }
   /** A browser without IndexedDB keeps the 12 most recent folders here (as before); the app uses `lists`. */
   function persistDirCache() {
@@ -3213,6 +3292,7 @@
     return apiUrl('/api/fs/thumb', { path: id, w: ssd.grid ? 320 : 160 });
   }
   function ssdUp() {
+    if (ssd.path && ssd.path.length <= ssd.root.length && pcHomeOn()) { loadPcHome(); return true; }
     if (!ssd.path || ssd.path.length <= ssd.root.length) return false;
     const sep = sepOf(ssd.path);
     const trimmed = sep === '\\' ? ssd.path.replace(/\\+$/, '') : ssd.path.replace(/\/+$/, '');
@@ -4342,6 +4422,7 @@
     'ssd-place': (el) => loadSsd(el.dataset.root),
     'ssd-crumb': (el) => loadSsd(el.dataset.path),
     'ssd-up': () => ssdUp(),
+    'ssd-home': () => loadPcHome(true),
     'ssd-refresh': () => {
       if (cloudSource() === 'drive') { if (ssd.path) { ssd.cache.delete(ssd.path); loadSsd(ssd.path, true); } else openSsdTab(); if (link.state !== 'paused') pollStatus(); }
       else if (link.state !== 'online') pollStatus(); else if (ssd.path && ssd.kind) loadSsdKind(ssd.kind); else if (ssd.path) loadSsd(ssd.path, true); else openSsdTab();

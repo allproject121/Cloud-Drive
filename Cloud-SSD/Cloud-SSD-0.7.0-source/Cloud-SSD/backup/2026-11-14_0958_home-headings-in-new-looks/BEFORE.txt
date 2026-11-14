@@ -1,0 +1,7 @@
+﻿Work: home-headings-in-new-looks
+Source as it was before the work started: 603 files, 12.3 MB.
+Taken: 2026-11-14 09:58
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-14_0958_home-headings-in-new-looks"
+and write complete\README.md.

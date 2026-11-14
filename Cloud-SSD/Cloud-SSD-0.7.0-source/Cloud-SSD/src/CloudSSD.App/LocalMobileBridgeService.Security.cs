@@ -34,7 +34,7 @@ public sealed partial class LocalMobileBridgeService
     [
         "device-tokens", "media-url", "settings", "save-restore", "pc-control", "upload-resume", "download-range",
         "fs-search", "fs-details", "tailnet", "pair-link", "space", "space-phone", "game-stream", "hello-proof",
-        "device-kind", "presence", "ping", "read-purpose", "fs-local-roots", "links", "access", "share", "peer", "ring", "clip", "vitals", "relay", "pairback", "wol", "whenoff", "upload-clash",
+        "device-kind", "presence", "ping", "read-purpose", "fs-local-roots", "links", "access", "share", "peer", "ring", "clip", "vitals", "relay", "pairback", "wol", "whenoff", "upload-clash", "pc-home",
         .. (ThumbnailFactory != null ? new[] { "fs-thumb" } : Array.Empty<string>())
     ];
 
@@ -340,7 +340,7 @@ public sealed partial class LocalMobileBridgeService
         }
         return p switch
         {
-            "/api/files" or "/api/preview" or "/api/drives" => [Browsing],
+            "/api/files" or "/api/preview" or "/api/drives" or "/api/pc/home" => [Browsing],
             "/api/stream" or "/api/download" or "/api/media-url" => [Streaming],
             "/api/open-pc" => [Streaming, PcControl],
             "/api/upload" or "/api/upload/status" or "/api/upload/folder" or "/api/upload/clashes" => [Uploads],

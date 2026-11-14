@@ -165,7 +165,15 @@
 :root:is([data-look="kit"], [data-look="paper"], [data-look="glow"]) .nl-home { display: flex; }
 /* The older Home tiles give their numbers to #nl-home and stay out of sight. */
 :root:is([data-look="kit"], [data-look="paper"], [data-look="glow"]) .nl-old-tiles { display: none; }
-:root:is([data-look="kit"], [data-look="paper"], [data-look="glow"]) .nl-send-sec > .section-header { display: none; }
+/* The headings the older Home has are here too: "System & Storage" with Live at its right over the cards, a small
+   heading over each row of cards, and "Send to PC" (the page's own) over the send tiles. */
+.nl-head { margin: 4px 0 -4px; }
+.nl-head-live { display: flex; align-items: center; gap: 6px; cursor: default; color: var(--nl-accent); }
+.nl-off .nl-head-live { color: var(--dim); }
+.nl-home .hw-group-title { margin: 0 2px -6px; color: var(--dim); }
+.nl-home .hw-group-title:empty { display: none; }
+/* Glow says Live beside the PC's name already. */
+:root[data-look="glow"] .nl-head-live { display: none; }
 /* The search bar opens from the title row's search button, and for as long as a search is on. */
 :root:is([data-look="kit"], [data-look="paper"], [data-look="glow"]) .search-header { display: none; }
 :root:is([data-look="kit"], [data-look="paper"], [data-look="glow"]) body:is(.nl-search, .searching) .search-header { display: block; }
@@ -195,7 +203,9 @@
 .nl-store-label { font-size: 11px; color: var(--dim); }
 .nl-store-big { font-family: var(--nl-head); font-size: 17px; font-weight: 600; line-height: 1.15; }
 .nl-store-word, .nl-store-sub { font-size: 11px; color: var(--dim); line-height: 1.3; overflow-wrap: anywhere; }
-.nl-store-bar { height: 5px; border-radius: 3px; background: rgb(var(--ink) / 0.08); margin-top: 4px; overflow: hidden; }
+/* The bar sits at the foot of its card, so the bars of a row are on one line whatever the text above them. */
+.nl-store-bar { height: 5px; flex: none; border-radius: 3px; background: rgb(var(--ink) / 0.08); margin-top: auto; overflow: hidden; }
+.nl-store-sub { margin-bottom: 6px; }
 .nl-store-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--nl-accent); }
 .nl-ring { display: none; position: relative; width: 72px; height: 72px; }
 .nl-ring svg { width: 72px; height: 72px; display: block; }
@@ -203,9 +213,6 @@
 .nl-ring circle:first-child { stroke: #27272B; }
 .nl-ring circle:last-child { stroke: var(--nl-accent); stroke-linecap: round; }
 .nl-ring b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--nl-head); font-size: 16px; font-weight: 700; }
-.nl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.nl-chip { height: 32px; padding: 0 10px; border: none; border-radius: 10px; font: inherit; font-size: 12px; color: var(--md-sys-color-on-surface); background: var(--md-sys-color-surface); cursor: pointer; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nl-chip b { font-weight: 600; }
 
 /* The three looks in the picker. */
 .look-swatch-kit i:nth-child(1) { background: #3457F1; flex: 1.4; }
@@ -238,7 +245,7 @@
 :root[data-look="kit"] .nl-pc-actions button { flex: 1; min-width: 0; height: 40px; border: none; border-radius: 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: rgb(255 255 255 / 0.16); color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 8px; }
 :root[data-look="kit"] .nl-pc-actions button:first-child { background: #FFFFFF; color: #2A44C8; }
 /* Cards: white, no border, no shadow. */
-:root[data-look="kit"] :is(.hw-widget-card, .cat-grid-card, .storage-device-card, .recent-card, .recent-empty-card, .recent-file-card,
+:root[data-look="kit"] :is(.hw-widget-card, .cat-grid-card, .pc-drive-row, .storage-device-card, .recent-card, .recent-empty-card, .recent-file-card,
   .clean-card, .share-btn-card, .gaming-hero-card, .phone-permission-card, .mini-media-card, .usage-rows, .xfer-card,
   .transfer-card-item, .device-row, .explorer-item, .phone-file-item, .phone-item-row, .file-row-item, .conn-row, .gm-card,
   .more-me, .more-row, .xt-card, .xt-list, .send-tile, .phone-quick-btn, .settings-row, .perm-row, .pc-connection-banner-card, .saver-card) { border-color: transparent; box-shadow: none; }
@@ -278,7 +285,9 @@
 :root[data-look="paper"] .nl-store-big { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
 :root[data-look="paper"] .nl-store-word, :root[data-look="paper"] .nl-store-sub { font-size: 12px; }
 :root[data-look="paper"] .nl-store-bar { display: none; }
-:root[data-look="paper"] .nl-chip { background: transparent; border: 1px solid var(--look-line); border-radius: 8px; }
+/* "Live" is a state, not a link; and the second row needs no line under it: the next heading brings its own. */
+:root[data-look="paper"] .nl-home .nl-head-live { text-decoration: none; }
+:root[data-look="paper"] .nl-more { border-bottom: none; }
 :root[data-look="paper"] .nl-home { gap: 12px; margin-bottom: 14px; }
 /* Send: three outlined buttons, the first one filled. */
 :root[data-look="paper"] .send-tile { flex-direction: row; justify-content: center; gap: 6px; height: 46px; padding: 0 6px; border: 1.5px solid #111318; border-radius: 12px; background: #FFFFFF; color: #111318; }
@@ -290,7 +299,7 @@
 :root[data-look="paper"] #tab-home .section-header { border-top: 1px solid var(--look-line); padding-top: 10px; margin-bottom: 6px; }
 :root[data-look="paper"] .section-action { text-decoration: underline; }
 /* Cards: thin lines, small corners, no shadow; icon holders have no fill. */
-:root[data-look="paper"] :is(.hw-widget-card, .cat-grid-card, .storage-device-card, .recent-card, .clean-card, .share-btn-card,
+:root[data-look="paper"] :is(.hw-widget-card, .cat-grid-card, .pc-drive-row, .storage-device-card, .recent-card, .clean-card, .share-btn-card,
   .gaming-hero-card, .phone-permission-card, .mini-media-card, .usage-rows, .device-row, .modal-card, .more-me, .more-row,
   .explorer-item, .phone-file-item, .phone-item-row, .file-row-item, .xfer-card, .transfer-card-item, .phone-quick-btn, .pc-connection-banner-card,
   .saver-card, .settings-row, .perm-row, .look-card) { border-radius: 12px; box-shadow: none; }
@@ -341,14 +350,13 @@
 :root[data-look="glow"] .nl-store-word { display: none; }
 :root[data-look="glow"] .nl-store-sub { order: 3; }
 :root[data-look="glow"] .nl-store-bar { display: none; }
-:root[data-look="glow"] .nl-chip { border-radius: 16px; }
 /* Send: tall tiles, the first one lit. */
 :root[data-look="glow"] .send-tile { align-items: flex-start; justify-content: space-between; height: 76px; padding: 12px; border-radius: 22px; border-color: transparent; }
 :root[data-look="glow"] .send-tile:first-child { background: var(--md-sys-color-primary); color: #0A0A0C; }
 :root[data-look="glow"] .send-tile-icon { width: 20px; height: 20px; background: transparent; border-radius: 0; }
 :root[data-look="glow"] .send-tile-icon svg { fill: currentColor; }
 /* Cards: no borders, big corners. */
-:root[data-look="glow"] :is(.hw-widget-card, .cat-grid-card, .storage-device-card, .recent-card, .recent-empty-card, .recent-file-card,
+:root[data-look="glow"] :is(.hw-widget-card, .cat-grid-card, .pc-drive-row, .storage-device-card, .recent-card, .recent-empty-card, .recent-file-card,
   .clean-card, .share-btn-card, .gaming-hero-card, .phone-permission-card, .mini-media-card, .usage-rows, .xfer-card,
   .transfer-card-item, .device-row, .explorer-item, .phone-file-item, .phone-item-row, .file-row-item, .conn-row, .gm-card,
   .more-me, .more-row, .xt-card, .send-tile, .phone-quick-btn, .settings-row, .perm-row, .pc-connection-banner-card, .saver-card) { border-color: transparent; box-shadow: none; }
@@ -410,7 +418,7 @@
     radial-gradient(70% 45% at 34% 90%, rgba(165, 180, 252, 0.16), transparent 72%);
 }
 /* The parts made by newlooks.js become panes of glass too (Paper's storages have no box, so they stay as they are). */
-:root[data-glass="on"]:is([data-look="kit"], [data-look="glow"]) :is(.nl-store, .nl-chip, .nl-icon-btn:not(.nl-me)) {
+:root[data-glass="on"]:is([data-look="kit"], [data-look="glow"]) :is(.nl-store, .nl-icon-btn:not(.nl-me)) {
   background: var(--glass-fill);
   -webkit-backdrop-filter: var(--glass-blur-soft);
   backdrop-filter: var(--glass-blur-soft);

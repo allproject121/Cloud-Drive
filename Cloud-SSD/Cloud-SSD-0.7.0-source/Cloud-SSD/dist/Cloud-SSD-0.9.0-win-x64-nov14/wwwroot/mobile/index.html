@@ -1011,8 +1011,9 @@
         <div class="access-text">Allow it only if you are at that PC. You can stop it any time in Profile → Permissions.</div>
       </div>
       <div class="access-list">
-        <button class="peer-scope on" data-act="peer-scope" data-s="shared"><strong>Photos, downloads, documents and music</strong><span>DCIM, Pictures, Movies, Music, Download, Documents</span></button>
-        <button class="peer-scope" data-act="peer-scope" data-s="all"><strong>Whole phone storage</strong><span>Everything except other apps' private data</span></button>
+        <!-- The whole storage first: the PC then shows this phone as the phone shows itself. -->
+        <button class="peer-scope on" data-act="peer-scope" data-s="all"><strong>Whole phone storage</strong><span>Everything except other apps' private data</span></button>
+        <button class="peer-scope" data-act="peer-scope" data-s="shared"><strong>Photos, downloads, documents and music</strong><span>DCIM, Pictures, Movies, Music, Download, Documents</span></button>
       </div>
       <!-- Both ways: the PC may also put files and folders into those folders. -->
       <label class="peer-write-row"><input type="checkbox" id="peer-write" data-act="peer-write" checked> <span>Let it add files and folders too</span></label>

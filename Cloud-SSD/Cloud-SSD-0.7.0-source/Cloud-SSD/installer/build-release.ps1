@@ -71,6 +71,16 @@ SHA256SUMS file (included). SHA256 of rclone.exe: $hash
 "@
 Copy-Item (Join-Path $repo "THIRD_PARTY_NOTICES.md") $stage -Force
 
+# 4b. WinFsp's official installer goes along (tools\winfsp): the app and the install script put it on a PC that lacks it.
+# Only the genuine one: it must carry a valid signature of its maker.
+$winfspBundled = Get-ChildItem (Join-Path $repo "tools\winfsp") -Filter "winfsp*.msi" -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
+if ($winfspBundled) {
+    $bundledSig = Get-AuthenticodeSignature $winfspBundled.FullName
+    if ($bundledSig.Status -ne "Valid" -or $bundledSig.SignerCertificate.Subject -notmatch "NAVIMATICS LLC") { throw "tools\winfsp\$($winfspBundled.Name): signature check failed ($($bundledSig.Status))" }
+    New-Item -ItemType Directory -Force (Join-Path $stage "tools\winfsp") | Out-Null
+    Copy-Item $winfspBundled.FullName (Join-Path $stage "tools\winfsp") -Force
+} else { Write-Host "tools\winfsp has no installer: the release will not be able to install WinFsp itself." -ForegroundColor Yellow }
+
 # Optional publisher Google OAuth client (Desktop app client JSON from Google Cloud, renamed). It is only useful to
 # everyone once the Google project is "In production"; in Testing mode only listed test users can sign in with it.
 $publisherKey = Join-Path $PSScriptRoot "google-client.json"

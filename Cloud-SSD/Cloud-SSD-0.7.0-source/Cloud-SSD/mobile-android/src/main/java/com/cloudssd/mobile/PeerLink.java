@@ -38,7 +38,8 @@ import java.util.concurrent.Executors;
  */
 final class PeerLink {
     interface Listener {
-        void onAsk(String pcId, String pcName);
+        /** scope: what to offer first, "all" (the whole storage) or "shared". */
+        void onAsk(String pcId, String pcName, String scope);
     }
 
     private static final String TAG = "CloudSSD.Peer";
@@ -68,7 +69,11 @@ final class PeerLink {
 
     private PeerLink(Context c) {
         ctx = c;
+        appCtx = c;
     }
+
+    /** For the kinds of files (a static walk): Android's media index is asked through it. */
+    private static volatile Context appCtx;
 
     void setListener(Listener l) {
         listener = l;
@@ -219,6 +224,13 @@ final class PeerLink {
                 return;
             }
             Grants.Grant g = Grants.get(ctx, pc);
+            if ("fs.askAll".equals(kind)) {
+                // The PC wants to show this phone as the phone shows itself: the whole storage. This phone's person decides.
+                if (g != null && "all".equals(g.scope)) { answerJson(server, token, id, new JSONObject().put("scope", "all")); return; }
+                ask(pc, args == null ? "" : args.optString("asker", ""), g != null && g.write, "all");
+                answerJson(server, token, id, new JSONObject().put("asked", true));
+                return;
+            }
             if (g == null) {
                 // Through the PC, another of its devices (a laptop) may be the one asking: say who.
                 ask(pc, args == null ? "" : args.optString("asker", ""));
@@ -314,9 +326,9 @@ final class PeerLink {
             {"jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp"},
             {"mp4", "mkv", "mov", "avi", "webm", "3gp", "m4v"},
             {"mp3", "m4a", "aac", "wav", "flac", "ogg", "opus", "amr"},
-            {"pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "rtf", "odt", "md"},
-            {"apk", "apks", "xapk"},
-            {"zip", "rar", "7z", "tar", "gz", "tgz", "bz2"}};
+            {"pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "rtf", "odt", "ods", "odp", "epub"},
+            {"apk", "apks", "xapk", "apkm"},
+            {"zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "iso"}};
     private static final java.util.HashMap<String, Integer> EXT_CAT = new java.util.HashMap<>();
 
     static {
@@ -355,6 +367,15 @@ final class PeerLink {
         long now = System.currentTimeMillis();
         if (!refresh && catCache != null && catCacheScope.equals(g.scope) && now - catCacheAt < 60000) return catCache;
         java.util.ArrayList<CatFile> out = new java.util.ArrayList<>();
+        // The whole storage allowed: the same count as this phone's own Phone tab (Android's media index, which also
+        // has WhatsApp and other apps' shared media), so the PC shows the numbers the phone shows.
+        if ("all".equals(g.scope) && appCtx != null && mediaIndex(appCtx, out)) {
+            catCache = out;
+            catCacheScope = g.scope;
+            catCacheAt = now;
+            return out;
+        }
+        out.clear();
         java.util.ArrayDeque<File> todo = new java.util.ArrayDeque<>();
         if ("all".equals(g.scope)) todo.add(storageRoot());
         else for (String s : SHARED) todo.add(new File(storageRoot(), s));
@@ -381,6 +402,39 @@ final class PeerLink {
         catCacheScope = g.scope;
         catCacheAt = now;
         return out;
+    }
+
+    /**
+     * The kinds from Android's media index, as MainActivity.buildStorageReport counts them: pictures, videos and audio by
+     * the index's own type; the rest by name (documents, apps, archives). False when the index cannot be read.
+     */
+    private static boolean mediaIndex(Context c, java.util.ArrayList<CatFile> out) {
+        String[] proj = {android.provider.MediaStore.MediaColumns.DATA, android.provider.MediaStore.MediaColumns.SIZE,
+                android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE, android.provider.MediaStore.MediaColumns.DATE_MODIFIED};
+        String root = storageRoot().getAbsolutePath() + "/";
+        try (android.database.Cursor cur = c.getContentResolver().query(android.provider.MediaStore.Files.getContentUri("external"), proj, null, null, null)) {
+            if (cur == null) return false;
+            while (cur.moveToNext()) {
+                String path = cur.getString(0);
+                long size = cur.getLong(1);
+                if (path == null || size <= 0 || !path.startsWith(root)) continue;
+                int type = cur.getInt(2);
+                String name = path.substring(path.lastIndexOf('/') + 1);
+                int cat;
+                if (type == android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE) cat = 0;
+                else if (type == android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO) cat = 1;
+                else if (type == android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO) cat = 2;
+                else {
+                    cat = catOf(name);
+                    if (cat < 3) continue;                       // a picture or clip the index does not show: "other" on the phone too
+                }
+                out.add(new CatFile(path.substring(root.length()), name, size, cur.getLong(3) * 1000L, cat));
+            }
+            return true;
+        } catch (Exception e) {
+            Log.w(TAG, "media index failed", e);
+            return false;
+        }
     }
 
     /** Files changed (the PC added some): the kinds are counted again next time. */
@@ -721,6 +775,11 @@ final class PeerLink {
 
     /** Once a minute at most: the page (when open) and a note with Allow / Deny. write: the PC wants to add files. */
     private void ask(String pc, String asker, boolean write) {
+        ask(pc, asker, write, "all");
+    }
+
+    /** scope: what Allow gives (and the page offers first): "all" = the whole phone storage, as the phone shows it. */
+    private void ask(String pc, String asker, boolean write, String scope) {
         long now = System.currentTimeMillis();
         if (now - lastAsk < 60000) return;
         lastAsk = now;
@@ -730,11 +789,11 @@ final class PeerLink {
         // Allowing it allows the PC (and so what it lets its laptops see), for the time chosen.
         if (asker != null && !asker.trim().isEmpty() && !asker.trim().equals(name)) name = asker.trim() + " via " + name;
         Listener l = listener;
-        if (l != null) l.onAsk(pc, name);
-        notifyAsk(pc, name, write);
+        if (l != null) l.onAsk(pc, name, scope);
+        notifyAsk(pc, name, write, scope);
     }
 
-    private void notifyAsk(String pc, String name, boolean write) {
+    private void notifyAsk(String pc, String name, boolean write, String scope) {
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
         if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null)
@@ -744,7 +803,7 @@ final class PeerLink {
         PendingIntent content = PendingIntent.getActivity(ctx, 0, open, flags);
         Grants.Grant had = Grants.get(ctx, pc);
         PendingIntent allow = PendingIntent.getBroadcast(ctx, 1, new Intent(ctx, PeerDecisionReceiver.class)
-                .putExtra("pc", pc).putExtra("minutes", 60).putExtra("scope", had == null ? "shared" : had.scope)
+                .putExtra("pc", pc).putExtra("minutes", 60).putExtra("scope", "all".equals(scope) || had == null ? "all" : had.scope)
                 .putExtra("write", write || (had != null && had.write)), flags);
         PendingIntent deny = PendingIntent.getBroadcast(ctx, 2, new Intent(ctx, PeerDecisionReceiver.class)
                 .putExtra("pc", pc).putExtra("minutes", -1), flags);
@@ -752,7 +811,7 @@ final class PeerLink {
         b.setSmallIcon(android.R.drawable.ic_menu_view)
                 .setContentTitle(write ? Tr.t(ctx, "{0} wants to add files to this phone", name) : Tr.t(ctx, "{0} wants to see this phone's files", name))
                 .setContentText(write ? Tr.t(ctx, "Allow only if you are at that PC. It can add files and folders for 1 hour.")
-                        : Tr.t(ctx, "Allow only if you are at that PC. Photos, Downloads and Documents for 1 hour."))
+                        : Tr.t(ctx, "Allow only if you are at that PC. Its whole storage for 1 hour."))
                 .setContentIntent(content)
                 .setAutoCancel(true);
         Notification.Action.Builder allowAction = new Notification.Action.Builder(null, Tr.t(ctx, "Allow 1 hour"), allow);

@@ -1,0 +1,7 @@
+Work: native-file-views
+Source as it was before the work started: 598 files, 12.2 MB.
+Taken: 2026-11-14 09:28
+ from the older copy 2026-11-14_0910_before-native-file-views
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-14_0910_native-file-views"
+and write complete\README.md.

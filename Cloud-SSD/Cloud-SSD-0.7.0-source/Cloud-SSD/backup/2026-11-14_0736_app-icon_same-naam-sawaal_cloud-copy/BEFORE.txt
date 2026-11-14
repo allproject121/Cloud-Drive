@@ -1,0 +1,7 @@
+Work: app-icon_same-naam-sawaal_cloud-copy
+Source as it was before the work started: 547 files, 11.9 MB.
+Taken: 2026-11-14 09:23
+ from the older copy 2026-11-14_0736_before-continuing-four-works
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-14_0736_app-icon_same-naam-sawaal_cloud-copy"
+and write complete\README.md.

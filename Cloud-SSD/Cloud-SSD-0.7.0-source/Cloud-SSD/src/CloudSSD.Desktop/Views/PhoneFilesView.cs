@@ -24,12 +24,16 @@ public sealed class PhoneFilesView : UserControl
 {
     private sealed record Entry(string Name, string Path, bool IsDir, long Size, int Count, long Modified);
 
-    /// <summary>The kinds of files, as the phone names them, with what they are called here and their icon.</summary>
+    /// <summary>
+    /// The phone's own categories, in its order and with its names (its Phone tab): Downloads is its Download folder;
+    /// "APK and archives" is two of the phone's kinds together ("+").
+    /// </summary>
     private static readonly (string Key, string Name, string Icon)[] Kinds =
     [
-        ("photos", "Photos", ""), ("videos", "Videos", ""), ("audio", "Audio", ""),
-        ("docs", "Documents", ""), ("apks", "Apps (APK)", ""), ("archives", "Archives", ""),
+        ("downloads", "Downloads", ""), ("photos", "Images", ""), ("videos", "Videos", ""),
+        ("audio", "Audio", ""), ("docs", "Documents", ""), ("apks+archives", "APK and archives", ""),
     ];
+    private const string DownloadsKind = "downloads";
 
     /// <summary>Asks the phone something (fs.roots, fs.list, fs.tree, fs.read, fs.cats, fs.cat): here, or through another PC.</summary>
     private readonly Func<string, Dictionary<string, string>, TimeSpan, Task<PeerResult>> _ask;
@@ -49,7 +53,9 @@ public sealed class PhoneFilesView : UserControl
     private TransferTask? _task;
     private string? _path;          // null = the places the phone allows
     private string? _kind;          // a kind of file is shown instead of a folder
-    private int _retries;
+    private int _retries, _askedAll;
+    private readonly Button _wholePhone;
+    private string _scope = "";
     private bool _busy, _started, _syncingSide;
 
     private static string T(string s) => LocalizationManager.T(s);
@@ -108,13 +114,13 @@ public sealed class PhoneFilesView : UserControl
         root.Children.Add(_taskBox);
 
         // Left: the phone's storage and the kinds of files, like the side of a file manager.
-        _side = new ListBox { Width = 210, Margin = new Thickness(0, 0, 14, 0), BorderThickness = new Thickness(0), Background = Brushes.Transparent };
+        _side = new ListBox { Width = 250, Margin = new Thickness(0, 0, 14, 0), BorderThickness = new Thickness(0), Background = Brushes.Transparent };
         if (Application.Current?.TryFindResource("NavItem") is Style nav) _side.ItemContainerStyle = nav;
         ScrollViewer.SetHorizontalScrollBarVisibility(_side, ScrollBarVisibility.Disabled);
-        _side.Items.Add(SideItem("", T("Phone storage"), null, icons));
+        _side.Items.Add(SideItem("", T("Internal storage"), null, icons));
         if (_device != null)
         {
-            var label = new TextBlock { Text = T("Kinds of files"), FontSize = 11, FontWeight = FontWeights.SemiBold, Margin = new Thickness(14, 12, 0, 4) };
+            var label = new TextBlock { Text = T("Categories"), FontSize = 11, FontWeight = FontWeights.SemiBold, Margin = new Thickness(14, 12, 0, 4) };
             label.SetResourceReference(TextBlock.ForegroundProperty, "Dim");
             _side.Items.Add(new ListBoxItem { Content = label, IsEnabled = false, Focusable = false, Template = PlainTemplate() });
             foreach (var k in Kinds) _side.Items.Add(SideItem(k.Icon, T(k.Name), k.Key, icons));
@@ -123,7 +129,8 @@ public sealed class PhoneFilesView : UserControl
         _side.SelectionChanged += async (_, _) =>
         {
             if (_syncingSide || _side.SelectedItem is not ListBoxItem item) return;
-            if (item.Tag is string kind) await LoadKindAsync(kind);
+            if (item.Tag is DownloadsKind) await LoadAsync("Download");
+            else if (item.Tag is string kind) await LoadKindAsync(kind);
             else await LoadAsync(null);
         };
         DockPanel.SetDock(_side, Dock.Left);
@@ -154,15 +161,21 @@ public sealed class PhoneFilesView : UserControl
         _newFolder.Click += async (_, _) => await NewFolderAsync();
         var selectAll = Tool(T("Select all"));
         selectAll.Click += (_, _) => _list!.SelectAll();
+        // The phone lets this PC see only six folders: ask it (its person decides) for the whole storage.
+        _wholePhone = Tool(T("Show the whole phone"));
+        _wholePhone.Visibility = Visibility.Collapsed;
+        _wholePhone.Click += async (_, _) => await AskWholePhoneAsync();
         var openSaved = Tool(T("Open the save folder"));
         openSaved.Click += (_, _) => { Directory.CreateDirectory(SaveFolder()); OpenInExplorer(SaveFolder()); };
-        foreach (var b in new[] { _save, selectAll, _addFiles, _addFolder, _newFolder, openSaved }) tools.Children.Add(b);
+        foreach (var b in new[] { _save, selectAll, _addFiles, _addFolder, _newFolder, openSaved, _wholePhone }) tools.Children.Add(b);
         DockPanel.SetDock(tools, Dock.Top);
         root.Children.Add(tools);
 
         // The folder or the kind: several can be picked (Ctrl / Shift); files from Explorer can be dropped in.
         var listArea = new Grid();
         _list = new ListBox { SelectionMode = SelectionMode.Extended, AllowDrop = _device != null, MinHeight = 220 };
+        // Long names are cut with "…", the size and date stay in view (no sideways scrolling).
+        ScrollViewer.SetHorizontalScrollBarVisibility(_list, ScrollBarVisibility.Disabled);
         _list.SetResourceReference(BackgroundProperty, "Surface");
         _list.SetResourceReference(ForegroundProperty, "Text");
         _list.SetResourceReference(BorderBrushProperty, "BorderBrush");
@@ -312,13 +325,27 @@ public sealed class PhoneFilesView : UserControl
             if (path != null) args["path"] = path;
             var r = await _ask(path is null ? "fs.roots" : "fs.list", args, TimeSpan.FromSeconds(20));
             if (!IsLoaded) return;
+            if (r.Ok && path is null && r.Json is { } rootsJson)
+            {
+                _scope = rootsJson.TryGetProperty("scope", out var sc) ? sc.GetString() ?? "" : "";
+                if (_scope == "all")
+                {
+                    r = await _ask("fs.list", new Dictionary<string, string> { ["path"] = "" }, TimeSpan.FromSeconds(20));
+                    if (!IsLoaded) return;
+                    if (r.Ok) _askedAll = 0;
+                }
+                else if (_askedAll > 0 && _askedAll++ < 40) _retry.Start();     // still waiting for the phone's Allow
+                _wholePhone.Visibility = _device != null && _scope == "shared" ? Visibility.Visible : Visibility.Collapsed;
+            }
             if (r.Ok)
             {
                 _retries = 0;
                 _path = path;
                 _kind = null;
-                SelectSide(null);
-                Show(r.Json!.Value, path is null);
+                SelectSide(path == "Download" ? DownloadsKind : null);
+                Show(r.Json!.Value, path is null && _scope != "all");
+                if (path is null && _scope == "all") _status.Text = L("{0}: the whole storage, as the phone shows it.", _name) + (_device != null ? " " + T("Open a folder to add files to it.") : "");
+                if (path is null && _askedAll > 1) _status.Text = L("Allow it on {0}: a note is waiting there (Allow 1 hour), or open Cloud-SSD on it.", _name);
                 if (path is null) _ = LoadCountsAsync(false);
             }
             else if (Explain(r)) _retry.Start();
@@ -336,12 +363,58 @@ public sealed class PhoneFilesView : UserControl
         if (_device is null) return;
         var r = await _ask("fs.cats", new Dictionary<string, string> { ["refresh"] = refresh ? "1" : "" }, TimeSpan.FromSeconds(40));
         if (!r.Ok || r.Json is not { } json || !json.TryGetProperty("cats", out var cats)) return;
+        var sums = new Dictionary<string, (int Count, long Bytes)>();
         foreach (var c in cats.EnumerateArray())
-            if (_kindCounts.TryGetValue(c.GetProperty("key").GetString() ?? "", out var text))
-                text.Text = c.GetProperty("count").GetInt32().ToString("N0");
+        {
+            var key = c.GetProperty("key").GetString() ?? "";
+            var mine = Kinds.FirstOrDefault(k => k.Key.Split('+').Contains(key)).Key;
+            if (mine is null) continue;
+            var had = sums.GetValueOrDefault(mine);
+            sums[mine] = (had.Count + c.GetProperty("count").GetInt32(), had.Bytes + (c.TryGetProperty("bytes", out var b) ? b.GetInt64() : 0));
+        }
+        foreach (var (key, v) in sums)
+            if (_kindCounts.TryGetValue(key, out var text)) text.Text = CountText(v.Count, v.Bytes);
+        // Downloads: the files in the Download folder itself (not its folders), as the phone counts them.
+        var dl = await _ask("fs.list", new Dictionary<string, string> { ["path"] = "Download" }, TimeSpan.FromSeconds(20));
+        if (dl.Ok && dl.Json is { } dj && dj.TryGetProperty("files", out var files) && _kindCounts.TryGetValue(DownloadsKind, out var dlText))
+        {
+            var real = files.EnumerateArray().Where(x => !(x.GetProperty("name").GetString() ?? "").StartsWith('.')).ToList();
+            dlText.Text = real.Count == 0 ? T("Empty") : CountText(real.Count, real.Sum(x => x.TryGetProperty("size", out var z) ? z.GetInt64() : 0));
+        }
     }
 
-    /// <summary>Every file of one kind on the phone, newest first.</summary>
+    /// <summary>"14 · 119 MB", or "None", as the phone writes it under a category.</summary>
+    private static string CountText(int count, long bytes) => count == 0 ? T("None") : count.ToString("N0") + " · " + Dec(bytes);
+
+    /// <summary>A size as the phone writes it (1000s, three digits): "340 MB", "43.3 MB".</summary>
+    internal static string Dec(long b)
+    {
+        if (b < 1) return "0 B";
+        string[] u = ["B", "kB", "MB", "GB", "TB"];
+        int i = Math.Min(u.Length - 1, (int)Math.Floor(Math.Log(b) / Math.Log(1000)));
+        double v = b / Math.Pow(1000, i);
+        var n = v.ToString(i == 0 || v >= 100 ? "0" : v >= 10 ? "0.0" : "0.00", System.Globalization.CultureInfo.InvariantCulture);
+        return n + " " + u[i];
+    }
+
+    /// <summary>Asks the phone to let this PC see its whole storage (its person answers there); then waits for it.</summary>
+    private async Task AskWholePhoneAsync()
+    {
+        _wholePhone.IsEnabled = false;
+        try
+        {
+            var r = await _ask("fs.askAll", new Dictionary<string, string>(), TimeSpan.FromSeconds(20));
+            if (!IsLoaded) return;
+            if (r.Ok && r.Json is { } j && j.TryGetProperty("scope", out var sc) && sc.GetString() == "all") { await LoadAsync(null); return; }
+            if (!r.Ok) { Explain(r); return; }
+            _askedAll = 1;
+            _status.Text = L("Allow it on {0}: a note is waiting there (Allow 1 hour), or open Cloud-SSD on it.", _name);
+            _retry.Start();
+        }
+        finally { _wholePhone.IsEnabled = true; }
+    }
+
+    /// <summary>Every file of one category on the phone, newest first (two of the phone's kinds for "APK and archives").</summary>
     private async Task LoadKindAsync(string kind)
     {
         if (_busy) return;
@@ -349,16 +422,21 @@ public sealed class PhoneFilesView : UserControl
         _status.Text = L("Asking {0}…", _name);
         try
         {
-            var r = await _ask("fs.cat", new Dictionary<string, string> { ["cat"] = kind }, TimeSpan.FromSeconds(40));
-            if (!IsLoaded) return;
-            if (!r.Ok || r.Json is not { } json) { Explain(r); SelectSide(_kind); return; }
-            _kind = kind;
             var entries = new List<Entry>();
-            foreach (var f in json.GetProperty("files").EnumerateArray())
-                entries.Add(new Entry(f.GetProperty("name").GetString() ?? "", f.GetProperty("path").GetString() ?? "", false,
-                    f.GetProperty("size").GetInt64(), 0, f.TryGetProperty("modified", out var m) ? m.GetInt64() : 0));
-            int total = json.TryGetProperty("total", out var t) ? t.GetInt32() : entries.Count;
-            _status.Text = L("{0} files", total.ToString("N0")) + " · " + ByteSize.Format(entries.Sum(e => e.Size))
+            int total = 0;
+            foreach (var part in kind.Split('+'))
+            {
+                var r = await _ask("fs.cat", new Dictionary<string, string> { ["cat"] = part }, TimeSpan.FromSeconds(40));
+                if (!IsLoaded) return;
+                if (!r.Ok || r.Json is not { } json) { Explain(r); SelectSide(_kind); return; }
+                foreach (var f in json.GetProperty("files").EnumerateArray())
+                    entries.Add(new Entry(f.GetProperty("name").GetString() ?? "", f.GetProperty("path").GetString() ?? "", false,
+                        f.GetProperty("size").GetInt64(), 0, f.TryGetProperty("modified", out var m) ? m.GetInt64() : 0));
+                total += json.TryGetProperty("total", out var t) ? t.GetInt32() : json.GetProperty("files").GetArrayLength();
+            }
+            _kind = kind;
+            entries = entries.OrderByDescending(e => e.Modified).ToList();
+            _status.Text = L("{0} files", total.ToString("N0")) + " · " + Dec(entries.Sum(e => e.Size))
                 + (total > entries.Count ? " · " + L("the newest {0} are shown", entries.Count.ToString("N0")) : "");
             ShowCrumbs();
             Fill(entries, showFolder: true);
@@ -414,7 +492,7 @@ public sealed class PhoneFilesView : UserControl
         foreach (var e in entries)
         {
             var row = new DockPanel();
-            var detail = e.IsDir ? (e.Count >= 0 ? L("{0} items", e.Count) : "") : ByteSize.Format(e.Size);
+            var detail = e.IsDir ? (e.Count >= 0 ? L("{0} items", e.Count) : "") : Dec(e.Size);
             if (e.Modified > 0) detail += (detail.Length > 0 ? "   " : "") + DateTimeOffset.FromUnixTimeMilliseconds(e.Modified).LocalDateTime.ToString("dd MMM yyyy HH:mm");
             var info = new TextBlock { Text = detail, FontSize = 11.5, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             info.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
@@ -430,7 +508,7 @@ public sealed class PhoneFilesView : UserControl
             if (showFolder)
             {
                 int slash = e.Path.LastIndexOf('/');
-                var where = new TextBlock { Text = slash > 0 ? e.Path[..slash].Replace("/", " › ") : T("Phone storage"), FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
+                var where = new TextBlock { Text = slash > 0 ? e.Path[..slash].Replace("/", " › ") : T("Internal storage"), FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
                 where.SetResourceReference(TextBlock.ForegroundProperty, "Dim");
                 names.Children.Add(where);
             }
@@ -441,7 +519,7 @@ public sealed class PhoneFilesView : UserControl
         }
     }
 
-    /// <summary>"Phone storage › DCIM › Camera" (each part opens that folder), or "Kinds of files › Photos".</summary>
+    /// <summary>"Internal storage › DCIM › Camera" (each part opens that folder), or "Categories › Images".</summary>
     private void ShowCrumbs()
     {
         _crumbs.Children.Clear();
@@ -460,13 +538,13 @@ public sealed class PhoneFilesView : UserControl
         }
         if (_kind != null)
         {
-            Crumb(T("Kinds of files"), null);
+            Crumb(T("Categories"), null);
             Sep();
             Crumb(T(Kinds.First(k => k.Key == _kind).Name), null);
             return;
         }
         var parts = _path is null ? Array.Empty<string>() : _path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        Crumb(T("Phone storage"), parts.Length == 0 ? null : () => LoadAsync(null));
+        Crumb(T("Internal storage"), parts.Length == 0 ? null : () => LoadAsync(null));
         for (int i = 0; i < parts.Length; i++)
         {
             Sep();
@@ -558,7 +636,7 @@ public sealed class PhoneFilesView : UserControl
         var count = L("{0} of {1}", t.DoneFiles, t.Files);
         _taskInfo.Text = t.State switch
         {
-            "running" or "waiting" => count + (t.Speed > 0 ? " · " + ByteSize.Format(t.Speed) + "/s" : "") + (t.Current.Length > 0 ? " · " + t.Current : ""),
+            "running" or "waiting" => count + (t.Speed > 0 ? " · " + Dec(t.Speed) + "/s" : "") + (t.Current.Length > 0 ? " · " + t.Current : ""),
             "done" => L("Done: {0} files", t.DoneFiles) + " · " + (t.Dir == "toPhone" ? t.SaveTo : t.OpenPath),
             "partial" => L("{0} done, {1} failed", t.DoneFiles, t.Failed.Count) + " · " + Reason(t),
             "failed" => T("Failed") + " · " + Reason(t),

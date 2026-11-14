@@ -13,7 +13,9 @@
 param(
     [switch]$DesktopShortcut,
     [string]$InstallDir = (Join-Path $env:LOCALAPPDATA "Programs\Cloud-SSD"),
-    [switch]$Quiet
+    [switch]$Quiet,
+    # Do not install WinFsp even when it is missing (the app offers it at its first start).
+    [switch]$SkipWinFsp
 )
 $ErrorActionPreference = "Stop"
 $src = $PSScriptRoot
@@ -25,8 +27,14 @@ if ($running) { throw "Cloud-SSD is running from $InstallDir. Close it first." }
 Write-Host "Installing Cloud-SSD to $InstallDir ..."
 New-Item -ItemType Directory -Force $InstallDir | Out-Null
 # Replace program files only; user data lives in %LOCALAPPDATA%\Cloud-SSD and is never touched here.
-Get-ChildItem $src -Force | Where-Object { $_.Name -notin @("Install.cmd") } | ForEach-Object {
-    Copy-Item $_.FullName (Join-Path $InstallDir $_.Name) -Recurse -Force
+# Folders are merged into the ones that are there (robocopy): Copy-Item would put "tools" inside an existing "tools".
+robocopy $src $InstallDir /E /XF Install.cmd /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+if ($LASTEXITCODE -ge 8) { throw "Copying the program files failed (robocopy $LASTEXITCODE)." }
+$global:LASTEXITCODE = 0
+# Leftovers of the earlier way of copying: a folder inside the folder of the same name (tools\tools, wwwroot\wwwroot…).
+Get-ChildItem $src -Directory | ForEach-Object {
+    $nested = Join-Path (Join-Path $InstallDir $_.Name) $_.Name
+    if ((Test-Path $nested) -and -not (Test-Path (Join-Path $_.FullName $_.Name))) { Remove-Item $nested -Recurse -Force }
 }
 
 $exeName = if (Test-Path (Join-Path $InstallDir "Cloud-SSD.exe")) { "Cloud-SSD.exe" } else { "CloudPlayX.exe" }
@@ -63,9 +71,21 @@ Set-ItemProperty $key EstimatedSize $size -Type DWord
 $winfsp = Test-Path "${env:ProgramFiles(x86)}\WinFsp\bin\winfsp-x64.dll"
 Write-Host ""
 Write-Host "Cloud-SSD $version installed." -ForegroundColor Green
+$msi = Get-ChildItem (Join-Path $src "tools\winfsp") -Filter "winfsp*.msi" -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
+if (-not $winfsp -and $msi -and -not $SkipWinFsp -and -not $Quiet) {
+    # The official installer comes in this folder: run it (Windows asks for permission once). Only the genuine one.
+    $sig = Get-AuthenticodeSignature $msi.FullName
+    if ($sig.Status -eq "Valid" -and $sig.SignerCertificate.Subject -match "NAVIMATICS LLC") {
+        Write-Host "Installing WinFsp (needed for the virtual drive) - please approve the Windows prompt..."
+        try {
+            $p = Start-Process msiexec.exe -ArgumentList "/i `"$($msi.FullName)`" /passive /norestart" -Verb RunAs -Wait -PassThru
+            $winfsp = Test-Path "${env:ProgramFiles(x86)}\WinFsp\bin\winfsp-x64.dll"
+        } catch { Write-Host "WinFsp was not installed (the Windows prompt was declined)." -ForegroundColor Yellow }
+    } else { Write-Host "The WinFsp installer in this folder is not the genuine one; it was not run." -ForegroundColor Yellow }
+}
 if (-not $winfsp) {
     Write-Host "WinFsp is NOT installed. The virtual drive needs it." -ForegroundColor Yellow
-    Write-Host "  Download the official installer from https://winfsp.dev/rel/  (or run: winget install WinFsp.WinFsp)"
+    Write-Host "  Cloud-SSD offers to install it when it starts (or run: winget install WinFsp.WinFsp)"
 } else { Write-Host "WinFsp: found." }
 Write-Host "Start Cloud-SSD from the Start menu."
 if (-not $Quiet) { Start-Process $exe }

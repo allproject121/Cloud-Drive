@@ -1616,6 +1616,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         }
     }
 
+    private readonly object _historyFileLock = new();
+
     private void SaveTransferHistory()
     {
         try
@@ -1630,7 +1632,13 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
                 copy = _transferHistory.ToList();
             }
             string json = JsonSerializer.Serialize(copy, JsonOpts);
-            File.WriteAllText(path, json, Encoding.UTF8);
+            // One writer at a time (two transfers can end together), and through a temporary file.
+            lock (_historyFileLock)
+            {
+                var temp = path + ".tmp";
+                File.WriteAllText(temp, json, Encoding.UTF8);
+                File.Move(temp, path, overwrite: true);
+            }
         }
         catch (Exception ex)
         {

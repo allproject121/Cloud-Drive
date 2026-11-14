@@ -108,7 +108,7 @@
 
 /* ---------------------------------------------------------------- 4. cards: see-through panes with a bright edge */
 :root[data-glass="on"][data-look] :is(
-  .hw-widget-card, .cat-grid-card, .send-tile, .phone-quick-btn, .storage-usage-panel,
+  .hw-widget-card, .cat-grid-card, .pc-drive-row, .send-tile, .phone-quick-btn, .storage-usage-panel,
   .xt-card, .xt-list, .xt-empty-card, .recent-empty-card,
   .more-me, .more-row, .pc-connection-banner-card, .saver-card,
   .explorer-item:not(.selected), .phone-item-row:not(.selected), .device-row, .drive-card, .gaming-hero-card, .remote-btn,

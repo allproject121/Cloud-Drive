@@ -169,9 +169,9 @@ public class MainActivity extends Activity {
         return o;
     }
     private final OfflinePins.Listener offlineListener = ev -> emit("offline", ev);
-    private final PeerLink.Listener peerListener = (pc, name) -> {
+    private final PeerLink.Listener peerListener = (pc, name, scope) -> {
         try {
-            emit("peer", new JSONObject().put("type", "ask").put("pc", pc).put("name", name));
+            emit("peer", new JSONObject().put("type", "ask").put("pc", pc).put("name", name).put("scope", scope));
         } catch (JSONException ignored) {
         }
     };

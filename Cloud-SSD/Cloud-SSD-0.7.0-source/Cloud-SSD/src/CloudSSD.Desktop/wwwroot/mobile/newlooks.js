@@ -3,7 +3,8 @@
  *   #nl-top  — a title row above every tab: the tab's name, a search button (it opens the search bar), and on Home
  *              the PC's state (Paper: a line under the name; Glow: the PC's name with a "Live" mark).
  *   #nl-home — the top of Home: the PC as a card (Kit), the three storages (bars in Kit, numbers in Paper, round
- *              gauges in Glow), and small chips for RAM and the PC's drives.
+ *              gauges in Glow), and under them three cards of the same kind for the phone's RAM, the PC's RAM and
+ *              the PC's drives.
  *
  * Both are made here once and shown only in those looks (CSS). Their numbers are taken from the older Home tiles,
  * which app.js keeps filling (they are only hidden), so nothing is fetched twice and a tap here does what a tap on
@@ -23,8 +24,29 @@
     ['pc', 'hw-pcdisk-free', 'hw-pcdisk-val', 'hw-pcdisk-bar'],
     ['cloud', 'hw-ssd-badge', 'hw-ssd-val', 'hw-ssd-bar']
   ];
-  /** The smaller numbers: [key, the tile's value]. */
-  const CHIPS = [['ram', 'hw-ram-pct'], ['pcram', 'hw-pcram-pct'], ['drives', 'hw-pc-drives-val']];
+  /**
+   * The three cards under them, drawn the same way: [key, the tile's value (a percentage, or the drives), the line
+   * under it, its bar]. A RAM tile's line is "used / total"; the drives' is the PC's name.
+   */
+  const MORE = [
+    ['ram', 'hw-ram-pct', 'hw-ram-val', 'hw-ram-bar'],
+    ['pcram', 'hw-pcram-pct', 'hw-pcram-val', 'hw-pcram-bar'],
+    ['drives', 'hw-pc-drives-val', 'hw-pc-status-badge', 'hw-pc-bar']
+  ];
+  /**
+   * One card: a ring (Glow), its name, the big value, a word after it, a line under it, a bar (Kit). Its parts are
+   * named nl-s-<key>-<part>: the PC's own card has an "nl-pc-sub" already, and the storage card of the key "pc"
+   * took that name before, so its line under the number was never filled.
+   */
+  const card = ([key]) => `
+        <button type="button" class="nl-store" data-nl-open="${key}">
+          <span class="nl-ring"><svg viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30"/><circle cx="36" cy="36" r="30" transform="rotate(-90 36 36)" id="nl-s-${key}-arc"/></svg><b id="nl-s-${key}-pct" data-no-i18n></b></span>
+          <span class="nl-store-label" id="nl-s-${key}-label" data-no-i18n></span>
+          <span class="nl-store-big" id="nl-s-${key}-big" data-no-i18n></span>
+          <span class="nl-store-word" id="nl-s-${key}-word" data-no-i18n></span>
+          <span class="nl-store-sub" id="nl-s-${key}-sub" data-no-i18n></span>
+          <span class="nl-store-bar"><i id="nl-s-${key}-bar"></i></span>
+        </button>`;
   const SOURCE = { phone: 'hw-phone-val', pc: 'hw-pcdisk-val', cloud: 'hw-ssd-val', ram: 'hw-ram-val', pcram: 'hw-pcram-val', drives: 'hw-pc-drives-val' };
 
   const tileOf = (key) => { const e = $(SOURCE[key]); return e ? e.closest('.hw-widget-card') : null; };
@@ -68,17 +90,16 @@
           <button type="button" data-nl="pcfiles">Open PC files</button>
         </div>
       </div>
-      <div class="nl-stores">${STORES.map(([key]) => `
-        <button type="button" class="nl-store" data-nl-open="${key}">
-          <span class="nl-ring"><svg viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30"/><circle cx="36" cy="36" r="30" transform="rotate(-90 36 36)" id="nl-${key}-arc"/></svg><b id="nl-${key}-pct" data-no-i18n></b></span>
-          <span class="nl-store-label" id="nl-${key}-label" data-no-i18n></span>
-          <span class="nl-store-big" id="nl-${key}-big" data-no-i18n></span>
-          <span class="nl-store-word" id="nl-${key}-word" data-no-i18n></span>
-          <span class="nl-store-sub" id="nl-${key}-sub" data-no-i18n></span>
-          <span class="nl-store-bar"><i id="nl-${key}-bar"></i></span>
-        </button>`).join('')}
+      <div class="section-header nl-head">
+        <div class="section-title">System &amp; Storage</div>
+        <div class="section-action nl-head-live"><span class="nl-dot"></span><span id="nl-head-live">Live</span></div>
       </div>
-      <div class="nl-chips">${CHIPS.map(([key]) => `<button type="button" class="nl-chip" data-nl-open="${key}" id="nl-chip-${key}" data-no-i18n></button>`).join('')}</div>`;
+      <div class="hw-group-title" id="nl-lab-stores" data-no-i18n></div>
+      <div class="nl-stores">${STORES.map(card).join('')}
+      </div>
+      <div class="hw-group-title" id="nl-lab-more" data-no-i18n></div>
+      <div class="nl-stores nl-more">${MORE.map(card).join('')}
+      </div>`;
     const banner = $('home-game-banner');
     home.insertBefore(box, banner ? banner.nextSibling : home.firstChild);
 
@@ -96,40 +117,37 @@
   function split(badge) {
     const parts = badge.split(/\s+/);
     if (parts.length >= 2 && /^[\d.,]+$/.test(parts[0])) return [parts[0] + ' ' + parts[1], parts.slice(2).join(' ')];
+    // "Z: Y: online" → the drive letters big, what follows them small.
+    const after = parts.findIndex(p => !/^[A-Za-z]:$/.test(p));
+    if (after > 0) return [parts.slice(0, after).join(' '), parts.slice(after).join(' ')];
     return [badge, ''];
   }
 
   /** Home's top part, from what the tiles show now. */
   function updateHome() {
-    for (const [key, badgeId, valId, barId] of STORES) {
+    for (const [key, badgeId, valId, barId] of STORES.concat(MORE)) {
       const badge = text(badgeId);
       const [big, word] = split(badge);
       const bar = $(barId);
       const pct = Math.max(0, Math.min(100, parseFloat(bar && bar.style.width) || 0));
-      set('nl-' + key + '-label', labelOf(key));
-      set('nl-' + key + '-big', big);
-      set('nl-' + key + '-word', word);
-      // The gauges of Glow have no big number: their line under the name says what is free.
-      set('nl-' + key + '-sub', look() === 'glow' ? badge : text(valId));
-      set('nl-' + key + '-pct', Math.round(pct) + '%');
-      const fill = $('nl-' + key + '-bar');
+      set('nl-s-' + key + '-label', labelOf(key));
+      set('nl-s-' + key + '-big', big);
+      set('nl-s-' + key + '-word', word);
+      // The gauges of Glow have no big number: their line under the name says what is free. A RAM gauge has its
+      // percentage in the ring already, so its line stays "used / total".
+      const ram = key === 'ram' || key === 'pcram';
+      set('nl-s-' + key + '-sub', look() === 'glow' && !ram ? badge : text(valId));
+      set('nl-s-' + key + '-pct', Math.round(pct) + '%');
+      const fill = $('nl-s-' + key + '-bar');
       if (fill) fill.style.width = pct + '%';
-      const arc = $('nl-' + key + '-arc');
+      const arc = $('nl-s-' + key + '-arc');
       if (arc) arc.setAttribute('stroke-dasharray', (RING * pct / 100).toFixed(1) + ' ' + RING.toFixed(1));
     }
-    for (const [key, valId] of CHIPS) {
-      const chip = $('nl-chip-' + key);
-      if (!chip) continue;
-      const html = labelOf(key) + ' · ';
-      const value = text(valId);
-      if (chip.dataset.shown !== html + value) {
-        chip.dataset.shown = html + value;
-        chip.textContent = html;
-        const b = document.createElement('b');
-        b.textContent = value;
-        chip.appendChild(b);
-      }
-    }
+    // The small headings over the two rows are the older tiles' own ("RAM", "Storage"), in the language they are
+    // shown in; the second row holds the RAM cards and the PC's drives, so its heading names both.
+    const groups = Array.from(document.querySelectorAll('.nl-old-tiles .hw-group-title')).map(e => e.textContent.trim());
+    set('nl-lab-stores', groups[1] || '');
+    set('nl-lab-more', [groups[0], labelOf('drives')].filter(Boolean).join(' · '));
     set('nl-pc-name', pcName());
     set('nl-pc-sub', text('hw-pc-drives-val'));
     updateTop();
@@ -154,6 +172,7 @@
     set('nl-over', text('hw-pc-drives-val'));
     set('nl-status-text', pcName() + ' · ' + text('hw-pc-drives-val'));
     set('nl-live-text', on ? 'Live' : 'Offline');
+    set('nl-head-live', on ? 'Live' : 'Offline');
     set('nl-pc-chip', on ? 'Live' : 'Offline');
     set('nl-me', text('pc-avatar') || '?');
   }

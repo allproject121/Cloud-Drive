@@ -181,20 +181,28 @@ public sealed class AppHost : IAsyncDisposable
         {
             foreach (var s in await Mounts.AdoptExistingAsync(ct))
                 CacheIndex.Register(s.Id, s.CacheDir, s.Definition.RemotePath);
-            if (restoreMounts && Settings.RestoreMountsOnStartup)
-            {
-                foreach (var def in Settings.Mounts.Where(m => m.AutoMount))
-                {
-                    if (Mounts.Get(def.Id) != null) continue;
-                    try { await MountAsync(def, ct); }
-                    catch (Exception e) { _log.LogError("Could not restore mount {Name}: {Error}", def.DisplayName, e.Message); }
-                }
-            }
+            if (restoreMounts) await RestoreMountsAsync(ct);
         }
         if (Settings.MobileBridge.Enabled) MobileBridge.Start();
         Metrics.Start();
         StateChanged?.Invoke();
         _ = RefreshAccountsAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Connects the drives that connect by themselves (when that is switched on) and are not connected yet: at start,
+    /// and again once something they needed has arrived (WinFsp was installed).
+    /// </summary>
+    public async Task RestoreMountsAsync(CancellationToken ct = default)
+    {
+        if (Rclone == null || !Settings.RestoreMountsOnStartup) return;
+        foreach (var def in Settings.Mounts.Where(m => m.AutoMount))
+        {
+            if (Mounts.Get(def.Id) != null) continue;
+            try { await MountAsync(def, ct); }
+            catch (Exception e) { _log.LogError("Could not restore mount {Name}: {Error}", def.DisplayName, e.Message); }
+        }
+        StateChanged?.Invoke();
     }
 
     public void RefreshDependencies()

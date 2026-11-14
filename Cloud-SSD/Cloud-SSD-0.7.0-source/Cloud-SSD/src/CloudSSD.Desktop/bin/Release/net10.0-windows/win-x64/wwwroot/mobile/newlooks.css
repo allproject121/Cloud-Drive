@@ -238,7 +238,7 @@
 :root[data-look="kit"] .nl-pc-actions button { flex: 1; min-width: 0; height: 40px; border: none; border-radius: 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: rgb(255 255 255 / 0.16); color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 8px; }
 :root[data-look="kit"] .nl-pc-actions button:first-child { background: #FFFFFF; color: #2A44C8; }
 /* Cards: white, no border, no shadow. */
-:root[data-look="kit"] :is(.hw-widget-card, .cat-grid-card, .storage-device-card, .recent-card, .recent-empty-card, .recent-file-card,
+:root[data-look="kit"] :is(.hw-widget-card, .cat-grid-card, .pc-drive-row, .storage-device-card, .recent-card, .recent-empty-card, .recent-file-card,
   .clean-card, .share-btn-card, .gaming-hero-card, .phone-permission-card, .mini-media-card, .usage-rows, .xfer-card,
   .transfer-card-item, .device-row, .explorer-item, .phone-file-item, .phone-item-row, .file-row-item, .conn-row, .gm-card,
   .more-me, .more-row, .xt-card, .xt-list, .send-tile, .phone-quick-btn, .settings-row, .perm-row, .pc-connection-banner-card, .saver-card) { border-color: transparent; box-shadow: none; }
@@ -290,7 +290,7 @@
 :root[data-look="paper"] #tab-home .section-header { border-top: 1px solid var(--look-line); padding-top: 10px; margin-bottom: 6px; }
 :root[data-look="paper"] .section-action { text-decoration: underline; }
 /* Cards: thin lines, small corners, no shadow; icon holders have no fill. */
-:root[data-look="paper"] :is(.hw-widget-card, .cat-grid-card, .storage-device-card, .recent-card, .clean-card, .share-btn-card,
+:root[data-look="paper"] :is(.hw-widget-card, .cat-grid-card, .pc-drive-row, .storage-device-card, .recent-card, .clean-card, .share-btn-card,
   .gaming-hero-card, .phone-permission-card, .mini-media-card, .usage-rows, .device-row, .modal-card, .more-me, .more-row,
   .explorer-item, .phone-file-item, .phone-item-row, .file-row-item, .xfer-card, .transfer-card-item, .phone-quick-btn, .pc-connection-banner-card,
   .saver-card, .settings-row, .perm-row, .look-card) { border-radius: 12px; box-shadow: none; }
@@ -348,7 +348,7 @@
 :root[data-look="glow"] .send-tile-icon { width: 20px; height: 20px; background: transparent; border-radius: 0; }
 :root[data-look="glow"] .send-tile-icon svg { fill: currentColor; }
 /* Cards: no borders, big corners. */
-:root[data-look="glow"] :is(.hw-widget-card, .cat-grid-card, .storage-device-card, .recent-card, .recent-empty-card, .recent-file-card,
+:root[data-look="glow"] :is(.hw-widget-card, .cat-grid-card, .pc-drive-row, .storage-device-card, .recent-card, .recent-empty-card, .recent-file-card,
   .clean-card, .share-btn-card, .gaming-hero-card, .phone-permission-card, .mini-media-card, .usage-rows, .xfer-card,
   .transfer-card-item, .device-row, .explorer-item, .phone-file-item, .phone-item-row, .file-row-item, .conn-row, .gm-card,
   .more-me, .more-row, .xt-card, .send-tile, .phone-quick-btn, .settings-row, .perm-row, .pc-connection-banner-card, .saver-card) { border-color: transparent; box-shadow: none; }

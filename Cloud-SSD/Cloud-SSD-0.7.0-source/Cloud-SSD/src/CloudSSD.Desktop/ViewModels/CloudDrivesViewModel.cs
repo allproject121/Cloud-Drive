@@ -253,6 +253,7 @@ public sealed partial class CloudDrivesViewModel : PageViewModel
         Host.Settings.Mounts.Add(w.Result);
         Host.SaveSettings();
         OnStateChanged();
+        if (!await WinFspOffer.EnsureAsync(Host, evenAfterNo: true)) return;   // no WinFsp, no drive: offered here
         await RunAsync(async () =>
         {
             var s = await Host.MountAsync(w.Result);
@@ -266,6 +267,7 @@ public sealed partial class CloudDrivesViewModel : PageViewModel
     private async Task Mount(DriveItem? d)
     {
         if (d is null) return;
+        if (!await WinFspOffer.EnsureAsync(Host, evenAfterNo: true)) return;
         await RunAsync(async () =>
         {
             var s = await Host.MountAsync(d.Definition);

@@ -1,0 +1,7 @@
+﻿Work: home-ram-drive-cards
+Source as it was before the work started: 601 files, 12.3 MB.
+Taken: 2026-11-14 09:51
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-14_0951_home-ram-drive-cards"
+and write complete\README.md.

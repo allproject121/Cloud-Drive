@@ -1,0 +1,21 @@
+﻿Work finished: 2026-11-14 09:23
+
+NEW files (3):
+  src\CloudSSD.App\WinFspSetup.cs
+  src\CloudSSD.Desktop\WinFspOffer.cs
+  tests\CloudSSD.Tests\WinFspSetupTests.cs
+
+CHANGED files (8):
+  installer\build-release.ps1
+  installer\Install-CloudSSD.ps1
+  src\CloudSSD.App\AppHost.cs
+  src\CloudSSD.App\LocalMobileBridgeService.cs
+  src\CloudSSD.Core\Settings.cs
+  src\CloudSSD.Desktop\LocalizationManager.Extras.cs
+  src\CloudSSD.Desktop\MainWindow.xaml.cs
+  src\CloudSSD.Desktop\ViewModels\CloudDrivesViewModel.cs
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

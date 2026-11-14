@@ -17,6 +17,8 @@ public sealed class AppSettings
     public bool KeepMountsAfterExit { get; set; } = false;
     public bool EncryptRcloneConfig { get; set; } = true;
     public bool FirstRunCompleted { get; set; }
+    /// <summary>The person said "not now" when the app offered to install WinFsp at start: it is not offered at start again (connecting a drive still asks).</summary>
+    public bool WinFspOfferDeclined { get; set; }
     public string? LocalGamesRoot { get; set; }
     public MobileBridgeSettings MobileBridge { get; set; } = new();
     public SmartOffloadSettings SmartOffload { get; set; } = new();

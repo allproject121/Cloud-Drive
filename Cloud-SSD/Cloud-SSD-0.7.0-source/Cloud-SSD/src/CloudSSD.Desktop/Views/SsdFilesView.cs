@@ -26,8 +26,8 @@ public sealed class SsdFilesView : UserControl
         ("videos", "Videos", "\uE714", [".mp4", ".mkv", ".webm", ".avi", ".mov", ".m4v", ".3gp"]),
         ("audio", "Audio", "\uEC4F", [".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".opus"]),
         ("docs", "Documents", "\uE8A5", [".pdf", ".doc", ".docx", ".txt", ".xls", ".xlsx", ".ppt", ".pptx", ".csv", ".md"]),
-        ("apks", "Apps (APK)", "\uE71D", [".apk", ".exe", ".msi"]),
-        ("archives", "Archives", "\uE7B8", [".zip", ".rar", ".7z", ".tar", ".gz", ".iso"]),
+        // Apps and archives together, as the phone shows them.
+        ("apps", "Apps and archives", "", [".apk", ".exe", ".msi", ".zip", ".rar", ".7z", ".tar", ".gz", ".iso"]),
     ];
 
     private const int MaxRows = 3000, MaxKindRows = 1000, KindDepth = 6;
