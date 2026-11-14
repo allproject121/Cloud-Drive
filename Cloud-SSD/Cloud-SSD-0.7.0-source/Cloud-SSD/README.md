@@ -162,7 +162,7 @@ flowchart TD
 
 | Laptop App Dashboard | Mobile App HUD |
 |:---:|:---:|
-| <img src="cloudssd_app_screen.png" width="450" alt="Laptop App"/> | <img src="phone_test.png" width="220" alt="Mobile App"/> |
+| <img src="screenshots/cloudssd_app_screen.png" width="450" alt="Laptop App"/> | <img src="screenshots/phone_test.png" width="220" alt="Mobile App"/> |
 
 | Gaming & Telemetry | Offline Vault & Files |
 |:---:|:---:|

@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.work/
+**/dist/
+**/TestResults/
+*.user
+*.original_bak
+tools/rclone/rclone.exe
+tools/winfsp/*.msi
+installer/google-client.json
+mobile-android/google-oauth.json
+mobile-android/build/
+.claude/

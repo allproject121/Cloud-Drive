@@ -1,0 +1,9 @@
+﻿Work: system-verification
+Agent: Antigravity
+TaskId: VERIFY-001
+Source as it was before the work started: 617 files, 10.1 MB.
+Taken: 2026-11-14 20:00
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-14_2000_system-verification"
+and write complete\README.md.

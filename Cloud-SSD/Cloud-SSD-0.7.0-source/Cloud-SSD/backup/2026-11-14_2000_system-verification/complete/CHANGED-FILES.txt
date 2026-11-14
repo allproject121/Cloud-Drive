@@ -1,0 +1,11 @@
+﻿Work finished: 2026-11-14 20:02
+
+NEW files (1):
+  tests\backup_system_test.txt
+
+CHANGED files (0):
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

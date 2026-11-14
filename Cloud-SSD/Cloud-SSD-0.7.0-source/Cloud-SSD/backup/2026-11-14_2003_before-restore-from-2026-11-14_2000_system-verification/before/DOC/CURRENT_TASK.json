@@ -1,0 +1,12 @@
+﻿{
+    "active":  true,
+    "taskId":  "VERIFY-001",
+    "taskTitle":  "system-verification",
+    "agent":  "Antigravity",
+    "startTime":  "2026-11-14T20:00:40.2155898+05:30",
+    "backupFolder":  "2026-11-14_2000_system-verification",
+    "targetFiles":  {
+
+                    },
+    "status":  "IN_PROGRESS"
+}
