@@ -28,7 +28,7 @@ Keep big games and files in the cloud, keep your SSD free, and open everything f
 
 <br/><br/>
 
-[What it does](#what) • [How it works](#how) • [Features](#features) • [Phone & Web](#phone) • [Screenshots](#screenshots) • [Download](#download) • [Setup](#setup) • [Architecture](#architecture) • [Folder map](#structure) • [Docs](#docs) • [Send feedback](#feedback)
+[What it does](#what) • [How it works](#how) • [Features](#features) • [CLI Terminal](#cli) • [Phone & Web](#phone) • [Screenshots](#screenshots) • [Repository Standards](#standards) • [Download](#download) • [Setup](#setup) • [Architecture](#architecture) • [Folder map](#structure) • [Docs](#docs) • [Send feedback](#feedback)
 
 </div>
 
@@ -163,27 +163,147 @@ sequenceDiagram
 
 ---
 
+<a id="cli"></a>
+
+## 💻 Interactive Terminal CLI (`cloudssd` & `cpx`)
+
+Cloud-SSD provides an interactive, terminal-native Command Line Interface (CLI) accessible directly from Windows Command Prompt (CMD), PowerShell, Windows Terminal, and developer agent sessions (Claude Code / Codex).
+
+### 🚀 Interactive REPL Mode
+Open any terminal and simply type:
+```cmd
+cloudssd
+```
+*(or use the short alias `cpx`)*
+
+You will be greeted with live vitals, disk sizes, cache status, and an interactive prompt:
+
+```text
+============================================================
+   Cloud-SSD Terminal CLI  ·  v0.9.0
+   Turn your Google Drive into a real drive letter (Y:/Z:)
+============================================================
+  • Process: PID 20532 (Running)
+  • Storage: Y:\ 14.95 TiB  ·  Z:\ 14.95 TiB
+  • Cache:   122 GiB available
+  • Phone:   vivo I2221 (PAIRED · Online)
+============================================================
+
+cloudssd > status
+```
+
+### 📋 CLI Commands
+
+| Command | Short | Description |
+|---|---|---|
+| `status` | `s` | Complete live vitals for PC app, drives, accounts, and phone bridge |
+| `phone` | `p` | View connected mobile device details, battery level, and link speed |
+| `mounts` | `m` | List all mounted virtual drive letters (`Y:`, `Z:`) and filesystem backends |
+| `open <letter>` | `o` | Launch Windows File Explorer directly into the specified drive (e.g. `open Z:`) |
+| `remotes` | `r` | List connected Google Drive accounts and storage allocations |
+| `cache` | `c` | Inspect SSD cache usage, budget, and read/write bandwidth |
+| `clean` | | Purge unpinned temporary cache files to immediately free local SSD space |
+| `mirror` | | Check background mirror & offload sync status between PC and cloud |
+| `start` / `stop` | | Start or safely dismount Cloud-SSD service and drives |
+| `deps` | | Check status of prerequisites (WinFsp, rclone, and Android bridge) |
+| `help` | `?` | Display list of supported commands |
+| `exit` | `q` | Exit the CLI session |
+
+You can also run one-shot commands from any script or prompt:
+```cmd
+cloudssd status
+cloudssd phone
+cloudssd open Z:
+```
+
+---
+
 <a id="screenshots"></a>
 
 ## 📸 Screenshots
 
-Screenshots of the latest version, taken on a phone-sized screen. This is the web page the PC app serves; the Android app shows the same screens.
+Clean, high-resolution screenshots of both the mobile companion and desktop workstation edition. All captures show actual application screens with zero media/video playback.
+
+### 📱 Part 1: Android Phone App
+
+The Android companion connects securely to your PC over Wi-Fi, allowing you to browse your cloud files, transfer data, and access mirrored copies even when the PC is off.
 
 <div align="center">
 
-| Connect | Home | Files When Off | Game Library |
-|:---:|:---:|:---:|:---:|
-| <img src="screenshots/phone-connect.png" width="200" alt="Connect to your PC and customize icons" /> | <img src="screenshots/phone-home.png" width="200" alt="Home: storage, PC drives, send to PC, transfers" /> | <img src="screenshots/phone-cloud-ssd.png" width="200" alt="Files when off permission" /> | <img src="screenshots/phone-gaming.png" width="200" alt="Clean Game Library" /> |
-| Pair with the 6-digit code & icon picker | Cloud space, PC drives, send to PC, transfers | Keep copies in cloud to access when PC is off | Game Library and local performance |
+| 1. Home Dashboard | 2. Connect & Pair | 3. Cloud SSD Drive |
+|:---:|:---:|:---:|
+| <img src="screenshots/phone-home.png" width="220" alt="Phone Home: storage cards, PC drives, quick transfers" /> | <img src="screenshots/phone-connect.png" width="220" alt="Pair with 6-digit PIN code" /> | <img src="screenshots/phone-cloud-ssd.png" width="220" alt="Browse Z: and Y: cloud storage drives" /> |
+| Native card view showing PC drives & quick transfers | 6-digit PIN pairing with desktop app | Browse `Z:` All Accounts & `Y:` Each Account |
 
-<br />
+<br/>
 
-| PC App Home | PC Cloud Drives |
-|:---:|:---:|
-| <img src="screenshots/pc-home.png" width="380" alt="PC App Home" /> | <img src="screenshots/pc-cloud-drives.png" width="380" alt="PC Cloud Drives" /> |
-| Desktop App with native card views | Mounted Cloud Drives & Storage Management |
+| 4. Offline Access ("When PC is Off") | 5. Visual Theme Effects | 6. App Icon Picker |
+|:---:|:---:|:---:|
+| <img src="screenshots/phone-whenoff.png" width="220" alt="Files when it is off cloud sync permission" /> | <img src="screenshots/phone-cards-glow.png" width="220" alt="Glow theme effects on cards" /> | <img src="screenshots/phone-icon-picker.png" width="220" alt="Custom icon styles: Ocean, Kit, Glow, Paper" /> |
+| Access mirrored PC copies in cloud when PC is powered off | Modern UI cards with Glow, Kit, & Paper styling | Customize mobile app icon (Ocean, Kit, Paper, Sunset) |
 
 </div>
+
+---
+
+### 💻 Part 2: Laptop & Desktop PC App
+
+The Windows desktop app manages your Google Drive mount points, RAM caching, smart offloading, and phone connectivity with zero lag.
+
+<div align="center">
+
+| 1. Dashboard Overview | 2. Cloud Drives Manager |
+|:---:|:---:|
+| <img src="screenshots/pc-dashboard.png" width="440" alt="Desktop Dashboard" /> | <img src="screenshots/pc-cloud-drives.png" width="440" alt="Cloud Drives Manager" /> |
+| Real-time drive health, active accounts, and transfer speeds | Multi-account Google Drive mounting and sync settings |
+
+<br/>
+
+| 3. Mobile Hub | 4. Game Library & Launcher |
+|:---:|:---:|
+| <img src="screenshots/pc-mobile-hub.png" width="440" alt="Mobile Hub" /> | <img src="screenshots/pc-game-library.png" width="440" alt="Game Library" /> |
+| QR pairing code, connected phones, and transfer history | Direct game launcher from cloud disk without full install |
+
+<br/>
+
+| 5. RAM & Virtual Memory | 6. Storage Space Analyzer |
+|:---:|:---:|
+| <img src="screenshots/pc-memory.png" width="440" alt="RAM & Memory Cache" /> | <img src="screenshots/pc-space.png" width="440" alt="Storage Space Allocation" /> |
+| High-speed RAM write buffer and read-ahead tuning | Visual space analyzer showing local vs cloud savings |
+
+<br/>
+
+| 7. Smart Cache Performance | 8. Desktop App Settings |
+|:---:|:---:|
+| <img src="screenshots/pc-smart-cache.png" width="440" alt="Smart Cache Tuning" /> | <img src="screenshots/pc-settings.png" width="440" alt="Settings & Appearance" /> |
+| Intelligent predictive prefetching and cache budgeting | Autostart, dark/light themes, and link preferences |
+
+</div>
+
+---
+
+<a id="standards"></a>
+
+## 📦 Repository Standards & Delivery Checklist (नियम)
+
+Whenever changes or updates are committed to this repository, the following four rules MUST be strictly followed:
+
+1. **Complete File Upload (सारी फाइल्स अपलोड होंगी):**
+   - Every file must be uploaded to GitHub.
+   - Files that are directly useful AND intermediate work files, patch scripts, logs, test outputs, and diagnostic tools must all be committed and pushed (`.work/`, tools, scripts, docs). Nothing required for a handover should be omitted.
+
+2. **Backup History Always Included (बैकअप फोल्डर अनिवार्य):**
+   - Every task must preserve its dedicated backup directory under `backup/<YYYY-MM-DD_time_task_name>/`.
+   - Each backup folder must contain:
+     - `before/`: The untouched snapshot of files before changes began.
+     - `complete/`: The final verified files with a clear `README.md` explaining what was built, how it works, and verification results.
+
+3. **Updated Structure & Architecture (संरचना व आर्किटेक्चर हमेशा अपडेट):**
+   - The repository folder structure, component map, and system architecture diagrams in documentation must always reflect the latest implementation.
+   - Any new API endpoints, bridge protocols, or CLI commands must be documented immediately.
+
+4. **Updated Binaries & Installers (EXE और APK हमेशा ताज़ा):**
+   - Both the Windows desktop installer/executable (`dist/Cloud-SSD-0.9.0-win-x64.zip` / `releases/Cloud-SSD-setup.exe`) and the Android package (`mobile-android/Cloud-SSD-Mobile.apk`) must be rebuilt and kept up-to-date with every code change.
 
 ---
 
