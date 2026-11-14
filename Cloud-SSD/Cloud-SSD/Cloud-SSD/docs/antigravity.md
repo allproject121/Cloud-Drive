@@ -288,3 +288,22 @@ Poore project aur compiled binary files ki gehri jaanch ki gayi:
 - **Rollback / Restoration Verification:**
   - Verified exact restoration via `backup.ps1 restore -Folder "2026-11-14_2000_system-verification"`.
   - Temporary test file was safely deleted, previous source state restored, pre-restore safety snapshot preserved, and logged in `RESTORE_LOG.md`.
+
+---
+
+### [Task GITHUB-001] Complete Codebase & Path Reorganization Push to GitHub
+- **Date & Time:** 2026-11-14 20:47 IST
+- **Agent & Model:** Antigravity (Gemini 3.8 Flash High)
+- **Prompt:** "github par sari chije upload kar do"
+- **Files Inspected:** Git repository status, directory structure, `.gitignore`, `RULE.md`, `CHALU_KAAM.md`, `scan-staged.js`
+- **Files Created / Modified:**
+  - `RULE.md` (updated active codebase paths)
+  - `docs/CHALU_KAAM.md` (updated paths and sync state)
+  - `.work/scan-staged.js` (updated path normalization regex)
+- **Validation Result:** APPROVED (C# build passed 0 warnings 0 errors; secret scanner clean 0 leaks)
+- **Commits Pushed:**
+  - `4edee55`: Integrate AI coordination standards, central RULE.md, consolidated docs, and enhanced backup/restore tooling
+  - `1e60b83`: Reorganize project paths: standardize Cloud-SSD active workspace and purge tracked build artifacts
+- **Branches Synchronized:**
+  - `origin/feature/multi-device` (HEAD)
+  - `origin/main` (HEAD)

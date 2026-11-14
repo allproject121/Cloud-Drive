@@ -137,7 +137,7 @@ mein sign-in nahi kar sakta, isliye Phase 3 ki **asli jaanch** key ke baad hi ho
 
 ## Abhi ka haal  (har kadam ke baad badlo: `.work\haal.txt` badal kar `node .work\haal.js .work\haal.txt`)
 
-**Aakhri badlaav:** 14 Nov 2026, 16:24 — Claude (window A)
+**Aakhri badlaav:** 14 Nov 2026, 20:47 — Antigravity (GitHub push completed)
 
 **Chal raha kaam:** band PC ki files phone se — ab **bina Google key** wala raasta (user ne 16:22 par kaha: key ke bina karo).
 Plan: `docs\WHEN_OFF_BINA_KEY_PLAN.md` (pehle ise padho). Raasta A = PC ke folder ki copy phone ke andar ("Offline rakho" ko PC disk ke liye kholna).
@@ -155,7 +155,7 @@ Bina-key ke kadam (yahi abhi chal rahe hain):
 
 Neeche Phase 3 (Google key wala) ka haal hai: code ban chuka, key ke bina uski asli jaanch nahi ho sakti; use chheda nahi jayega.
 **Backup folder:** `backup\2026-11-14_1544_band-pc-ki-files-phone-se` (sirf `before\` hai = kaam adhoora).
-**GitHub par aakhri commit:** `5d3aa29` (isme Phase 3 ka kuch nahi hai; Phase 3 abhi sirf is PC par hai).
+**GitHub par aakhri commit:** `1e60b83` (`feature/multi-device` & `main` branches fully synchronized).
 
 Kaise banega (design, tay ho chuka):
 - PC `/api/status` ke `whenOff` mein `folder` (PC ka cloud folder ka naam) aur `key` (apni Google key hai?) deta hai;
