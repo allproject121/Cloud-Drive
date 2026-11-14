@@ -1,0 +1,7 @@
+﻿Work: app-photo-latest
+Source as it was before the work started: 603 files, 12.3 MB.
+Taken: 2026-11-14 10:08
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-14_1008_app-photo-latest"
+and write complete\README.md.

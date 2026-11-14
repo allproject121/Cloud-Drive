@@ -3775,8 +3775,7 @@
     ['paper', 'Paper', 'icon-paper.svg'],
     ['glow', 'Glow', 'icon-glow.svg'],
     ['midnight', 'Midnight', 'icon-midnight.svg'],
-    ['sunset', 'Sunset', 'icon-sunset.svg'],
-    ['classic', 'Classic', 'icon-classic.png']
+    ['sunset', 'Sunset', 'icon-sunset.svg']
   ];
   /** The key of the icon the app has now; '' in a browser and in an app from before the icons. */
   function appIconNow() {

@@ -350,7 +350,8 @@ public class MainActivity extends Activity {
 
     /**
      * The icons the person can give the app on the home screen: {key the page uses, the activity-alias in the manifest
-     * that carries the icon}. The first one is the alias that is on in a new install.
+     * that carries the icon}. The first one is the alias that is on in a new install. "classic" is not offered any
+     * more (the page has no card for it); it stays here so that picking another icon switches its alias off.
      */
     private static final String[][] APP_ICONS = {
         { "ocean", "IconOcean" }, { "kit", "IconKit" }, { "paper", "IconPaper" }, { "glow", "IconGlow" },

@@ -1,6 +1,6 @@
 // Turns the icon pictures made by make-icons.js into PNG files, with Microsoft Edge (headless) as the drawing tool:
 //   mobile-android/src/main/res/mipmap-xxhdpi/ic_app_<key>.png   144 x 144, for Android 7 (no adaptive icons there)
-//   mobile-android/src/main/assets/icon-classic.png              192 x 192, the old icon for the app's icon picker
+//   src/CloudSSD.Desktop/Assets/clouddrive.png                   1024 x 1024, the PC app's picture (from icon-ocean.svg)
 //
 //   node tools/icons/png.js
 const fs = require('fs');
@@ -27,7 +27,8 @@ for (const f of svgs) {
   shot(svg, 144, path.join(main, 'res', 'mipmap-xxhdpi', `ic_app_${key}.png`));
   console.log('png', key);
 }
-const classic = path.join(main, 'res', 'mipmap-xxhdpi', 'ic_launcher.png');
-shot(`<img src="file:///${classic.replace(/\\/g, '/')}" width="192" height="192" style="display:block">`, 192, path.join(main, 'assets', 'icon-classic.png'));
-console.log('png classic');
+// The PC app's picture: the app's own icon (Ocean), big.
+const own = fs.readFileSync(path.join(main, 'assets', 'icon-ocean.svg'), 'utf8').replace('width="144" height="144"', 'width="1024" height="1024"');
+shot(own, 1024, path.join(main, '..', '..', '..', 'src', 'CloudSSD.Desktop', 'Assets', 'clouddrive.png'));
+console.log('png pc');
 fs.rmSync(tmp, { recursive: true, force: true });

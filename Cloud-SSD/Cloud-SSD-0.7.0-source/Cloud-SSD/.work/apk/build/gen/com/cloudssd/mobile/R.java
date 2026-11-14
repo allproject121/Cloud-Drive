@@ -33,7 +33,6 @@ public final class R {
     public static final int ic_app_ocean=0x7f030003;
     public static final int ic_app_paper=0x7f030004;
     public static final int ic_app_sunset=0x7f030005;
-    public static final int ic_launcher=0x7f030006;
   }
   public static final class string {
     public static final int app_name=0x7f040000;

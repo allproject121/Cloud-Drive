@@ -97,7 +97,9 @@
         </activity>
         <!-- The app's icon on the home screen: one alias per icon the person can pick (Look and language → App icon).
              Exactly one is switched on at a time (MainActivity.setAppIcon); "Ocean" is the one a new install starts
-             with. The drawings come from tools/icons/make-icons.js; "Classic" is the app's first icon. -->
+             with. The drawings come from tools/icons/make-icons.js. ".IconClassic" carried the app's first picture
+             (now in backup/photo); it is not offered any more and shows the new icon, so a phone that had it chosen
+             still has an icon after the update. -->
         <activity-alias android:name=".IconOcean" android:targetActivity=".MainActivity" android:exported="true"
             android:enabled="true" android:icon="@mipmap/ic_app_ocean" android:roundIcon="@mipmap/ic_app_ocean">
             <intent-filter>
@@ -141,7 +143,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias android:name=".IconClassic" android:targetActivity=".MainActivity" android:exported="true"
-            android:enabled="false" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher">
+            android:enabled="false" android:icon="@mipmap/ic_app_ocean" android:roundIcon="@mipmap/ic_app_ocean">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

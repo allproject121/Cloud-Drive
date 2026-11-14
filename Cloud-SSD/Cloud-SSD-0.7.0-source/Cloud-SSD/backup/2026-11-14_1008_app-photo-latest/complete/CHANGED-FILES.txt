@@ -1,0 +1,28 @@
+﻿Work finished: 2026-11-14 10:17
+
+NEW files (3):
+  tools\icons\make-ico.ps1
+  tools\live-test\pc-close.ps1
+  tools\live-test\pc-shot.ps1
+
+CHANGED files (15):
+  installer\make-icon.ps1
+  mobile-android\src\main\AndroidManifest.xml
+  mobile-android\src\main\assets\app.js
+  mobile-android\src\main\assets\icon-192.svg
+  mobile-android\src\main\assets\icon-512.svg
+  mobile-android\src\main\java\com\cloudssd\mobile\CloudDocumentsProvider.java
+  mobile-android\src\main\java\com\cloudssd\mobile\MainActivity.java
+  src\CloudSSD.Desktop\Assets\clouddrive.ico
+  src\CloudSSD.Desktop\Assets\clouddrive.png
+  src\CloudSSD.Desktop\Assets\cloudssd.ico
+  src\CloudSSD.Desktop\wwwroot\mobile\app.js
+  src\CloudSSD.Desktop\wwwroot\mobile\icon-192.svg
+  src\CloudSSD.Desktop\wwwroot\mobile\icon-512.svg
+  tools\icons\make-icons.js
+  tools\icons\png.js
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

@@ -375,7 +375,6 @@ C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-sour
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\newlooks.css
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\newlooks.js
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\space-grotesk.woff2
-C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\icon-classic.png
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\icon-glow.svg
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\icon-kit.svg
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\src\CloudSSD.Desktop\bin\Release\net10.0-windows\win-x64\wwwroot\mobile\icon-midnight.svg

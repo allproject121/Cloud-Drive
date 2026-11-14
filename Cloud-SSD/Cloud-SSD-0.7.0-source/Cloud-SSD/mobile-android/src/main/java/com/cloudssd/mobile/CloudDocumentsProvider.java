@@ -200,7 +200,7 @@ public class CloudDocumentsProvider extends DocumentsProvider {
             row.add(Root.COLUMN_TITLE, r.title);
             row.add(Root.COLUMN_SUMMARY, "Cloud-SSD · via " + backend.label());
             row.add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_IS_CHILD | Root.FLAG_SUPPORTS_SEARCH | (r.readOnly ? 0 : Root.FLAG_SUPPORTS_CREATE));
-            row.add(Root.COLUMN_ICON, R.mipmap.ic_launcher);
+            row.add(Root.COLUMN_ICON, R.mipmap.ic_app_ocean);
             row.add(Root.COLUMN_AVAILABLE_BYTES, r.freeBytes >= 0 ? r.freeBytes : null);
             row.add(Root.COLUMN_CAPACITY_BYTES, r.totalBytes >= 0 ? r.totalBytes : null);
         }

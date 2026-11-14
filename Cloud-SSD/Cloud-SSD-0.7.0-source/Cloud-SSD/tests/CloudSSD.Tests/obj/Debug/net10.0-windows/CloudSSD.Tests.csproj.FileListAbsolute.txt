@@ -122,7 +122,6 @@ C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-sour
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\tests\CloudSSD.Tests\bin\Debug\net10.0-windows\wwwroot\mobile\newlooks.css
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\tests\CloudSSD.Tests\bin\Debug\net10.0-windows\wwwroot\mobile\newlooks.js
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\tests\CloudSSD.Tests\bin\Debug\net10.0-windows\wwwroot\mobile\space-grotesk.woff2
-C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\tests\CloudSSD.Tests\bin\Debug\net10.0-windows\wwwroot\mobile\icon-classic.png
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\tests\CloudSSD.Tests\bin\Debug\net10.0-windows\wwwroot\mobile\icon-glow.svg
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\tests\CloudSSD.Tests\bin\Debug\net10.0-windows\wwwroot\mobile\icon-kit.svg
 C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD\tests\CloudSSD.Tests\bin\Debug\net10.0-windows\wwwroot\mobile\icon-midnight.svg

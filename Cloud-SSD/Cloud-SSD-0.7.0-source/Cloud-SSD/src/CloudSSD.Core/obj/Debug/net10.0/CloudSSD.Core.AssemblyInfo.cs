@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyCopyrightAttribute("Cloud-SSD contributors")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.9.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.9.0+ad036952fe6b16cdf09c31e459c5e85b01032883")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.9.0+d6b687fc256936df23d1f497d463c80763f2cd4b")]
 [assembly: System.Reflection.AssemblyProductAttribute("Cloud-SSD")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CloudSSD.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.9.0.0")]

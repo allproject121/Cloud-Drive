@@ -9,8 +9,11 @@
 //   mobile-android/src/main/res/drawable/ic_app_<key>_fg.xml      its foreground
 //   mobile-android/src/main/res/mipmap-anydpi-v26/ic_app_<key>.xml the adaptive icon (Android 8+)
 //   mobile-android/src/main/assets/icon-<key>.svg                 the picker's picture (the middle 72 of the 108)
-// Android 7 has no adaptive icons: mipmap-xxhdpi/ic_app_<key>.png is made from the SVG by tools/icons/png.js.
-// The app's old picture (mipmap-xxhdpi/ic_launcher.png) stays as the choice "classic"; nothing is made for it here.
+// and, from the first icon (the app's own picture):
+//   mobile-android/src/main/assets/icon-192.svg, icon-512.svg     the web page's icon (browser tab, "add to home screen")
+// Android 7 has no adaptive icons: mipmap-xxhdpi/ic_app_<key>.png is made from the SVG by tools/icons/png.js, which
+// also makes the PC app's picture (Assets/clouddrive.png); tools/icons/make-ico.ps1 makes the .ico files from that.
+// The pictures the app had before 14 Nov 2026 are kept in backup/photo.
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..', '..', 'mobile-android', 'src', 'main');
@@ -103,6 +106,8 @@ for (const i of ICONS) {
   write(`res/mipmap-anydpi-v26/ic_app_${i.key}.xml`, androidIcon(i));
   write(`assets/icon-${i.key}.svg`, svg(i));
 }
+// The web page's own icon is the app's picture: the first icon, at the two sizes the page names.
+for (const size of [192, 512]) write(`assets/icon-${size}.svg`, svg(ICONS[0]).replace('width="144" height="144"', `width="${size}" height="${size}"`));
 const sheetAt = process.argv.indexOf('--sheet');
 if (sheetAt > 0) {
   const cell = (i, size) => `<div style="text-align:center;font:12px sans-serif"><div style="width:${size}px;height:${size}px">${svg(i).replace('width="144" height="144"', `width="${size}" height="${size}"`).replace(/id="(b|t|m)"/g, `id="$1-${i.key}-${size}"`).replace(/#(b|t|m)\)/g, `#$1-${i.key}-${size})`)}</div>${i.key}</div>`;
