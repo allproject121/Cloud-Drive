@@ -424,6 +424,29 @@ test('a changed task replaces the old one and the list stays newest first', () =
   assert.equal(list.length, 40);
 });
 
+test('files when it is off: what is missing before the PC\'s copy opens, and the line above it', () => {
+  const on = { pc: true, device: true, active: true, key: true };
+  const signedIn = { available: true, accounts: [{ email: 'a@x.com' }] };
+  assert.equal(data.whenOffReady({ pc: true, device: false }, signedIn), '');            // not on: nothing to say
+  assert.equal(data.whenOffReady({ ...on, key: false }, { available: false, accounts: [] }), 'shared-key');
+  assert.equal(data.whenOffReady(on, { available: false, accounts: [] }), 'sign-in');    // the key is on its way
+  assert.equal(data.whenOffReady(on, { available: true, accounts: [] }), 'sign-in');
+  assert.equal(data.whenOffReady(on, { available: true, accounts: [{ email: 'a@x.com', needsReauth: true }] }), 'sign-in');
+  assert.equal(data.whenOffReady(on, signedIn), 'ready');
+  assert.equal(data.whenOffReady({ ...on, key: false }, signedIn), 'ready');             // the app was built with a key
+  assert.match(data.whenOffReadyText('ready', 'My PC'), /"My PC \(cloud copy\)"/);
+  assert.match(data.whenOffReadyText('shared-key', ''), /^the PC still signs in/);
+  assert.equal(data.whenOffReadyText('', 'My PC'), '');
+
+  const fmt = t => 'T' + t;
+  const at = Date.parse('2026-11-14T09:02:00Z');
+  assert.equal(data.copyNote(null, 'My PC', fmt), 'My PC is off or away · cloud copy');
+  assert.equal(data.copyNote({ device: { lastSync: '2026-11-14T09:02:00Z', bytes: 200, uploadedBytes: 82 } }, 'My PC', fmt),
+    'My PC is off or away · cloud copy up to T' + at + ' · 41% copied so far');
+  assert.equal(data.copyNote({ device: { lastSync: '2026-11-14T09:02:00Z', bytes: 200, uploadedBytes: 200 } }, '', fmt),
+    'PC is off or away · cloud copy up to T' + at);
+});
+
 test('files when it is off: on only when the phone and the PC both said yes', () => {
   assert.equal(data.whenOffState(undefined), 'none');                       // an older PC
   assert.equal(data.whenOffState({ pc: true, device: true, guest: true }), 'none');   // a guest never has it

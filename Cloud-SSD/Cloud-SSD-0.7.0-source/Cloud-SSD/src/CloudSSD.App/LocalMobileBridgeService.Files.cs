@@ -65,6 +65,36 @@ public sealed partial class LocalMobileBridgeService
         return roots;
     }
 
+    /// <summary>Id of one of this PC's own disks as a drive: "disk-c:Users/…".</summary>
+    internal const string DiskRootPrefix = "disk-";
+
+    /// <summary>Tests have no disk of their own to show; they supply folders to act as PC disks.</summary>
+    internal Func<IReadOnlyList<CloudRoot>>? DiskRootsOverride;
+
+    /// <summary>
+    /// This PC's own disks (not the cloud drives), each as a read-only drive "disk-&lt;letter&gt;", so a phone can keep a
+    /// folder of the PC on itself ("Offline rakho") and open it while the PC is off. What may be read is decided as on
+    /// /api/files: only places shared with the device (see <see cref="Target"/>).
+    /// </summary>
+    private IReadOnlyList<CloudRoot> DiskRoots()
+    {
+        if (DiskRootsOverride != null) return DiskRootsOverride();
+        var cloud = _host.Mounts.Sessions.Select(s => Path.GetPathRoot(s.Root) ?? "").Where(r => r.Length > 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var roots = new List<CloudRoot>();
+        try
+        {
+            foreach (var d in DriveInfo.GetDrives())
+            {
+                if (d.DriveType != DriveType.Fixed || !d.IsReady || cloud.Contains(d.Name)) continue;
+                var letter = d.Name[..1];
+                roots.Add(new CloudRoot(DiskRootPrefix + letter.ToLowerInvariant(), d.Name, true, false, null, letter.ToUpperInvariant() + ": PC disk"));
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        return roots;
+    }
+
     private class FsException(int status, string message) : Exception(message)
     {
         public int Status { get; } = status;
@@ -245,7 +275,16 @@ public sealed partial class LocalMobileBridgeService
         return new FsTarget(root, string.Join('/', segments), segments.Length == 0 ? rootFull : full);
     }
 
-    private FsTarget Target(Dictionary<string, string> q, string key = "path") => ResolveCloudPath(BrowseRoots(), q.GetValueOrDefault(key));
+    private FsTarget Target(Dictionary<string, string> q, string key = "path")
+    {
+        var raw = q.GetValueOrDefault(key);
+        bool disk = raw != null && raw.StartsWith(DiskRootPrefix, StringComparison.OrdinalIgnoreCase);
+        var t = ResolveCloudPath(disk ? DiskRoots() : BrowseRoots(), raw);
+        // One of this PC's own disks: only what is shared with the device, exactly as on /api/files.
+        if (disk && !IsInsideAny(CleanPath(t.FullPath), SharedRoots()))
+            throw new FsException(403, "This place is not shared with the phone. Turn on 'PC disks' in Cloud-SSD → Phone → Permissions on the PC.");
+        return t;
+    }
 
     private static FsTarget Child(FsTarget parent, string name) =>
         new(parent.Root, parent.Relative.Length == 0 ? name : parent.Relative + "/" + name, Path.Combine(parent.FullPath, name));
@@ -291,7 +330,7 @@ public sealed partial class LocalMobileBridgeService
 
     // ---- reads ---------------------------------------------------------------------------------------------------
 
-    private object FsRoots(Dictionary<string, string> q) => (q.GetValueOrDefault("include") == "local" ? BrowseRoots() : CloudRoots()).Select(r =>
+    private object FsRoots(Dictionary<string, string> q) => (q.GetValueOrDefault("include") switch { "local" => BrowseRoots(), "disks" => DiskRoots(), _ => CloudRoots() }).Select(r =>
     {
         long? total = null, free = null;
         try

@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using CloudSSD.Core;
+using CloudSSD.Mount;
 using Microsoft.Extensions.Logging;
 
 namespace CloudSSD.App;
@@ -14,7 +15,8 @@ public sealed record WhenOffState(bool Pc, bool Device, bool Active, DateTimeOff
 /// "Files when it is off" ("Band hone par bhi files"): each device keeps a copy of its files in the cloud so the other
 /// one can open them while it is switched off. It is its own yes/no, per pair, on BOTH sides, and off until both say
 /// yes — on purpose not one of the access categories: "allow everything" for a new device must never switch it on.
-/// A guest can never have it. This part only keeps the two answers; the copies come later (docs/WHEN_OFF_PLAN.md).
+/// A guest can never have it. This part keeps the two answers and tells the device where this PC's copy is and which
+/// Google key to sign in with; the copying itself is Mirror/DeviceMirrorService (docs/WHEN_OFF_PLAN.md).
 /// </summary>
 public sealed partial class LocalMobileBridgeService
 {
@@ -54,10 +56,39 @@ public sealed partial class LocalMobileBridgeService
         RaiseDevicesChanged();
     }
 
-    private static object WhenOffDto(PairedDevice d)
+    /// <summary>Stands in for reading the Google key out of rclone's config (tests).</summary>
+    internal Func<CancellationToken, Task<(string ClientId, string ClientSecret)?>>? WhenOffKeyOverride;
+
+    /// <summary>A Google account of this PC is signed in with the user's own Google key (not rclone's shared one).</summary>
+    private bool HasOwnGoogleKey =>
+        WhenOffKeyOverride != null || _host.Remotes.Any(r => r.Type == "drive" && !_host.SharedClientRemotes.Contains(r.Name));
+
+    /// <summary>The user's own Google key, for the device's own sign-in. Null while this PC still uses the shared one.</summary>
+    private async Task<(string ClientId, string ClientSecret)?> WhenOffKeyAsync(CancellationToken ct)
+    {
+        if (WhenOffKeyOverride != null) return await WhenOffKeyOverride(ct);
+        if (_host.Rclone is not { } rclone) return null;
+        try
+        {
+            return RcloneConfigService.OwnDriveClient(await _host.RcloneConfig.DumpAsync(rclone, ct), _host.Settings.Mirror.Account);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            _log.LogDebug("The Google key could not be read: {Why}", e.GetType().Name);
+            return null;
+        }
+    }
+
+    private object WhenOffDto(PairedDevice d)
     {
         var s = WhenOffOf(d);
-        return new { pc = s.Pc, device = s.Device, active = s.Active, guest = d.GuestUntil != null, since = s.Since?.ToUnixTimeMilliseconds() };
+        return new
+        {
+            pc = s.Pc, device = s.Device, active = s.Active, guest = d.GuestUntil != null, since = s.Since?.ToUnixTimeMilliseconds(),
+            // Only once both said yes: this PC's folder inside "Cloud-SSD Devices", and whether a Google key can be fetched.
+            folder = s.Active ? _host.Mirror.DeviceFolder : null,
+            key = s.Active && HasOwnGoogleKey
+        };
     }
 
     /// <summary>/api/whenoff/*: the device reads how it stands and gives or takes back its own answer. True when handled.</summary>
@@ -96,6 +127,27 @@ public sealed partial class LocalMobileBridgeService
                     RaiseWhenOffChanged(me);
                 }
                 await SendJsonAsync(stream, 200, "OK", WhenOffDto(me), ct);
+                return true;
+            }
+            case "/api/whenoff/key":
+            {
+                // The Google key only (what a sign-in is asked with), never a sign-in itself: the device signs in to Google on
+                // its own, so no account access ever travels over the home network. Only for a pair where both said yes.
+                if (!WhenOffActive(me))
+                {
+                    await SendJsonAsync(stream, 403, "Forbidden", new { error = "Both sides must say yes first.", code = "not-active" }, ct);
+                    return true;
+                }
+                if (await WhenOffKeyAsync(ct) is not { } k)
+                {
+                    await SendJsonAsync(stream, 409, "Conflict", new
+                    {
+                        error = "This PC still signs in to Google with the shared key. Switch it to your own Google key first (Cloud Drives).",
+                        code = "shared-key"
+                    }, ct);
+                    return true;
+                }
+                await SendJsonAsync(stream, 200, "OK", new { clientId = k.ClientId, clientSecret = k.ClientSecret }, ct);
                 return true;
             }
             default:

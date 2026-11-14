@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Builds the Cloud-SSD release: self-contained win-x64 publish of the desktop app and the cpx CLI into one folder,
   bundles the checksum-verified rclone binary, documentation and install/uninstall scripts, and zips the result.
@@ -97,6 +97,7 @@ New-Item -ItemType Directory -Force (Join-Path $stage "docs") | Out-Null
 Copy-Item (Join-Path $repo "docs\*") (Join-Path $stage "docs") -Recurse -Force
 Copy-Item (Join-Path $PSScriptRoot "Install-CloudSSD.ps1") $stage -Force
 Copy-Item (Join-Path $PSScriptRoot "Uninstall-CloudSSD.ps1") $stage -Force
+if (Test-Path (Join-Path $PSScriptRoot "cloudssd.cmd")) { Copy-Item (Join-Path $PSScriptRoot "cloudssd.cmd") $stage -Force }
 Set-Content (Join-Path $stage "Install.cmd") "@echo off`r`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0Install-CloudSSD.ps1`" %*`r`npause"
 Remove-Item (Join-Path $stage "*.pdb") -ErrorAction SilentlyContinue
 

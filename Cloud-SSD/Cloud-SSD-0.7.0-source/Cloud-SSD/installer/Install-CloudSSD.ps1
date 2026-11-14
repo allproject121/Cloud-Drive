@@ -67,6 +67,16 @@ Set-ItemProperty $key UninstallString "powershell.exe -NoProfile -ExecutionPolic
 $size = [int]((Get-ChildItem $InstallDir -Recurse -File | Measure-Object Length -Sum).Sum / 1KB)
 Set-ItemProperty $key EstimatedSize $size -Type DWord
 
+# Add InstallDir to user PATH so "cloudssd" and "cpx" can be run from any CMD or terminal.
+try {
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $paths = ($userPath -split ';') | Where-Object { $_ }
+    if ($paths -notcontains $InstallDir) {
+        $newUserPath = ($paths + $InstallDir) -join ';'
+        [Environment]::SetEnvironmentVariable("Path", $newUserPath, "User")
+    }
+} catch { }
+
 # Prerequisite check (informational only).
 $winfsp = Test-Path "${env:ProgramFiles(x86)}\WinFsp\bin\winfsp-x64.dll"
 Write-Host ""

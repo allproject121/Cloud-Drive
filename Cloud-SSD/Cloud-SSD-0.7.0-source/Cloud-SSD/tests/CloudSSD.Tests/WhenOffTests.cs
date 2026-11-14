@@ -55,6 +55,62 @@ public class WhenOffTests
     });
 
     [Fact]
+    public Task The_google_key_goes_only_to_a_device_with_both_yeses_and_only_an_own_key() => BridgeHarness.With(async env =>
+    {
+        var token = await env.PairNew("Pixel", "inst-woff-03", "&kind=phone");
+        var d = Dev(env, "Pixel");
+        env.Bridge.WhenOffKeyOverride = _ => Task.FromResult<(string, string)?>(("id-123.apps.googleusercontent.com", "s3cret"));
+
+        // One yes is not enough: no key, and the status names no folder.
+        await env.Post("/api/whenoff/consent?on=1", token);
+        Assert.Equal(HttpStatusCode.Forbidden, (await env.Get("/api/whenoff/key", token)).StatusCode);
+        var waiting = (await env.Json(await env.Get("/api/status", token))).GetProperty("whenOff");
+        Assert.False(waiting.TryGetProperty("folder", out _));
+        Assert.False(waiting.GetProperty("key").GetBoolean());
+
+        // Both said yes: the key (not a sign-in) and the name of this PC's folder in the cloud.
+        env.Bridge.SetWhenOffPc(d.Id, true);
+        var key = await env.Json(await env.Get("/api/whenoff/key", token));
+        Assert.Equal("id-123.apps.googleusercontent.com", key.GetProperty("clientId").GetString());
+        Assert.Equal("s3cret", key.GetProperty("clientSecret").GetString());
+        var on = (await env.Json(await env.Get("/api/status", token))).GetProperty("whenOff");
+        Assert.StartsWith(env.Host.Settings.MobileBridge.PcId, on.GetProperty("folder").GetString());
+        Assert.True(on.GetProperty("key").GetBoolean());
+
+        // This PC still on the shared key: there is nothing to hand over.
+        env.Bridge.WhenOffKeyOverride = _ => Task.FromResult<(string, string)?>(null);
+        var none = await env.Get("/api/whenoff/key", token);
+        Assert.Equal(HttpStatusCode.Conflict, none.StatusCode);
+        Assert.Equal("shared-key", (await env.Json(none)).GetProperty("code").GetString());
+
+        // Taking the yes back closes it again.
+        env.Bridge.WhenOffKeyOverride = _ => Task.FromResult<(string, string)?>(("id", "s"));
+        await env.Post("/api/whenoff/consent?on=0", token);
+        Assert.Equal(HttpStatusCode.Forbidden, (await env.Get("/api/whenoff/key", token)).StatusCode);
+    });
+
+    [Fact]
+    public void The_own_google_key_is_read_from_the_accounts()
+    {
+        var dump = (System.Text.Json.Nodes.JsonObject)System.Text.Json.Nodes.JsonNode.Parse("""
+            {
+              "gdrive":  { "type": "drive", "token": "t" },
+              "gdrive2": { "type": "drive", "client_id": "own-2", "client_secret": "sec-2" },
+              "gdrive3": { "type": "drive", "client_id": "own-3", "client_secret": "sec-3" },
+              "box":     { "type": "onedrive", "client_id": "not-google" },
+              "CloudSSD": { "type": "union", "upstreams": "gdrive: gdrive2:" }
+            }
+            """)!;
+        Assert.Equal(("own-3", "sec-3"), CloudSSD.Mount.RcloneConfigService.OwnDriveClient(dump, "gdrive3"));
+        // The preferred account still on the shared key (or unknown): any account's own key.
+        Assert.Equal(("own-2", "sec-2"), CloudSSD.Mount.RcloneConfigService.OwnDriveClient(dump, "gdrive"));
+        Assert.Equal(("own-2", "sec-2"), CloudSSD.Mount.RcloneConfigService.OwnDriveClient(dump));
+        dump.Remove("gdrive2");
+        dump.Remove("gdrive3");
+        Assert.Null(CloudSSD.Mount.RcloneConfigService.OwnDriveClient(dump, "gdrive"));
+    }
+
+    [Fact]
     public Task A_guest_can_never_have_it() => BridgeHarness.With(async env =>
     {
         var invite = env.Bridge.CreateGuestInvite(TimeSpan.FromHours(1), AccessCategories.All);

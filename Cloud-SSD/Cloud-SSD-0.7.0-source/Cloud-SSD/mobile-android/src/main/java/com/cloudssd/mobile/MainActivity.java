@@ -380,7 +380,7 @@ public class MainActivity extends Activity {
                 o.put("installId", PcLink.installId(MainActivity.this));
                 o.put("meName", getSharedPreferences(PREFS, MODE_PRIVATE).getString("me_name", ""));
                 o.put("tablet", getResources().getConfiguration().smallestScreenWidthDp >= 600);
-                o.put("googleAvailable", GoogleAuth.available());
+                o.put("googleAvailable", GoogleAuth.available(MainActivity.this));
                 o.put("night", nightMode());
                 o.put("usageAccess", SpaceScanner.hasUsageAccess(MainActivity.this));
                 o.put("tailscale", new JSONObject().put("installed", tailscaleInstalled()).put("vpn", vpnActive()));
@@ -1569,7 +1569,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String driveStatus() {
             try {
-                return new JSONObject().put("available", GoogleAuth.available())
+                return new JSONObject().put("available", GoogleAuth.available(MainActivity.this))
                         .put("direct", getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("drive_direct", true))
                         .put("accounts", GoogleAuth.accounts(MainActivity.this)).toString();
             } catch (Exception e) {
@@ -1603,6 +1603,23 @@ public class MainActivity extends Activity {
         public void setDriveDirect(boolean on) {
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("drive_direct", on).apply();
             CloudDocumentsProvider.notifyRootsChanged(MainActivity.this);
+        }
+
+        /**
+         * "Files when it is off": the page tells how this phone and a PC stand (both said yes or not), so the PC's copy
+         * in the cloud can be opened while the PC cannot be asked. active = false forgets the PC.
+         */
+        @JavascriptInterface
+        public void whenOffSync(String pcId, String name, boolean active) {
+            if (WhenOffStore.set(MainActivity.this, pcId, name, active)) CloudDocumentsProvider.notifyRootsChanged(MainActivity.this);
+        }
+
+        /** The Google key a PC handed over for this phone's own sign-in (never a sign-in itself). True when it is new. */
+        @JavascriptInterface
+        public boolean setGoogleKey(String clientId, String clientSecret) {
+            boolean fresh = GoogleAuth.setKey(MainActivity.this, clientId, clientSecret);
+            if (fresh) CloudDocumentsProvider.notifyRootsChanged(MainActivity.this);
+            return fresh;
         }
 
         /** Files on the cloud by drive id, from the PC or Google Drive (whichever answers); arrives as a 'cloud' event. */
@@ -2563,6 +2580,8 @@ public class MainActivity extends Activity {
                 case "rename": data = docJson(b.rename(a.getString("path"), a.getString("name"))); break;
                 case "move": data = docJson(b.move(a.getString("path"), a.getString("to"))); break;
                 case "delete": b.delete(a.getString("path")); data = new JSONObject().put("success", true); break;
+                // A PC's copy in the cloud: where it is and what the PC last wrote about it. Always from Google Drive.
+                case "copy-info": data = new DriveBackend(this).copyInfo(a.getString("pc")); break;
                 default: throw new BackendException(400, "Unknown operation " + op);
             }
             r.put("ok", true).put("status", 200).put("data", data);

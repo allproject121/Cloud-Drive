@@ -31,15 +31,16 @@ import java.util.Map;
 /**
  * Google sign-in on the phone itself, so the cloud works while the PC is off. Uses Google's page in the browser
  * (never a password typed into this app) with PKCE, and gets the full "drive" permission so the files the PC already
- * put on Drive are visible. Two kinds of Google key are supported, chosen when the app is built:
- * an iOS client (redirect into the app by its reversed client id) or a Desktop client (redirect to this phone's own
- * 127.0.0.1, then back into the app). The refresh key is kept encrypted ({@link TokenStore}); access keys only in memory.
+ * put on Drive are visible. Two kinds of Google key are supported: an iOS client (redirect into the app by its
+ * reversed client id, only when the app was built with one) or a Desktop client (redirect to this phone's own
+ * 127.0.0.1, then back into the app). The key comes from the build, or — for "Files when it is off" — from the PC,
+ * which hands over its own Google key ({@link #setKey}); never a sign-in. The refresh key is kept encrypted
+ * ({@link TokenStore}); access keys only in memory.
  */
 final class GoogleAuth {
     static final String SCOPE = "https://www.googleapis.com/auth/drive";
     private static final String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
     private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
-    private static final String REVOKE_URL = "https://oauth2.googleapis.com/revoke";
     private static final String PREFS = "cloudssd_google";
 
     private static final SecureRandom random = new SecureRandom();
@@ -49,16 +50,63 @@ final class GoogleAuth {
     private GoogleAuth() {
     }
 
-    static boolean available() {
+    private static SharedPreferences prefs(Context c) {
+        return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    // ---- the Google key --------------------------------------------------------------------------------------------
+
+    /** The key the PC handed over: {client id, client secret}; read once, then kept in memory. */
+    private static volatile String[] fromPc;
+
+    private static String[] pcKey(Context c) {
+        String[] k = fromPc;
+        if (k == null) {
+            SharedPreferences p = prefs(c);
+            fromPc = k = new String[]{TokenStore.get(p, "ck_id"), TokenStore.get(p, "ck_secret")};
+        }
+        return k;
+    }
+
+    /** The app was built with a Google key: that one is used, whatever a PC hands over. */
+    private static boolean built() {
         return !GoogleConfig.CLIENT_ID.isEmpty();
     }
 
-    private static boolean desktop() {
-        return "desktop".equals(GoogleConfig.MODE);
+    /**
+     * Keeps the Google key a PC handed over (its own key, for "Files when it is off"). True when it is new. Sign-ins
+     * made with another key stop working at Google and ask to sign in again by themselves.
+     */
+    static synchronized boolean setKey(Context c, String clientId, String clientSecret) {
+        String id = clientId == null ? "" : clientId.trim(), secret = clientSecret == null ? "" : clientSecret.trim();
+        if (id.isEmpty()) return false;
+        String[] old = pcKey(c);
+        if (id.equals(old[0]) && secret.equals(old[1])) return false;
+        SharedPreferences p = prefs(c);
+        TokenStore.put(p, "ck_id", id);
+        TokenStore.put(p, "ck_secret", secret);
+        fromPc = new String[]{id, secret};
+        if (!built()) synchronized (access) {
+            access.clear();
+        }
+        return true;
     }
 
-    private static SharedPreferences prefs(Context c) {
-        return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    static boolean available(Context c) {
+        return built() || !pcKey(c)[0].isEmpty();
+    }
+
+    private static String clientId(Context c) {
+        return built() ? GoogleConfig.CLIENT_ID : pcKey(c)[0];
+    }
+
+    private static String clientSecret(Context c) {
+        return built() ? GoogleConfig.CLIENT_SECRET : pcKey(c)[1];
+    }
+
+    /** A PC's key is always a Desktop one. */
+    private static boolean desktop(Context c) {
+        return built() ? "desktop".equals(GoogleConfig.MODE) : true;
     }
 
     // ---- accounts -----------------------------------------------------------------------------------------------
@@ -104,8 +152,11 @@ final class GoogleAuth {
         return sb.toString();
     }
 
+    /**
+     * Forgets the account on this phone. Google is not asked to revoke: that ends the access of everything signed in
+     * with the same key for this account, and the PC uses that key too.
+     */
     static void signOut(final Context c, final String email) {
-        final String rt = TokenStore.get(prefs(c), "rt_" + email);
         synchronized (GoogleAuth.class) {
             JSONArray all = accounts(c), out = new JSONArray();
             for (int i = 0; i < all.length(); i++) {
@@ -114,14 +165,10 @@ final class GoogleAuth {
             }
             prefs(c).edit().putString("accounts", out.toString()).commit();
             TokenStore.put(prefs(c), "rt_" + email, "");
+        }
+        synchronized (access) {
             access.remove(email);
         }
-        if (!rt.isEmpty()) new Thread(() -> {
-            try {
-                post(REVOKE_URL, "token=" + enc(rt));
-            } catch (IOException ignored) {
-            }
-        }).start();
     }
 
     // ---- signing in -----------------------------------------------------------------------------------------------
@@ -138,8 +185,8 @@ final class GoogleAuth {
         }
     }
 
-    private static String redirectUri(int port) {
-        return desktop() ? "http://127.0.0.1:" + port : GoogleConfig.REDIRECT;
+    private static String redirectUri(Context c, int port) {
+        return desktop(c) ? "http://127.0.0.1:" + port : GoogleConfig.REDIRECT;
     }
 
     /**
@@ -147,7 +194,7 @@ final class GoogleAuth {
      * Desktop key it first reaches this phone's own little web server, which hands it over.
      */
     static void begin(final Activity a, final Callback done) throws IOException {
-        if (!available()) throw new IOException("This build of the app has no Google key. See SETUP.md (\"Phone without the PC\").");
+        if (!available(a)) throw new IOException("This phone has no Google key yet. Switch on \"Files when it is off\" with a PC that uses its own Google key.");
         byte[] v = new byte[48];
         random.nextBytes(v);
         String verifier = b64url(v);
@@ -161,7 +208,7 @@ final class GoogleAuth {
             throw new IOException(e);
         }
         int port = 0;
-        if (desktop()) {
+        if (desktop(a)) {
             stopLoopback();
             final ServerSocket server = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"));
             loopback = server;
@@ -172,7 +219,7 @@ final class GoogleAuth {
         TokenStore.put(prefs(a), "pkce", verifier);
         prefs(a).edit().putString("state", state).putInt("port", port).commit();
 
-        String url = AUTH_URL + "?response_type=code&client_id=" + enc(GoogleConfig.CLIENT_ID) + "&redirect_uri=" + enc(redirectUri(port))
+        String url = AUTH_URL + "?response_type=code&client_id=" + enc(clientId(a)) + "&redirect_uri=" + enc(redirectUri(a, port))
                 + "&scope=" + enc(SCOPE + " email") + "&code_challenge=" + challenge + "&code_challenge_method=S256&state=" + state
                 + "&access_type=offline&prompt=" + enc("select_account consent");
         Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -259,8 +306,8 @@ final class GoogleAuth {
         TokenStore.put(p, "pkce", "");
         try {
             String body = "grant_type=authorization_code&code=" + enc(code) + "&code_verifier=" + enc(verifier)
-                    + "&client_id=" + enc(GoogleConfig.CLIENT_ID) + "&redirect_uri=" + enc(redirectUri(port))
-                    + (GoogleConfig.CLIENT_SECRET.isEmpty() ? "" : "&client_secret=" + enc(GoogleConfig.CLIENT_SECRET));
+                    + "&client_id=" + enc(clientId(c)) + "&redirect_uri=" + enc(redirectUri(c, port))
+                    + (clientSecret(c).isEmpty() ? "" : "&client_secret=" + enc(clientSecret(c)));
             JSONObject t = new JSONObject(post(TOKEN_URL, body));
             String at = t.optString("access_token", "");
             String rt = t.optString("refresh_token", "");
@@ -295,13 +342,14 @@ final class GoogleAuth {
         }
         String rt = TokenStore.get(prefs(c), "rt_" + email);
         if (rt.isEmpty()) throw new CloudBackend.BackendException(401, email + " needs to sign in again on this phone.");
-        String body = "grant_type=refresh_token&refresh_token=" + enc(rt) + "&client_id=" + enc(GoogleConfig.CLIENT_ID)
-                + (GoogleConfig.CLIENT_SECRET.isEmpty() ? "" : "&client_secret=" + enc(GoogleConfig.CLIENT_SECRET));
+        String body = "grant_type=refresh_token&refresh_token=" + enc(rt) + "&client_id=" + enc(clientId(c))
+                + (clientSecret(c).isEmpty() ? "" : "&client_secret=" + enc(clientSecret(c)));
         String text;
         try {
             text = post(TOKEN_URL, body);
         } catch (HttpError e) {
-            if (e.body.contains("invalid_grant")) {
+            // The access ended, or it was given to another Google key than the one in use now (the PC handed over a new one).
+            if (e.body.contains("invalid_grant") || e.body.contains("unauthorized_client") || e.body.contains("invalid_client")) {
                 updateAccount(c, email, "needsReauth", true);
                 throw new CloudBackend.BackendException(401, email + " needs to sign in again on this phone (Google ended the access).");
             }

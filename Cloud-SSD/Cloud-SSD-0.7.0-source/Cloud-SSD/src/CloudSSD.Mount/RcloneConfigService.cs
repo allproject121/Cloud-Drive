@@ -174,6 +174,20 @@ public sealed class RcloneConfigService
         if (!r.Success) throw new InvalidOperationException(ExplainError(r.StdErr));
     }
 
+    /// <summary>
+    /// The user's own Google key (OAuth client) that a Google Drive account is signed in with: the preferred account's
+    /// when it has one, else any account's. Null while every account still uses rclone's shared login.
+    /// </summary>
+    public static (string ClientId, string ClientSecret)? OwnDriveClient(JsonObject dump, string? preferRemote = null)
+    {
+        (string, string)? Of(string name) =>
+            dump[name] is JsonObject o && Str(o, "type") == "drive" && Str(o, "client_id") is { Length: > 0 } id ? (id, Str(o, "client_secret")) : null;
+        if (preferRemote is { Length: > 0 } && Of(preferRemote) is { } preferred) return preferred;
+        foreach (var kv in dump)
+            if (Of(kv.Key) is { } any) return any;
+        return null;
+    }
+
     /// <summary>Google Drive accounts that may be written to (not signed in read-only), i.e. usable in a combined drive.</summary>
     public static IReadOnlyList<string> WritableDriveRemotes(JsonObject dump) =>
         dump.Where(kv => kv.Value is JsonObject o && Str(o, "type") == "drive" && Str(o, "scope") != "drive.readonly")

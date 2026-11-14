@@ -512,10 +512,37 @@
     const state = DATA.whenOffState(w);
     if (state === 'none') return '';
     const mine = !!(w && w.device);
+    // Both said yes: what this phone still needs before it can open the PC's files while the PC is off.
+    const ready = DATA.whenOffReady(w, drive);
+    const more = ready ? `<div class="perm-row ${ready === 'ready' ? 'on' : ''}">
+        <div class="perm-row-text"><div>${ready === 'ready' ? 'Opens while the PC is off' : 'Not ready yet'}</div><div class="perm-row-sub">${esc(DATA.whenOffReadyText(ready, link.pcName))}</div></div>
+        ${ready === 'sign-in' ? '<button class="m3-tonal-btn" data-act="drive-add">Sign in</button>' : ''}
+      </div>` : '';
     return `<div class="perm-row ${state === 'on' ? 'on' : ''}">
         <div class="perm-row-text"><div>Keep copies in the cloud</div><div class="perm-row-sub">${esc(DATA.whenOffText(state, link.pcName))}</div></div>
         <button class="m3-tonal-btn" data-act="whenoff-set" data-on="${mine ? '0' : '1'}">${mine ? 'Stop' : 'Allow…'}</button>
-      </div>`;
+      </div>` + more;
+  }
+  let whenOffKeyAt = 0;
+  /**
+   * Tells the app whether this phone may open this PC's copy in the cloud (both said yes), so it still knows while
+   * the PC is off. And once: fetches the PC's Google key (never a sign-in) when this phone has none, so the user can
+   * sign in to Google here.
+   */
+  function syncWhenOff() {
+    if (!isApp || !link.pcId || typeof native.whenOffSync !== 'function') return;
+    const w = link.status && link.status.whenOff;
+    if (!w) return;
+    const on = DATA.whenOffState(w) === 'on';
+    try { native.whenOffSync(link.pcId, link.pcName || '', on); } catch (e) { return; }
+    if (!on || !w.key || drive.available || Date.now() - whenOffKeyAt < 60000) return;
+    whenOffKeyAt = Date.now();
+    api('/api/whenoff/key', { noAsk: true }).then(r => {
+      if (!r || !r.ok || !r.data || !r.data.clientId) return;
+      try { native.setGoogleKey(r.data.clientId, r.data.clientSecret || ''); } catch (e) { return; }
+      refreshDrive();
+      if (isOpen('perm-sheet')) renderPermissions();
+    }).catch(() => { });
   }
   async function setWhenOff(on) {
     if (on && !await confirmDialog('Files when it is off',
@@ -523,6 +550,7 @@
     const r = await api('/api/whenoff/consent', { method: 'POST', params: { on: on ? '1' : '0' }, noAsk: true }).catch(() => null);
     if (!r || !r.ok || !r.data) { toast(r ? apiError(r, 'Could not change it') : 'PC not reachable'); return; }
     if (link.status) link.status.whenOff = r.data;
+    syncWhenOff();
     if (isOpen('perm-sheet')) renderPermissions();
     toast(DATA.whenOffText(DATA.whenOffState(r.data), link.pcName));
   }
@@ -610,6 +638,7 @@
     link.status = st;
     link.lastOnline = Date.now();
     if (st.pcName && st.pcName !== link.pcName) { link.pcName = st.pcName; ls.set('cloudssd_pc_name', link.pcName); }
+    if (st.pcId === link.pcId) syncWhenOff();
     if (st.pcId && st.pcId !== link.pcId) {
       // A PC saved under its address reports its id: the saved entry (and its data) moves under the id.
       const oldId = currentDeviceId();
@@ -2645,6 +2674,25 @@
       if (seq === ssd.seq) box.innerHTML = emptyBlock(SVG.pc, 'PC did not answer', 'The folder could not be loaded. Check the Wi-Fi and try again.', 'Try again', 'ssd-refresh');
     }
   }
+  const copyInfo = new Map();   // pcId → {at, data}: what a PC last wrote about its copy
+  function copyPcOf(path) { const m = /^pc-([^:]+):/i.exec(String(path || '')); return m ? m[1] : ''; }
+  /** The line above the files while the PC is away: where they come from; for a PC's copy also how old it is. */
+  function renderDriveNote(path) {
+    const el = $('ssd-drive-note');
+    if (!el) return;
+    const pc = copyPcOf(path);
+    if (!pc) { el.textContent = 'PC is off — your files come straight from Google Drive'; return; }
+    const hit = copyInfo.get(pc);
+    const name = pc === link.pcId && link.pcName ? link.pcName : hit && hit.data && hit.data.name;
+    el.textContent = DATA.copyNote(hit && hit.data, name, fmtDate);
+    if (hit && Date.now() - hit.at < 5 * 60000) return;
+    copyInfo.set(pc, { at: Date.now(), data: hit && hit.data });
+    cloudOp('copy-info', { pc }).then(r => {
+      if (!r.ok || !r.data) return;
+      copyInfo.set(pc, { at: Date.now(), data: r.data });
+      if (copyPcOf(ssd.path) === pc) renderDriveNote(ssd.path);
+    });
+  }
   async function loadDriveRoots() {
     const r = await cloudOp('roots', {});
     if (r.ok && Array.isArray(r.data)) drive.roots = r.data;
@@ -3120,7 +3168,7 @@
     ssd.kind = '';
     ssd.showAll = false;
     renderCrumbs();
-    if (isCloudId(path) && cloudSource() === 'drive') { loadDriveFolder(path); return; }
+    if (isCloudId(path) && cloudSource() === 'drive') { renderDriveNote(path); loadDriveFolder(path); return; }
     renderSsdDrives();
     const box = $('ssd-items-container');
     const seq = ++ssd.seq;
@@ -4535,6 +4583,7 @@
           else if (data.removed) toast('Signed out of ' + data.removed);
           drive.roots = [];
           if (isOpen('settings-modal')) renderSettings();
+          if (isOpen('perm-sheet')) renderPermissions();
           if (activeTab === 'ssd' && link.state !== 'online') openSsdTab();
           break;
         case 'mediaFolders': if (window.CloudSsdFs && window.CloudSsdFs.onMediaFolders) window.CloudSsdFs.onMediaFolders(data); break;
@@ -4624,6 +4673,8 @@
    * forgotten: it was just forgotten, so nothing of it is saved again (that would bring it back, without its key).
    */
   function leaveDevice(forgotten) {
+    // A forgotten PC: its copy in the cloud is not this phone's to open any more.
+    if (forgotten && link.pcId && isApp && typeof native.whenOffSync === 'function') { try { native.whenOffSync(link.pcId, '', false); } catch (e) { } }
     if (!forgotten) {
       if (link.pcId) saveSnap({ lastOnline: link.lastOnline, ssdPath: ssd.path });
       if (link.lastOnline) rememberDevice({ lastOnline: link.lastOnline });

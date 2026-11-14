@@ -17,6 +17,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -32,6 +33,10 @@ import java.util.TimeZone;
 final class DriveBackend implements CloudBackend {
     static final String UNION = "cloudssd";
     static final String EACH = "accounts";
+    /** "pc-<pcId>": the copy a PC keeps of its own files ("Files when it is off"); read only. */
+    static final String COPY = "pc-";
+    /** Where every device keeps its copy. Hidden on the other drives: it is opened only through "pc-…". */
+    static final String MIRROR_FOLDER = "Cloud-SSD Devices";
     private static final long CACHE_MS = 60_000;
 
     private final Context ctx;
@@ -67,7 +72,7 @@ final class DriveBackend implements CloudBackend {
 
     @Override
     public boolean isConfigured() {
-        return GoogleAuth.available() && !accounts().isEmpty();
+        return GoogleAuth.available(ctx) && !accounts().isEmpty();
     }
 
     private String token(String email) throws IOException {
@@ -117,17 +122,87 @@ final class DriveBackend implements CloudBackend {
         return r;
     }
 
-    /** Every account the id could live in (all of them for "All Accounts", the one for "Each Account"). */
-    private List<Place> places(String id) throws BackendException {
+    private static boolean isCopy(String drive) {
+        return drive.toLowerCase(Locale.ROOT).startsWith(COPY);
+    }
+
+    /** The devices' copies, seen from "All Accounts" or an account's folder: not shown and not reachable there. */
+    private static boolean hidden(String path) {
+        String p = path.toLowerCase(Locale.ROOT), f = MIRROR_FOLDER.toLowerCase(Locale.ROOT);
+        return p.equals(f) || p.startsWith(f + "/");
+    }
+
+    /** pcId → {email, path of its "files" folder, found at}. */
+    private static final Map<String, String[]> copyCache = Collections.synchronizedMap(new HashMap<String, String[]>());
+
+    /**
+     * Where a PC keeps its copy: "Cloud-SSD Devices/<pcId> <name>/files" in the one account that has it. Only for a PC
+     * this phone may read while it is off ({@link WhenOffStore}).
+     */
+    private Place copyBase(String pcId) throws IOException {
+        if (!WhenOffStore.has(ctx, pcId)) throw new BackendException(403, "\"Files when it is off\" is not switched on for this PC.");
+        List<JSONObject> accs = accounts();
+        String[] hit = copyCache.get(pcId);
+        if (hit != null && SystemClock.elapsedRealtime() - Long.parseLong(hit[2]) < 10 * 60_000L)
+            for (JSONObject a : accs) if (a.optString("email").equals(hit[0])) return new Place(a, hit[1]);
+        for (JSONObject a : accs) {
+            String email = a.optString("email");
+            try {
+                JSONObject top = find(email, MIRROR_FOLDER);
+                if (top == null || !isFolder(top)) continue;
+                for (JSONObject m : DriveApi.children(token(email), top.optString("id"))) {
+                    String name = nameOf(m);
+                    if (!isFolder(m) || !(name.equals(pcId) || name.startsWith(pcId + " "))) continue;
+                    String path = MIRROR_FOLDER + "/" + name + "/files";
+                    copyCache.put(pcId, new String[]{email, path, String.valueOf(SystemClock.elapsedRealtime())});
+                    return new Place(a, path);
+                }
+            } catch (IOException ignored) {
+                // one account not answering (or asking to sign in again) does not hide the others
+            }
+        }
+        throw new BackendException(404, "No copy of this PC is on Google Drive yet, or its Google account is not signed in on this phone.");
+    }
+
+    /**
+     * What the PC wrote about its copy ({account, device: device.json}): when it last copied and how much is up.
+     * "device" is missing while the PC has not finished a first pass.
+     */
+    JSONObject copyInfo(String pcId) throws IOException {
+        Place base = copyBase(pcId);
+        String folder = base.path.substring(0, base.path.length() - "/files".length());
+        JSONObject out = new JSONObject();
+        try {
+            out.put("account", base.email()).put("name", WhenOffStore.name(ctx, pcId));
+            JSONObject m = find(base.email(), folder + "/device.json");
+            if (m != null && !isFolder(m)) {
+                try (InputStream in = DriveApi.read(token(base.email()), m.optString("id"), null, 0)) {
+                    out.put("device", new JSONObject(DriveApi.readAll(in)));
+                }
+            }
+        } catch (JSONException ignored) {
+            // a damaged state file: the copy itself still opens
+        }
+        return out;
+    }
+
+    /** Every account the id could live in (all of them for "All Accounts", the one for "Each Account" or a PC's copy). */
+    private List<Place> places(String id) throws IOException {
         String d = drive(id), r = rel(id);
         List<Place> out = new ArrayList<>();
         if (UNION.equalsIgnoreCase(d)) {
+            if (hidden(r)) throw new BackendException(404, "Not found on Google Drive.");
             for (JSONObject a : byFreeSpace()) out.add(new Place(a, r));
         } else if (EACH.equalsIgnoreCase(d)) {
             if (r.isEmpty()) return out;
             int slash = r.indexOf('/');
             String folder = slash < 0 ? r : r.substring(0, slash);
-            out.add(new Place(accountForFolder(folder), slash < 0 ? "" : r.substring(slash + 1)));
+            String below = slash < 0 ? "" : r.substring(slash + 1);
+            if (hidden(below)) throw new BackendException(404, "Not found on Google Drive.");
+            out.add(new Place(accountForFolder(folder), below));
+        } else if (isCopy(d)) {
+            Place base = copyBase(d.substring(COPY.length()));
+            out.add(new Place(base.account, r.isEmpty() ? base.path : base.path + "/" + r));
         } else throw new BackendException(404, "Unknown drive.");
         return out;
     }
@@ -204,7 +279,7 @@ final class DriveBackend implements CloudBackend {
         d.exported = exportOf(m.optString("mimeType")) != null;
         JSONObject caps = m.optJSONObject("capabilities");
         d.canEdit = editable && !d.exported && (caps == null || caps.optBoolean("canEdit", true));
-        d.canCreate = d.dir && (caps == null || caps.optBoolean("canAddChildren", true));
+        d.canCreate = editable && d.dir && (caps == null || caps.optBoolean("canAddChildren", true));
         if (d.exported) d.size = -1;
         return d;
     }
@@ -301,6 +376,20 @@ final class DriveBackend implements CloudBackend {
         each.totalBytes = all.totalBytes;
         each.freeBytes = all.freeBytes;
         roots.add(each);
+        // A PC that is switched off: the copy it keeps of its own files, when this phone may read it and it is there.
+        for (String[] pc : WhenOffStore.pcs(ctx)) {
+            try {
+                copyBase(pc[0]);
+            } catch (IOException e) {
+                continue;   // no copy yet, or its account is not signed in here
+            }
+            RootInfo copy = new RootInfo();
+            copy.id = COPY + pc[0];
+            copy.title = pc[1] + " (cloud copy)";
+            copy.readOnly = true;
+            copy.canCreate = false;
+            roots.add(copy);
+        }
         return roots;
     }
 
@@ -320,7 +409,7 @@ final class DriveBackend implements CloudBackend {
             return out;
         }
         Map<String, DocInfo> merged = new LinkedHashMap<>();
-        boolean found = false;
+        boolean found = false, copy = isCopy(d);
         for (Place p : places(folderId)) {
             JSONObject folder = find(p.email(), p.path);
             if (folder == null || !isFolder(folder)) continue;
@@ -328,11 +417,12 @@ final class DriveBackend implements CloudBackend {
             for (JSONObject m : DriveApi.children(token(p.email()), folder.optString("id"))) {
                 if (!listable(m)) continue;
                 String name = nameOf(m);
+                if (!copy && p.path.isEmpty() && name.equalsIgnoreCase(MIRROR_FOLDER)) continue;   // the devices' copies: only through "pc-…"
                 if (merged.containsKey(name.toLowerCase(Locale.ROOT))) continue;   // folders merge by name; for files the first account wins
-                merged.put(name.toLowerCase(Locale.ROOT), doc(childId(folderId, name), m, true));
+                merged.put(name.toLowerCase(Locale.ROOT), doc(childId(folderId, name), m, !copy));
             }
         }
-        if (!found) throw new BackendException(404, "Folder not found on Google Drive.");
+        if (!found) throw new BackendException(404, copy && r.isEmpty() ? "The PC has not copied anything yet." : "Folder not found on Google Drive.");
         out.addAll(merged.values());
         Collections.sort(out, (a, b) -> a.dir != b.dir ? (a.dir ? -1 : 1) : a.name.compareToIgnoreCase(b.name));
         return out;
@@ -341,6 +431,14 @@ final class DriveBackend implements CloudBackend {
     @Override
     public DocInfo stat(String id) throws IOException {
         String d = drive(id), r = rel(id);
+        if (isCopy(d) && r.isEmpty()) {
+            copyBase(d.substring(COPY.length()));
+            DocInfo root = new DocInfo();
+            root.id = id;
+            root.name = WhenOffStore.name(ctx, d.substring(COPY.length())) + " (cloud copy)";
+            root.dir = true;
+            return root;
+        }
         if (r.isEmpty() || (EACH.equalsIgnoreCase(d) && r.indexOf('/') < 0)) {
             DocInfo root = new DocInfo();
             root.id = id;
@@ -352,7 +450,7 @@ final class DriveBackend implements CloudBackend {
         }
         for (Place p : places(id)) {
             JSONObject m = find(p.email(), p.path);
-            if (m != null) return doc(id, m, true);
+            if (m != null) return doc(id, m, !isCopy(d));
         }
         throw new BackendException(404, "Not found on Google Drive.");
     }
@@ -402,16 +500,23 @@ final class DriveBackend implements CloudBackend {
         StringBuilder q = new StringBuilder("trashed = false");
         for (String w : words) if (!w.isEmpty()) q.append(" and name contains '").append(DriveApi.q(w)).append("'");
         String d = drive(folderId);
-        for (Place p : places(UNION.equalsIgnoreCase(d) ? UNION + ":" : folderId)) {
+        boolean copy = isCopy(d);
+        // Google answers for the whole account; what lies in (or outside) a PC's copy is dropped below, so ask for more.
+        int ask = WhenOffStore.pcs(ctx).isEmpty() ? max : max * 3;
+        for (Place p : places(UNION.equalsIgnoreCase(d) ? UNION + ":" : copy ? d + ":" : folderId)) {
             String token = token(p.email());
-            String base = EACH.equalsIgnoreCase(d) ? EACH + ":" + p.account.optString("folder") : UNION + ":";
-            for (JSONObject m : DriveApi.query(token, q.toString(), max)) {
+            String base = EACH.equalsIgnoreCase(d) ? EACH + ":" + p.account.optString("folder") : copy ? d + ":" : UNION + ":";
+            for (JSONObject m : DriveApi.query(token, q.toString(), ask)) {
                 if (!listable(m)) continue;
                 String path = pathOf(token, m);
                 if (path == null) continue;   // not in My Drive (shared with me, other drives)
+                if (copy) {
+                    if (!path.startsWith(p.path + "/")) continue;   // only what is inside this PC's copy
+                    path = path.substring(p.path.length() + 1);
+                } else if (hidden(path)) continue;                  // the devices' copies are found only from "pc-…"
                 String id = childId(base, path);
                 if (!id.toLowerCase(Locale.ROOT).startsWith(folderId.toLowerCase(Locale.ROOT).replaceAll("/$", ""))) continue;
-                out.add(doc(id, m, true));
+                out.add(doc(id, m, !copy));
                 if (out.size() >= max) return out;
             }
         }
@@ -471,6 +576,7 @@ final class DriveBackend implements CloudBackend {
 
     @Override
     public DocInfo create(String parentId, String name, boolean dir) throws IOException {
+        if (isCopy(drive(parentId))) throw new BackendException(403, "A PC's cloud copy can only be read.");
         Place p = placeForNew(parentId);
         JSONObject parent = ensureFolder(p.email(), p.path);
         String free = freeName(p.email(), p.path, name);
@@ -482,6 +588,7 @@ final class DriveBackend implements CloudBackend {
 
     private static void requireEditable(String id) throws BackendException {
         String d = drive(id), r = rel(id);
+        if (isCopy(d)) throw new BackendException(403, "A PC's cloud copy can only be read.");
         if (r.isEmpty()) throw new BackendException(403, "The drive itself cannot be changed.");
         if (EACH.equalsIgnoreCase(d) && r.indexOf('/') < 0) throw new BackendException(403, "Account folders cannot be changed. Open an account folder first.");
     }

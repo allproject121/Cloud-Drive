@@ -12,19 +12,38 @@ public final class R {
     public static final int background=0x7f010000;
     public static final int primary=0x7f010001;
   }
+  public static final class drawable {
+    public static final int ic_app_glow_bg=0x7f020004;
+    public static final int ic_app_glow_fg=0x7f020005;
+    public static final int ic_app_kit_bg=0x7f020006;
+    public static final int ic_app_kit_fg=0x7f020007;
+    public static final int ic_app_midnight_bg=0x7f020008;
+    public static final int ic_app_midnight_fg=0x7f020009;
+    public static final int ic_app_ocean_bg=0x7f02000a;
+    public static final int ic_app_ocean_fg=0x7f02000b;
+    public static final int ic_app_paper_bg=0x7f02000c;
+    public static final int ic_app_paper_fg=0x7f02000d;
+    public static final int ic_app_sunset_bg=0x7f02000e;
+    public static final int ic_app_sunset_fg=0x7f02000f;
+  }
   public static final class mipmap {
-    public static final int ic_launcher=0x7f020000;
+    public static final int ic_app_glow=0x7f030000;
+    public static final int ic_app_kit=0x7f030001;
+    public static final int ic_app_midnight=0x7f030002;
+    public static final int ic_app_ocean=0x7f030003;
+    public static final int ic_app_paper=0x7f030004;
+    public static final int ic_app_sunset=0x7f030005;
   }
   public static final class string {
-    public static final int app_name=0x7f030000;
+    public static final int app_name=0x7f040000;
   }
   public static final class style {
     /**
      * Light by default; values-night/ has the dark one. The page follows the same choice.
      */
-    public static final int Theme_CloudSSD=0x7f040000;
+    public static final int Theme_CloudSSD=0x7f050000;
   }
   public static final class xml {
-    public static final int data_extraction_rules=0x7f050000;
+    public static final int data_extraction_rules=0x7f060000;
   }
 }

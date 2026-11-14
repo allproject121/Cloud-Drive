@@ -590,6 +590,46 @@
     return 'off';
   }
 
+  /**
+   * Once both said yes: what is still missing before this phone can open the PC's copy while the PC is off.
+   * 'shared-key' (the PC has no Google key of its own to hand over), 'sign-in' (no Google account is signed in on
+   * this phone yet), 'ready'. '' while it is not on.
+   */
+  function whenOffReady(w, drive) {
+    if (whenOffState(w) !== 'on') return '';
+    const d = drive || {};
+    const signedIn = (d.accounts || []).some(a => a && !a.needsReauth);
+    if (d.available && signedIn) return 'ready';
+    if (!d.available && !w.key) return 'shared-key';
+    return 'sign-in';
+  }
+
+  function whenOffReadyText(ready, pcName) {
+    const pc = pcName || 'the PC';
+    switch (ready) {
+      case 'shared-key': return pc + ' still signs in to Google with the shared key. On the PC open Cloud Drives and switch to your own Google key; then this phone can open its files while it is off.';
+      case 'sign-in': return 'One step left: sign in to Google on this phone, so the files of ' + pc + ' open while it is off.';
+      case 'ready': return 'Ready. While ' + pc + ' is off, its files are in the Cloud SSD tab as "' + pc + ' (cloud copy)".';
+      default: return '';
+    }
+  }
+
+  /**
+   * The line above a PC's copy: "My PC is off or away · cloud copy up to 14 Nov, 14:32 · 41% copied so far", from what
+   * the PC last wrote about its copy (device.json). Parts that are not known are left out.
+   */
+  function copyNote(info, pcName, fmtTime) {
+    const dev = info && info.device;
+    const parts = [(pcName || 'PC') + ' is off or away'];
+    const at = dev && Date.parse(dev.lastSync);
+    parts.push(at ? 'cloud copy up to ' + fmtTime(at) : 'cloud copy');
+    if (dev && dev.bytes > 0) {
+      const pct = Math.floor(100 * (dev.uploadedBytes || 0) / dev.bytes);
+      if (pct < 100) parts.push(pct + '% copied so far');
+    }
+    return parts.join(' · ');
+  }
+
   /** The line under the switch for each state (pcName as written on the PC). */
   function whenOffText(state, pcName) {
     const pc = pcName || 'the PC';
@@ -729,7 +769,7 @@
     covers, pinFor, sameCopy, fmtSize, pinStatus, keptListing,
     linkLabel, sameSubnet, accessName, grantText, safeFolder, peerText,
     friendlyPath, syncStatus, wakeHint,
-    TRANSFER_KINDS, transferKind, groupTransfers, shareSavePath, offerSummary, taskLink, upsertTask, whenOffState, whenOffText
+    TRANSFER_KINDS, transferKind, groupTransfers, shareSavePath, offerSummary, taskLink, upsertTask, whenOffState, whenOffText, whenOffReady, whenOffReadyText, copyNote
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

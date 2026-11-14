@@ -1,0 +1,7 @@
+﻿Work: band-pc-ki-files-phone-se
+Source as it was before the work started: 604 files, 10 MB.
+Taken: 2026-11-14 15:44
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-14_1544_band-pc-ki-files-phone-se"
+and write complete\README.md.

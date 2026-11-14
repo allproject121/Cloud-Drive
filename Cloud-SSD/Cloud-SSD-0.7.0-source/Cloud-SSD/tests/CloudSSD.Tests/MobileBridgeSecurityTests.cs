@@ -56,6 +56,37 @@ public class MobileBridgeSecurityTests
         Assert.Equal("secret", await (await env.Get("/api/download?path=" + E(outside))).Content.ReadAsStringAsync());
     });
 
+    [Fact]
+    public Task A_pc_disk_is_a_read_only_drive_and_only_its_shared_places_open() => With(async env =>
+    {
+        // A folder standing in for the PC's C: disk, outside every cloud drive.
+        var disk = Path.Combine(env.Temp, "disk");
+        Directory.CreateDirectory(Path.Combine(disk, "Users", "me", "Documents"));
+        await File.WriteAllTextAsync(Path.Combine(disk, "Users", "me", "Documents", "note.txt"), "hello");
+        env.Bridge.DiskRootsOverride = () => [new CloudRoot("disk-c", disk, true, false, null, "C: PC disk")];
+
+        // PC disks are not shared: nothing of the disk is listed or read, and it is not one of the cloud drives.
+        Assert.Equal(HttpStatusCode.Forbidden, (await env.Get("/api/fs/list?path=" + E("disk-c:Users/me/Documents"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await env.Get("/api/fs/read?path=" + E("disk-c:Users/me/Documents/note.txt"))).StatusCode);
+        Assert.DoesNotContain("disk-c", await (await env.Get("/api/fs/roots")).Content.ReadAsStringAsync());
+
+        env.Host.Settings.MobileBridge.AllowPcDisks = true;
+        var roots = await env.Json(await env.Get("/api/fs/roots?include=disks"));
+        Assert.Equal("disk-c", roots[0].GetProperty("id").GetString());
+        Assert.True(roots[0].GetProperty("readOnly").GetBoolean());
+        var list = await env.Json(await env.Get("/api/fs/list?path=" + E("disk-c:Users/me/Documents")));
+        var entry = list.GetProperty("entries")[0];
+        Assert.Equal("disk-c:Users/me/Documents/note.txt", entry.GetProperty("id").GetString());
+        Assert.False(entry.GetProperty("canEdit").GetBoolean());
+        Assert.Equal("hello", await (await env.Get("/api/fs/read?path=" + E("disk-c:Users/me/Documents/note.txt"))).Content.ReadAsStringAsync());
+
+        // Read only: nothing on the PC's disk is changed through it, and a path cannot climb out of it.
+        Assert.Equal(HttpStatusCode.Forbidden, (await env.Post("/api/fs/delete?path=" + E("disk-c:Users/me/Documents/note.txt"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await env.Post("/api/fs/create?parent=" + E("disk-c:Users/me/Documents") + "&name=new.txt")).StatusCode);
+        Assert.True(File.Exists(Path.Combine(disk, "Users", "me", "Documents", "note.txt")));
+        Assert.NotEqual(HttpStatusCode.OK, (await env.Get("/api/fs/list?path=" + E("disk-c:../"))).StatusCode);
+    });
+
     // ---- device keys ------------------------------------------------------------------------------------------------
 
     [Fact]
