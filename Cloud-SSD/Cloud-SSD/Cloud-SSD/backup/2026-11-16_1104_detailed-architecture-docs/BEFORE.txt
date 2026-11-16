@@ -1,0 +1,9 @@
+﻿Work: detailed-architecture-docs
+Agent: Antigravity
+TaskId: TASK-ARCH-001
+Source as it was before the work started: 626 files, 11.9 MB.
+Taken: 2026-11-16 11:04
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-16_1104_detailed-architecture-docs"
+and write complete\README.md.

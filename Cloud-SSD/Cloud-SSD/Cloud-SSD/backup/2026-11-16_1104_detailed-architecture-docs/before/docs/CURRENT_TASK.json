@@ -1,0 +1,12 @@
+﻿{
+    "active":  true,
+    "taskId":  "TASK-SHOTS-001",
+    "taskTitle":  "latest-screenshots-sync",
+    "agent":  "Antigravity",
+    "startTime":  "2026-11-16T10:38:21.1527555+05:30",
+    "backupFolder":  "2026-11-16_1038_latest-screenshots-sync",
+    "targetFiles":  {
+
+                    },
+    "status":  "IN_PROGRESS"
+}
