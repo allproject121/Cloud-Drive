@@ -137,29 +137,6 @@ flowchart LR
     F7 ===>|"Line: Permanent Sector Lock"| SYS_PIN
     F8 ===>|"Line: Shell Resource Switcher"| SYS_UI
     F9 ===>|"Line: Event Pub/Sub & Audit Log"| SYS_BELL
-
-    %% Interactive Click Directives
-    click LOGIN href "#flow-login" "Jump to Login Architecture Flow"
-    click CONN href "#flow-pair" "Jump to Connection Architecture Flow"
-    click HOME href "#features" "Jump to Home Dashboard Features Overview"
-    click F1 href "#flow-mount" "Jump to Virtual SSD Mount Details"
-    click F2 href "#flow-share" "Jump to LAN File Share Details"
-    click F3 href "#flow-read" "Jump to Sparse Chunk Cache Details"
-    click F4 href "#flow-whenoff" "Jump to When PC is Off Details"
-    click F5 href "#flow-memory" "Jump to Memory Relief Engine Details"
-    click F6 href "#flow-gaming" "Jump to Gaming HUD & Sandbox Details"
-    click F7 href "#flow-pin" "Jump to Pin Offline Access Details"
-    click F8 href "#flow-icons" "Jump to Dynamic App Icon Picker Details"
-    click F9 href "#flow-notifications" "Jump to Live Bell Alerts Details"
-    click SYS_VFS href "#flow-mount" "Jump to WinFsp VFS Engine Specifications"
-    click SYS_NET href "#flow-share" "Jump to LAN Bridge Specifications"
-    click SYS_CACHE href "#flow-read" "Jump to Sparse Cache Specifications"
-    click SYS_OFF href "#flow-whenoff" "Jump to Cloud Staging Specifications"
-    click SYS_RAM href "#flow-memory" "Jump to Win32 Memory Relief Specifications"
-    click SYS_GAME href "#flow-gaming" "Jump to Gaming Sandbox Specifications"
-    click SYS_PIN href "#flow-pin" "Jump to Pin Offline Specifications"
-    click SYS_UI href "#flow-icons" "Jump to Shell Theme Specifications"
-    click SYS_BELL href "#flow-notifications" "Jump to Live Bell Alerts Specifications"
 ```
 
 ```
@@ -1051,29 +1028,6 @@ flowchart LR
     F7 ===>|"Line: Permanent Sector Lock"| SYS_PIN
     F8 ===>|"Line: Shell Resource Switcher"| SYS_UI
     F9 ===>|"Line: Event Pub/Sub & Audit Log"| SYS_BELL
-
-    %% Interactive Click Directives
-    click LOGIN href "#flow-login" "Jump to Login Architecture Flow"
-    click CONN href "#flow-pair" "Jump to Connection Architecture Flow"
-    click HOME href "#features" "Jump to Home Dashboard Features Overview"
-    click F1 href "#flow-mount" "Jump to Virtual SSD Mount Details"
-    click F2 href "#flow-share" "Jump to LAN File Share Details"
-    click F3 href "#flow-read" "Jump to Sparse Chunk Cache Details"
-    click F4 href "#flow-whenoff" "Jump to When PC is Off Details"
-    click F5 href "#flow-memory" "Jump to Memory Relief Engine Details"
-    click F6 href "#flow-gaming" "Jump to Gaming HUD & Sandbox Details"
-    click F7 href "#flow-pin" "Jump to Pin Offline Access Details"
-    click F8 href "#flow-icons" "Jump to Dynamic App Icon Picker Details"
-    click F9 href "#flow-notifications" "Jump to Live Bell Alerts Details"
-    click SYS_VFS href "#flow-mount" "Jump to WinFsp VFS Engine Specifications"
-    click SYS_NET href "#flow-share" "Jump to LAN Bridge Specifications"
-    click SYS_CACHE href "#flow-read" "Jump to Sparse Cache Specifications"
-    click SYS_OFF href "#flow-whenoff" "Jump to Cloud Staging Specifications"
-    click SYS_RAM href "#flow-memory" "Jump to Win32 Memory Relief Specifications"
-    click SYS_GAME href "#flow-gaming" "Jump to Gaming Sandbox Specifications"
-    click SYS_PIN href "#flow-pin" "Jump to Pin Offline Specifications"
-    click SYS_UI href "#flow-icons" "Jump to Shell Theme Specifications"
-    click SYS_BELL href "#flow-notifications" "Jump to Live Bell Alerts Specifications"
 ```
 
 | Project | Responsibility |
