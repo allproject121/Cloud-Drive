@@ -1,4 +1,4 @@
-﻿# 🛠️ DEVELOPMENT, BUILD & TESTING GUIDE (Cloud-SSD)
+# 🛠️ DEVELOPMENT, BUILD & TESTING GUIDE (Cloud-SSD)
 
 > **Overview:** Consolidated developer guide covering local environment setup, build requirements, unit & integration test suites, benchmarks, compatibility, and known limitations.  
 > **Source Documents Consolidated:** SETUP.md, BUILD_STATUS.md, TEST_REPORT.md, BENCHMARKS.md, COMPATIBILITY.md, KNOWN_LIMITATIONS.md.
@@ -157,7 +157,7 @@ Pehli baar Windows Firewall ka popup aa sakta hai â†’ user **Allow** (Priva
 
 Agent: Google ka page khud mat bharo. User ko bolo "browser me apna account chun kar Allow dabaiye" aur Step 6 ke check se dekho ki ho gaya.
 
-Baar-baar login maange ya "rate limit" aaye to apni khud ki Google key banao: [`docs/GOOGLE_DRIVE_SETUP.md`](docs/GOOGLE_DRIVE_SETUP.md).
+Baar-baar login maange ya "rate limit" aaye to apni khud ki Google key banao: [`docs/GOOGLE_DRIVE_SETUP.md`](archive/GOOGLE_DRIVE_SETUP.md).
 
 ### Step 6 â€” Drive check karo
 
@@ -351,7 +351,7 @@ Report me yeh bhi likho: kaun se step insaan ne kiye, kya skip hua aur kyun, aur
 | Project folder rename / delete nahi hota ("in use") | Koi program us folder ke andar se chal raha hai | `dotnet build-server shutdown`, aur app ko install folder se chalao (Step 4) |
 | Build me "file is being used" | Do build ek saath | Dusre ke khatm hone tak ruko |
 
-Aur madad: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md). App ke **Diagnostics** page se "Export sanitized report" bhi nikal sakte ho (usme login / token nahi hote).
+Aur madad: [`docs/TROUBLESHOOTING.md`](archive/TROUBLESHOOTING.md). App ke **Diagnostics** page se "Export sanitized report" bhi nikal sakte ho (usme login / token nahi hote).
 
 ---
 
@@ -386,7 +386,7 @@ Legend: ✅ implemented and tested on this machine · 🟡 implemented, partiall
 ⚪ implemented, not exercised by automated tests · ⛔ blocked (external dependency) · ❌ not implemented
 
 Environment: Windows 11 Pro 25H2, non-admin user, Developer Mode on, i3-10105F, RX 580, 16 GB, WinFsp 2025,
-rclone 1.75.2, .NET 10.0.3. Test results: [TEST_REPORT.md](TEST_REPORT.md).
+rclone 1.75.2, .NET 10.0.3. Test results: [TEST_REPORT.md](archive/TEST_REPORT.md).
 
 ## M1 — Functional foundation
 

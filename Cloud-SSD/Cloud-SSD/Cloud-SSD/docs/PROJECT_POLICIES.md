@@ -1,4 +1,4 @@
-﻿# 📜 PROJECT POLICIES & COMPLIANCE (Cloud-SSD)
+# 📜 PROJECT POLICIES & COMPLIANCE (Cloud-SSD)
 
 > **Overview:** Guidelines for open-source contributions, security vulnerability reporting, and third-party software licensing notices.  
 > **Source Documents Consolidated:** CONTRIBUTING.md, SECURITY.md, THIRD_PARTY_NOTICES.md.
@@ -21,7 +21,7 @@ Thanks for helping. A few ground rules keep Cloud-SSD honest and safe:
 - **No fabricated numbers.** Metrics, benchmarks and "game works" claims must come from a real, reproducible run.
   Say what was tested and what was not.
 - **Never delete cloud data**, and never delete user save files to free cache space.
-- Keep secrets out of the repository (see [SECURITY.md](SECURITY.md)).
+- Keep secrets out of the repository (see [SECURITY.md](archive/SECURITY.md)).
 
 ## Development
 

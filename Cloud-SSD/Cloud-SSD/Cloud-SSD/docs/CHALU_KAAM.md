@@ -7,7 +7,7 @@ agla session aaye, Claude ho ya Codex, wahin se kaam uthaye. Kuch dobara na ho, 
 (2 minute ka kaam hai; yahi sabse zaroori hai). Token kam lage to naya kaam mat chhedo: pehle yeh file likho.
 
 Project: `C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD\Cloud-SSD`
-(git ki jad do folder upar; branch `feature/multi-device`; GitHub repo private hai).
+(git ki jad do folder upar; branch `main` + `feature/multi-device` dono; GitHub repo private hai).
 
 ---
 
@@ -113,7 +113,7 @@ Jo jaanch nahi ho payi use report mein saaf likho ("yeh nahi jaancha, kyunki …
 ## 7. Bada kaam: "Band hone par bhi files"
 
 User ka maqsad: **desktop power off ho tab bhi phone se uski files khulें** (aur ulta).
-Poora plan: `docs\WHEN_OFF_PLAN.md`. Tareeka: device chalu ho tab files ki copy Google Drive mein
+Poora plan: `docs\archive\WHEN_OFF_PLAN.md` (archive me hai). Tareeka: device chalu ho tab files ki copy Google Drive mein
 (`Cloud-SSD Devices/<id> <naam>/files/...`), band ho to doosra device wahi copy kholta hai.
 
 | Phase | Kya | Haal |
@@ -140,7 +140,7 @@ mein sign-in nahi kar sakta, isliye Phase 3 ki **asli jaanch** key ke baad hi ho
 **Aakhri badlaav:** 14 Nov 2026, 20:47 — Antigravity (GitHub push completed)
 
 **Chal raha kaam:** band PC ki files phone se — ab **bina Google key** wala raasta (user ne 16:22 par kaha: key ke bina karo).
-Plan: `docs\WHEN_OFF_BINA_KEY_PLAN.md` (pehle ise padho). Raasta A = PC ke folder ki copy phone ke andar ("Offline rakho" ko PC disk ke liye kholna).
+Plan: `docs\archive\WHEN_OFF_BINA_KEY_PLAN.md` (pehle ise padho). Raasta A = PC ke folder ki copy phone ke andar ("Offline rakho" ko PC disk ke liye kholna).
 
 Bina-key ke kadam (yahi abhi chal rahe hain):
 - [ ] K1 PC: `/api/fs/*` mein PC disk ki jad `disk-c:` (sirf padhna, Browse permission, wahi roktham jo `/api/files` par), feature `fs-disk-roots`, tests
@@ -287,3 +287,170 @@ B ne `p3-pc.js`). B ne 3.1 aur 3.2 kiya; 3.3 se aage A ne. Ek hi file do log na 
   - `docs/antigravity.md`
   - Artifact: `cloud-drive-system-architecture.html`
 - **Haal:** Poora hua. Official GitHub `tt-a1i/archify` tool install karke candidate architecture JSON banaya gaya, validate kiya gaya (`status: pass`, 0 errors), aur standalone interactive HTML compile karke README.md aur repository mein joda gaya.
+
+---
+
+## Kaam: Project Health Audit (MiniMax Code) - READ-ONLY, COMPLETE
+
+- **Tareekh & Samay:** 16 Nov 2026, 15:05 - 15:20 IST
+- **Agent:** MiniMax Code (MCode)
+- **User Command:** "ha tum bhi aapane name ka file banakr usme kam karna or abhi isme kya kya chije tik se work nahi kar raha hai ... wo deko or batao"
+- **Backup Folder:** `backup\2026-11-16_1518_mcode-health-audit-readme-links` (before + complete; APPROVED: build 0 errors/0 warnings, C# 465/465, JS 45/45)
+- **Badli Files:** `docs/MCODE.md` (nayi — MCode ka apna work log), `docs/CHALU_KAAM.md`, `docs/CURRENT_TASK.json`
+- **Code:** Koi source code nahi badla. Sirf jaanch (build, dono test suite, runtime logs, README link check, settings).
+- **Haal:** Audit poora. Sabse badi 4 baatein:
+  1. **App abhi band/crashed hai** — `Z:`/`Y:` mounted nahi, `Cloud-SSD.exe`/`rclone.exe` nahi chal rahe, aakhri activity 15:01:28. Windows Event Log mein WER `AppTermFailureEvent` (14:52, 14:55, 15:02, 15:05) — clean exit nahi hua.
+  2. **7.3 GB ka upload adhoora chhoot gaya** — `Cloud-Drive.zip` 24% par ruka, `errors:89`, `lastError: couldn't list directory: context canceled`, resume nahi hua.
+  3. **Mount auto-restore fail** — "Drive Z:/Y: did not appear within N s", "mountpoint Z: didn't became available", retry loop. Saath hi `--links` flag missing (symlink error) aur union remote ka `Statfs failed` (galat disk-space info).
+  4. **README ke 40 relative links toote hain** (workspace README 37/40, codebase README 40/40) — folder structure `Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD` se badal kar `Cloud-SSD/Cloud-SSD/Cloud-SSD` hua tha, README update nahi hua. Docs ab `docs\archive\` mein hain.
+- **Poori list + evidence:** `docs\MCODE.md` (TASK-MCODE-001) — saare 17 points, har ek ke saath actual log line / command output.
+- **Agla kadam:** user ka faisla. Fix karna ho to order: (1) mount restore + crash, (2) `--links` flag, (3) README links, (4) stale plan path (`docs\archive\...`), (5) phone par asli jaanch (Phase 3 step 3.7 — device "vivo I2221" ka LastSeen 14 Nov hai, 2 din se link nahi).
+
+---
+
+## Kaam: Sab kuch theek — mount, docs, release build, settings (MiniMax Code) - COMPLETE
+
+- **Tareekh & Samay:** 16 Nov 2026, 15:30 - 17:05 IST
+- **Agent:** MiniMax Code (MCode)
+- **User Command:** "fix karo sari chije" (audit ke 17 points par kaam)
+- **Backup Folder:** `backup\2026-11-16_1532_mcode-fix-batch-1` (before + complete; APPROVED: build 0 errors/0 warnings, C# **470/470**, JS 45/45)
+- **Badli Files:**
+  - Code: `src/CloudSSD.Mount/{MountPlanning,MountService,RcloneConfigService}.cs`, `src/CloudSSD.Diagnostics/Logging.cs`,
+    `src/CloudSSD.Core/{Settings.cs,SecretProtector.cs (nayi),CloudSSD.Core.csproj}`, `src/CloudSSD.Desktop/ViewModels/ConfigViewModels.cs`
+  - Tests: `tests/CloudSSD.Tests/CoreTests.cs` (5 naye tests)
+  - Scripts: `installer/build-release.ps1`, `tools/backup/backup.ps1`, `tools/live-test/pc-close.ps1`
+  - Docs: `README.md` (3 copies), `RULE.md` (3 copies), `docs/{CHALU_KAAM,DEV_TESTING,PROJECT_POLICIES,MCODE}.md`, `docs/archive/SETUP.md`, `.work/README-DO-NOT-RERUN.md` (nayi), `backup/2026-11-14_2003_.../complete/README.md` (nayi)
+  - Runtime: `%LOCALAPPDATA%\Cloud-SSD\settings.json` (Mirror ko safe kiya)
+- **Haal:** Sab theek, aur ek asli PC par jaanch ke saath:
+  1. **`--links` flag missing tha** → har mount par "symlinks not supported" + union ka `Statfs failed` (galat disk-space). Ab flag add hai: **symlink error 0**, statfs chalta hai (16.5 TB / 15.7 TB free).
+  2. **45 s timeout** quota 403 me kaam nahi karta tha (mount ko 75-120 s lagte hain) → **120 s**, aur error ab batata hai: *"Google Drive API quota khatam ho gaya (403). Apni OAuth key use karo … Switch to my own Google key"*.
+  3. **Release build toota hua tha** (`THIRD_PARTY_NOTICES.md` root par hi thi, ab `docs\archive\` me) → `Find-Doc` helper se theek; build ab chalta hai: `dist\Cloud-SSD-0.9.0-win-x64.zip` (95.3 MB, SHA256 `1105a640…`).
+  4. **README ke 40/40 links** → teeno copies me **0 broken**; badge PC 0.9.0 / phone 0.12.0; download links naye path par. `docs/` ke 6 toote links bhi theek.
+  5. **Mirror poori disk upload kar raha tha** → `OnlyFolders = Documents`, `IncludeSystem = false`, `Paused = true`.
+  6. **settings.json me token/media key plain** → ab DPAPI se protected (purani plain files bhi chalti hain).
+  7. Log file ka naam `cloudplayx-*.log` → `cloudssd-*.log`; `backup.ps1 -Files "a,b,c"` ka bug theek.
+- **Phe:** WER "AppTermFailureEvent" Cloud-SSD ka crash **nahi** tha (payload khaali; `crashpad_log` wala Edge ka hai). Sach: app band hua tha aur 7.3 GB ka upload adhoora chhoda.
+- **Poori list + evidence:** `docs\MCODE.md` (TASK-MCODE-002).
+- **User ke haath me do cheezein ab bhi:** (1) **apni Google OAuth key** (Cloud Drives → "How do I get a key?" → "Switch to my own Google key") — rclone ka shared key 2026 me retire ho raha hai, uski quota khatam rehti hai; (2) **phone par jaanch** (Phase 3 step 3.7) — "vivo I2221" ka LastSeen 14 Nov 17:11 hai.
+- **Push nahi hua** (user ne nahi kaha).
+- **Ruka hua kis par:** user ka command. Koi code change bina kahe nahi kiya gaya.
+
+---
+
+## Kaam: Dono drive live mount + backup lock ka PS 5.1 bug (MiniMax Code) - COMPLETE
+
+- **Tareekh & Samay:** 16 Nov 2026, 16:41 - 17:00 IST
+- **Agent:** MiniMax Code (MCode)
+- **Backup Folder:** `backup\2026-11-16_1648_mcode-backup-lock-ps51` (before + complete)
+- **Kya hua:**
+  1. **Naya code:** `src\CloudSSD.Mount\MountService.cs` me `WatchForDriveAsync` — 120 s timeout hone par rclone ko **maarne ke bajaye zinda chhod** diya gaya; watcher 15 min tak drive letter ka intezaar karta hai aur jaise hi letter aata hai, session "Mounted" ho jaata hai.
+  2. **Asli PC par proof (naya build install karke):**
+     - Y: (Each Account) → **16:43:38 "Mounted at Y:"**
+     - Z: (All Accounts) → **16:43:58 "Mounted at Z: (the drive appeared while the app was waiting)"**
+     - Asli file read: 142181 bytes in 1729 ms aur 1028984 bytes in 2137 ms ✅
+     - Disk space: Z: 15.0 TB / 14.9 TB free (pehle "Statfs failed") ✅
+     - Symlink error: **0** ✅
+  3. **Release build:** `dist\Cloud-SSD-0.9.0-win-x64.zip` (95.3 MB, SHA256 `d931ce2a338f247c4b50753afb658251901e42d8470c7f117b25cc36aa0ac355`), naya build install ho chuka hai.
+  4. **Backup ka lock bug:** `tools\backup\backup.ps1` me `ConvertFrom-Json -AsHashtable` PS 5.1 par nahi hai → lock kabhi release nahi hota tha. Ab `Read-TaskLock` helper se 5.1 aur 7+ dono par chalta hai; `validate` ab `validationStatus` likhta hai aur `complete` khud lock band karta hai.
+- **Task-002 ka backup band:** `backup\2026-11-16_1532_mcode-fix-batch-1` → `complete\` (new 3, changed 19), `VALIDATION.txt` = APPROVED, `complete\README.md` Hinglish me. `docs\CURRENT_TASK.json` → `active:false`, `status: COMPLETED`.
+- **User ke haath me ab bhi:** (1) apni Google OAuth key (shared rclone key ki quota khatam rehti hai); (2) phone par Phase 3 step 3.7 jaanch ("vivo I2221" ka LastSeen 14 Nov 17:11).
+- **Push nahi hua** (user ne nahi kaha).
+
+---
+
+## Kaam: Zip/install tez, app restart pe khud chale (MiniMax Code) - COMPLETE
+
+- **Tareekh & Samay:** 16 Nov 2026, 17:15 - 18:05 IST
+- **Agent:** MiniMax Code (MCode)
+- **User ka shikayat:** zip bahut slow khulta hai / khulta hi nahi, install bahut time leta hai, aur PC restart karne par Cloud-SSD band ho jaata hai (permanent hona chahiye jab tak uninstall na ho).
+- **Backup Folder:** `backup\2026-11-16_1731_mcode-mount-speed-autostart` (before + complete; APPROVED: build 0/0, C# **471/471**)
+- **Kya fix hua:**
+  1. **Restart pe app ab khud chalega** — app me feature maujood tha (`StartWithWindows.cs`), par is PC par registry entry nahi thi. Entry bana di, aur ab **installer** bhi install ke time ye entry likhta hai (uninstaller hatata hai) → ek baar install = permanent.
+  2. **7.3 GB ka junk upload band** — pehle ka accidental mirror dump 11.6 MB/s up le raha tha, is liye user ka download sirf 251 KB/s tha. Pending-upload wale cache copies (≈28 GB, sirf local cache) Recycle Bin me gaye; ab 0 upload, baaki cache rakha gaya (files turant khulti hain).
+  3. **Read chunk 4 MiB → 32 MiB** (`Cache.ReadChunkSizeBytes`), **cache budget 20 → 60 GiB** — ek archive 16 API requests ki jagah 2; dusri baar file cache se turant.
+  4. **App band karne par drive ab nahi marti** — rclone app ke pipe se chalta tha; pipe toot'ta → Go SIGPIPE → rclone mar jaata tha (controlled test me reproduce kiya). Naya `DetachedProcess.cs` (`CreateProcessW` + `STARTF_USESTDHANDLES`) rclone ko NUL device se chalaata hai → pipe nahi, toot' hi nahi sakta. **Proof:** app maarte hi 60 s baad bhi rclone zinda, `Z:` mounted, aur app band rahne par bhi file read (1 MB in 1277 ms); app dobara start karne par "Re-attached to running mount at Z:/Y:".
+  5. **Khaali dikh raha folder theek** — ye stale dir-cache tha (quota 403 me fail listing "khali" cache ho gayi thi, 72 h tak). Cache clear kiya → files wapas. Isi liye `--vfs-refresh` hataya nahi gaya.
+- **Asli blocker (code se nahi, user ke haath me):** Google Drive API ka **shared rclone quota** (`project_number:202264815644`) — 403 storm me download **4 KB/s** tak girta hai (cold read 181–222 s), jabki cache hit par random read **24 ms**. Solution: **apni OAuth key** (Cloud Drives → "How do I get a key?" → "Switch to my own Google key"). Uske baad drive 3–6 s me aati hai.
+- **Release:** `dist\Cloud-SSD-0.9.0-win-x64.zip` (95.3 MB, SHA256 `998ee920d57d6323b379ab1778697f2b58b60baa6f20ca26d08ed0529a294084`), install ho chuka hai.
+- **Push nahi hua** (user ne nahi kaha).
+
+---
+
+## Kaam: Zip ab khulega — "Fast browsing" mode (MiniMax Code) - COMPLETE
+
+- **Tareekh & Samay:** 16 Nov 2026, 18:20 - 18:50 IST
+- **Agent:** MiniMax Code (MCode)
+- **User ka shikayat:** *"zip abhi bhi bahot slow open ho raha hai ya bol do open hi nahi ho raha hai"* + quiz me confirm: **"Zip open hi nahi hota / bahut slow"**
+- **Backup Folder:** `backup\2026-11-16_1834_mcode-fast-browsing-mode` (before + complete; APPROVED: build 0/0, C# **472/472**)
+- **Asli gadda:** Windows zip ka **end** padhta hai, par drive `--vfs-cache-mode full` par thi — us mode me rclone koi bhi file kholte hi **poora file** download kar leta hai. A/B (same 460 MB zip): **full** → 1 MiB padhne me **38.8 s** aur **460 MB utra**; **writes** → **5.3 s** aur **0 MB extra**. isi se quota bhi jharta tha (har folder listing par har archive pura download hota tha → cache 13.7 GB, log 305k lines).
+- **Fix:**
+  1. Naya setting `Cache.VfsCacheMode` (`full` default = games ke liye, `writes` = fast browsing).
+  2. **UI toggle**: Cloud Drives → "Drive mode" card → "Fast browsing" checkbox + "Apply and reconnect" (mode mount shuru hone par tay hota hai).
+  3. Is PC par **"writes" ON** kar diya.
+- **Proof (naya build, Z:):** `--vfs-cache-mode writes` command me ✅ · 460 MB zip ka end **21.5 s** + **0 MB** extra (pehle 38.8 s + 460 MB) · dusra read **47 ms** · Z: ready 15 s me.
+- **Bacha hua wait:** Google ke shared quota ka backoff (`Rate limited, increasing sleep to 16.4s`) — **apni OAuth key** se khatam (browser me Google Console khul gaya hai, steps bheje gaye).
+- **Release:** `dist\Cloud-SSD-0.9.0-win-x64.zip` (95.3 MB, SHA256 `cb4960b8fa07791b16e5568d944b56fabfdd1fd5b752c035280e3f626c2f1bd1`), install ho chuka hai.
+- **Push nahi hua** (user ne nahi kaha).
+
+---
+
+## Kaam: Pura end-to-end test + chunk size wapas 4 MiB (MiniMax Code) - COMPLETE
+
+- **Tareekh & Samay:** 16 Nov 2026, 18:50 - 19:25 IST
+- **Agent:** MiniMax Code (MCode)
+- **User ka shikayat / instruction:** *"pura test kud kiya karo meri puri permission hai"* — poora build + teeno test suite + release build + install + asli device par jaanch, evidence ke saath.
+- **Backup Folders:**
+  - `backup\2026-11-16_1905_mcode-chunk-size-revert-4mib` (TASK-MCODE-006; APPROVED: build 0/0, C# **472/472**)
+  - `backup\2026-11-16_1918_mcode-backup-readme-identity-fix` (TASK-MCODE-007; APPROVED: build 0/0, C# **472/472**)
+- **Test results (sab abhi, issi machine par):**
+  1. **Unit (C#):** `472/472 PASS`
+  2. **Mobile JS:** `45/45 PASS`
+  3. **Integration (pehli baar chala):** `28/29` — ek fail `Demo_game_launches_from_cloud...` ("run the demo game install step first")
+  4. **Demo game install step kiya** (TEST_REPORT.md wala; `DOTNET_ROOT` set karna zaroori tha, PATH wala dotnet sirf .NET 8 runtime hai) → dataset **3,626 MB** bana → game flow bahut aage badha (Launch 1 cold 20030 ms / 126.4 MiB, Launch 2 7942 ms, Prepare 146/146 blocks "ReadyToLaunch" 22 s, Launch 3 7109 ms)
+  5. **Hybrid step fail hua**: `UnsupportedFilesystemOperation` on `local-games\CPX Demo Game-...` → wajah `File.CreateSymbolicLink` (`ExecutionModes.cs:121`) → *"Administrator privilege required"* = Windows **Developer Mode band** tha. Elevated process me **"SYMLINK OK"** prove kiya → **code sahi hai**, sirf OS privilege state.
+  6. **Developer Mode ON kiya** (user ki permission par): `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock\AllowDevelopmentWithoutDevLicense = 1` (UAC se). Non-elevated process me abhi bhi fail → **reboot/sign-out chahiye** tabhi sab apps me effective hoga.
+  7. **Elevated integration suite: `29/29 PASS`** (6.08 min) — game-flow wala bhi pass, hybrid step samet.
+  8. **Chunk size wapas 4 MiB** (32 MiB se): 460 MB zip ka end **21.5 s → 5.3 s**, extra 0 MB.
+  9. **Release build + install**: `dist\Cloud-SSD-0.9.0-win-x64.zip` (95.3 MB), SHA256 `8432850da5a0138e36f131d6e146dd7188ef96d77a2ecb2aa16cca665b3ae3d0`, install + app chalu.
+  10. **Device test 14 sections — sab PASS** (app restart ke baad dobara chalaya, phir bhi PASS).
+  11. **Regression: app band → drive zinda** → rclone zinda, Z:/Y: mounted, listing 122 ms. **App restart → re-attach**: log me `Re-attached to running mount at Z:` aur `at Y:` (19:07:06), aur **purana rclone (19:02:38 wala) zinda raha** — matlab app band karne par mount nahi mara.
+- **Naya bug pada aur fix hua (TASK-MCODE-007):** `backup.ps1` ka `complete` step agent/taskid apne command line se leta tha (default `Antigravity`, TaskId khali) → README me **galat agent** likha jaata tha. Ab `TASK_INFO.json` se uthata hai. Sandbox me end-to-end prove kiya: `Agent: MiniMax Code | TaskId: TASK-TEST-999` ✅, aur `RESTORE_LOG.md` me bhi sahi agent ✅.
+- **Bache hue masle (code se nahi, user ke haath me):**
+  - Google Drive **shared quota** (`project_number:202264815644`, 403 `RATE_LIMIT_EXCEEDED`) → pehli cold read 15–34 s. Solution: **apni OAuth key**.
+  - Drive me **junk** abhi bhi hai (6.6 GB + 6.8 GB `Cloud-Drive.zip`) → cloud data delete project rule ke khilaf, user ka faisla baaki.
+  - Phone par Phase 3 step 3.7 jaanch pending.
+  - App close karne par sirf **window** chala jaata hai (drives zinda rehte hain) → tray-mode ke liye `App.xaml.cs` chhedna padega jo RULE me banned hai.
+- **Push nahi hua** (user ne nahi kaha).
+
+---
+
+## Kaam: Zip kholna — asli gadda mila, fix hua (MiniMax Code) - COMPLETE
+
+- **Tareekh & Samay:** 16 Nov 2026, 19:44 - 20:10 IST
+- **Agent:** MiniMax Code (MCode)
+- **User ka instruction:** *"koi bhi zip file open karke test karo or check karo ki open ho raha hai ki nahi"*
+- **Backup Folder:** `backup\2026-11-16_1954_mcode-warm-zip-cache-chunk-limit` (before + complete; APPROVED: build 0/0, C# **473/473**)
+- **Do layer ka gadda:**
+  1. **`--vfs-cache-mode writes` me read cache hote hi nahi** — rclone ke apne docs ke hisaab se *"files opened for read only are still read directly from the remote"*. Isi liye `ArchiveWarmer` ka poora prefetch bekaar tha (log: `item Jarvis.zip not removed, freed 0 bytes`) — har naya open = naya download = Google ke shared quota ki line me.
+  2. **`--vfs-read-chunk-size-limit 256Mi`** chunk ko har read par double karta tha (4 → 8 → 16 …) — isi liye `full` mode "poora zip utar deta tha" aur TASK-MCODE-005 me `writes` par switch karna pada tha.
+- **A/B (3 alag mount, naya cache, same quota):**
+
+| Mount | 460 MB zip COLD | WARM (re-open) | Cache me data |
+|---|---|---|---|
+| `writes` (purana setting) | 4,706 ms | 3,279 / 5,307 / 5,027 ms | **0 MB** |
+| `full` + limit `256Mi` (purana limit) | **38,383 ms** | 16 / 23 / 14 ms | 0.7 MB |
+| **`full` + limit `4Mi` (fix)** | **4,328 ms** | **14 / 10 / 11 ms** | 0.8 MB |
+
+- **Fix:**
+  1. `--vfs-read-chunk-size-limit` ab **chunk size ke barabar** (4 MiB) — chunk kabhi double nahi hota.
+  2. UI toggle ka mapping **palat diya**: "Fast browsing" ON = `full` (jo padha wo rakhna → dobara kholna **instant**), OFF = `writes` (kuch nahi rakhna). Pehle ON = `writes` tha, yaani "fast browsing" ka matlab tha "har baar dubara download" — bilkul ulta.
+  3. XAML ka card ka text ab sach bolta hai; naya test `Fast_browsing_keeps_the_file_locally_and_switching_it_off_keeps_nothing`.
+  4. Runtime `settings.json` → `Cache.VfsCacheMode = "full"`.
+- **Proof (naya install, asli Z: drive):** dobara kholna **20–116 ms** (local disk jaisa) — pehle har baar 3–22 s. `NOVA AI.zip` ki list **127 ms** (1761 entries) aur andar ka 11.7 MB APK extract **169 ms**. 460 MB zip ki list **19,958 ms** me **17,979 entries**. Device test **14/14 sections PASS**.
+- **Do side findings:**
+  - **`Jarvis.zip` zip hi nahi hai** — pehli bytes `<!doctype html>` (Google AI Studio ka saved web page, 67 KB). Cloud me user ki apni file galat naam se hai.
+  - **Z: ka size kabhi kabhi 1,024 TB dikhta hai** — quota khatam hone par rclone ka `about` call fail hota hai aur woh 1 PiB fallback dikhata hai. Sirf dikhne ki baat, data safe hai.
+- **Bacha hua wait:** pehli baar ka open abhi bhi **Google ke shared quota** ki wajah se slow hai (`403 RATE_LIMIT_EXCEEDED`, `pacer: Rate limited, increasing sleep to 16.9s`) — **apni OAuth key** se khatam.
+- **Release:** `dist\Cloud-SSD-0.9.0-win-x64.zip` (95.3 MB, SHA256 `05741b5931b4b826d0f0343cd2abd7b2e7bbdd92794a2124561d148e764d6919`), install ho chuka hai.
+- **Push nahi hua** (user ne nahi kaha).
+

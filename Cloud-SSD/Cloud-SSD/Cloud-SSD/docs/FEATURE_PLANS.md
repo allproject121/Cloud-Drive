@@ -1,4 +1,4 @@
-﻿# 📋 FEATURE PLANS & ROADMAP (Cloud-SSD)
+# 📋 FEATURE PLANS & ROADMAP (Cloud-SSD)
 
 > **Overview:** Consolidated technical implementation plans for offline PC-to-Phone synchronization, when-off access, and roadmap tasks.  
 > **Source Documents Consolidated:** WHEN_OFF_PLAN.md, WHEN_OFF_BINA_KEY_PLAN.md, PENDING_WORK.md.
@@ -51,7 +51,7 @@ All core requirements and major new features have been fully implemented, tested
 # 2. When Off Access (Phone-PC Sync Plan)
 # Plan: "Band hone par bhi files" â€” device off ho tab bhi uski files khulà¥‡à¤‚
 
-Repo: `C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD`
+Repo: `C:\Users\Roshan\Downloads\Cloud-Drive\Cloud-Drive\Cloud-SSD\Cloud-SSD\Cloud-SSD`
 
 ## Context (kyun)
 Aaj app tabhi kaam karta hai jab dono device chalu hon. Aap chahte ho:
@@ -288,7 +288,7 @@ Yeh plan is file mein saved hai. Approve hone par iski copy repo mein `docs/WHEN
 Tareekh: 14 November 2026. User ka sawaal: "koi aisi cheez nahi kar sakte jisme Google key bhi na lage aur kaam bhi ho jaye?"
 Jawab: **haan**. Neeche teen raaste hain jinme app ke andar koi Google key nahi lagti. Pehla (A) mukhya hai.
 
-Purana plan (`docs\WHEN_OFF_PLAN.md`) wahi rehta hai; uska "phone khud Google mein sign in kare" wala hissa (Phase 3)
+Purana plan (`docs\archive\WHEN_OFF_PLAN.md`) wahi rehta hai; uska "phone khud Google mein sign in kare" wala hissa (Phase 3)
 ban chuka hai aur tab kaam aayega jab kabhi key bane. Yeh plan uske bina kaam chalata hai.
 
 ## Seedhi baat

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Desktop/Assets/clouddrive.png" width="130" alt="Cloud Drive logo" />
+<img src="./src/CloudSSD.Desktop/Assets/clouddrive.png" width="130" alt="Cloud Drive logo" />
 
 # Cloud Drive (Cloud-SSD)
 
@@ -12,17 +12,17 @@ Keep big games and files in the cloud, keep your SSD free, and open everything f
 [![Android](https://img.shields.io/badge/Phone-Android%207.0%2B-3DDC84?logo=android&logoColor=white)](#phone)
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](#architecture)
 [![Engine](https://img.shields.io/badge/Engine-rclone%20%2B%20WinFsp-FF6C37)](#how)
-[![PC app](https://img.shields.io/badge/PC%20app-0.7.0-brightgreen)](#download)
-[![Phone app](https://img.shields.io/badge/Phone%20app-0.8.0-brightgreen)](#download)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/LICENSE)
+[![PC app](https://img.shields.io/badge/PC%20app-0.9.0-brightgreen)](#download)
+[![Phone app](https://img.shields.io/badge/Phone%20app-0.12.0-brightgreen)](#download)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](./LICENSE)
 
 <br/>
 
-<a href="https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe">
+<a href="https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-0.9.0-win-x64.zip">
 <img src="https://img.shields.io/badge/Download%20for%20Windows-.exe%20%C2%B7%2069%20MB-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows (.exe)" height="44" />
 </a>
 &nbsp;&nbsp;
-<a href="https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android/Cloud-SSD-Mobile.apk">
+<a href="https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-Mobile-0.12.0.apk">
 <img src="https://img.shields.io/badge/Download%20for%20Android-.apk%20%C2%B7%201.2%20MB-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download for Android (.apk)" height="44" />
 </a>
 
@@ -65,9 +65,9 @@ Cloud Drive connects your **Google Drive account** to Windows as a **real drive 
 ### 🗺️ Master Archify System Design Architecture
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="screenshots/archify-system-design-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="screenshots/archify-system-design-light.png">
-  <img alt="Cloud Drive — Archify Master System Design" src="screenshots/archify-system-design-dark.png" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="../../../screenshots/archify-system-design-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="../../../screenshots/archify-system-design-light.png">
+  <img alt="Cloud Drive — Archify Master System Design" src="../../../screenshots/archify-system-design-dark.png" width="100%">
 </picture>
 
 <br/>
@@ -77,11 +77,11 @@ Cloud Drive connects your **Google Drive account** to Windows as a **real drive 
 
 <br/>
 
-[![Open SVG Vector](https://img.shields.io/badge/VECTOR%20DIAGRAM-Open%20High--Res%20SVG-0078D6?style=for-the-badge&logo=svg&logoColor=white)](screenshots/archify-system-design.svg)
+[![Open SVG Vector](https://img.shields.io/badge/VECTOR%20DIAGRAM-Open%20High--Res%20SVG-0078D6?style=for-the-badge&logo=svg&logoColor=white)](../../../screenshots/archify-system-design.svg)
 &nbsp;&nbsp;
-[![Dark Theme](https://img.shields.io/badge/IMAGE-Dark%20Theme%20PNG-1E293B?style=for-the-badge&logo=affinitydesigner&logoColor=white)](screenshots/archify-system-design-dark.png)
+[![Dark Theme](https://img.shields.io/badge/IMAGE-Dark%20Theme%20PNG-1E293B?style=for-the-badge&logo=affinitydesigner&logoColor=white)](../../../screenshots/archify-system-design-dark.png)
 &nbsp;&nbsp;
-[![Light Theme](https://img.shields.io/badge/IMAGE-Light%20Theme%20PNG-F8FAFC?style=for-the-badge&logoColor=black)](screenshots/archify-system-design-light.png)
+[![Light Theme](https://img.shields.io/badge/IMAGE-Light%20Theme%20PNG-F8FAFC?style=for-the-badge&logoColor=black)](../../../screenshots/archify-system-design-light.png)
 &nbsp;&nbsp;
 [![Live Interactive App](https://img.shields.io/badge/INTERACTIVE%20APP-Open%20Live%20Viewer-10B981?style=for-the-badge&logo=html5&logoColor=white)](https://htmlpreview.github.io/?https://github.com/allproject121/Cloud-Drive/blob/main/archify-system-design.html)
 
@@ -798,35 +798,35 @@ The Android companion connects securely to your PC over Wi-Fi, allowing you to b
 
 | 1. Home Dashboard | 2. Connect & Pair | 3. Cloud SSD Drive |
 |:---:|:---:|:---:|
-| <img src="screenshots/phone-home.png" width="220" alt="Phone Home: storage cards, PC drives, quick transfers" /> | <img src="screenshots/phone-connect.png" width="220" alt="Pair with 6-digit PIN code" /> | <img src="screenshots/phone-cloud-ssd.png" width="220" alt="Browse Z: and Y: cloud storage drives" /> |
+| <img src="../../../screenshots/phone-home.png" width="220" alt="Phone Home: storage cards, PC drives, quick transfers" /> | <img src="../../../screenshots/phone-connect.png" width="220" alt="Pair with 6-digit PIN code" /> | <img src="../../../screenshots/phone-cloud-ssd.png" width="220" alt="Browse Z: and Y: cloud storage drives" /> |
 | Native card view showing PC drives & quick transfers | 6-digit PIN pairing with desktop app | Browse `Z:` All Accounts & `Y:` Each Account |
 
 <br/>
 
 | 4. Pin Offline Access | 5. Offline Cloud Mirror ("When PC Off") | 6. App Icon Picker |
 |:---:|:---:|:---:|
-| <img src="screenshots/phone-pin-offline.png" width="220" alt="Keep in Cloud SSD / Pin Offline" /> | <img src="screenshots/phone-whenoff.png" width="220" alt="Files when it is off cloud sync permission" /> | <img src="screenshots/phone-icon-picker.png" width="220" alt="Custom icon styles: Ocean, Kit, Glow, Paper" /> |
+| <img src="../../../screenshots/phone-pin-offline.png" width="220" alt="Keep in Cloud SSD / Pin Offline" /> | <img src="../../../screenshots/phone-whenoff.png" width="220" alt="Files when it is off cloud sync permission" /> | <img src="../../../screenshots/phone-icon-picker.png" width="220" alt="Custom icon styles: Ocean, Kit, Glow, Paper" /> |
 | Pin files & folders offline to open without PC or internet | Access mirrored PC copies in cloud when PC is powered off | Customize mobile app icon (Ocean, Kit, Paper, Sunset) |
 
 <br/>
 
 | 7. Gaming Performance & Remote HUD | 8. 100% Offline Save Vault | 9. App Settings & Languages |
 |:---:|:---:|:---:|
-| <img src="screenshots/phone-gaming-hud.png" width="220" alt="Phone Gaming HUD" /> | <img src="screenshots/phone-offline-vault.png" width="220" alt="IndexedDB Offline Vault" /> | <img src="screenshots/phone-settings-lang.png" width="220" alt="Settings & Languages" /> |
+| <img src="../../../screenshots/phone-gaming-hud.png" width="220" alt="Phone Gaming HUD" /> | <img src="../../../screenshots/phone-offline-vault.png" width="220" alt="IndexedDB Offline Vault" /> | <img src="../../../screenshots/phone-settings-lang.png" width="220" alt="Settings & Languages" /> |
 | Real-time PC stats: FPS, GPU/CPU temps, remote game launch | Secure IndexedDB offline storage for game saves and docs | English, Hindi & Hinglish localization + paired PC list |
 
 <br/>
 
 | 10. Remote Access Allowed | 11. Permission & Security Editor | 12. Remote Pin Offline Kept |
 |:---:|:---:|:---:|
-| <img src="screenshots/phone-remote-access-allowed.png" width="220" alt="Remote Access Allowed" /> | <img src="screenshots/phone-perm-editor.png" width="220" alt="Permissions and folder access manager" /> | <img src="screenshots/phone-remote-pin-kept.png" width="220" alt="Remote Pin Kept" /> |
+| <img src="../../../screenshots/phone-remote-access-allowed.png" width="220" alt="Remote Access Allowed" /> | <img src="../../../screenshots/phone-perm-editor.png" width="220" alt="Permissions and folder access manager" /> | <img src="../../../screenshots/phone-remote-pin-kept.png" width="220" alt="Remote Pin Kept" /> |
 | Verified remote connection status from trusted phone | Granular per-device file and drive permission controls | Persistent local pinning indicator on cloud items |
 
 <br/>
 
 | 13. Glow Theme Cards | 14. Kit Theme Cards | 15. Paper Theme Cards |
 |:---:|:---:|:---:|
-| <img src="screenshots/phone-cards-glow.png" width="220" alt="Glow theme effects on cards" /> | <img src="screenshots/phone-cards-kit.png" width="220" alt="Kit theme effects on cards" /> | <img src="screenshots/phone-cards-paper.png" width="220" alt="Paper theme effects on cards" /> |
+| <img src="../../../screenshots/phone-cards-glow.png" width="220" alt="Glow theme effects on cards" /> | <img src="../../../screenshots/phone-cards-kit.png" width="220" alt="Kit theme effects on cards" /> | <img src="../../../screenshots/phone-cards-paper.png" width="220" alt="Paper theme effects on cards" /> |
 | Vibrant neon glowing border and elevation styling | Clean tactile kit styling with subtle borders | Minimalist paper document card presentation |
 
 </div>
@@ -841,35 +841,35 @@ The Windows desktop app manages your Google Drive mount points, RAM caching, sma
 
 | 1. Dashboard Overview | 2. Cloud Drives Manager |
 |:---:|:---:|
-| <img src="screenshots/pc-dashboard.png" width="440" alt="Desktop Dashboard" /> | <img src="screenshots/pc-cloud-drives.png" width="440" alt="Cloud Drives Manager" /> |
+| <img src="../../../screenshots/pc-dashboard.png" width="440" alt="Desktop Dashboard" /> | <img src="../../../screenshots/pc-cloud-drives.png" width="440" alt="Cloud Drives Manager" /> |
 | Real-time drive health, active accounts, and transfer speeds | Multi-account Google Drive mounting and sync settings |
 
 <br/>
 
 | 3. Devices & Virtual Backup | 4. Mobile Hub & Pairing |
 |:---:|:---:|
-| <img src="screenshots/pc-devices-backup.png" width="440" alt="Devices & Cloud Backup" /> | <img src="screenshots/pc-mobile-hub.png" width="440" alt="Mobile Hub" /> |
+| <img src="../../../screenshots/pc-devices-backup.png" width="440" alt="Devices & Cloud Backup" /> | <img src="../../../screenshots/pc-mobile-hub.png" width="440" alt="Mobile Hub" /> |
 | Paired phones, remote access rules, and automated PC mirror | QR pairing code, connected phones, and transfer history |
 
 <br/>
 
 | 5. Game Library & Launcher | 6. RAM & Virtual Memory |
 |:---:|:---:|
-| <img src="screenshots/pc-game-library.png" width="440" alt="Game Library" /> | <img src="screenshots/pc-memory.png" width="440" alt="RAM & Memory Cache" /> |
+| <img src="../../../screenshots/pc-game-library.png" width="440" alt="Game Library" /> | <img src="../../../screenshots/pc-memory.png" width="440" alt="RAM & Memory Cache" /> |
 | Direct game launcher from cloud disk without full install | High-speed RAM write buffer and read-ahead tuning |
 
 <br/>
 
 | 7. Storage Space Analyzer | 8. Smart Cache Performance |
 |:---:|:---:|
-| <img src="screenshots/pc-space.png" width="440" alt="Storage Space Allocation" /> | <img src="screenshots/pc-smart-cache.png" width="440" alt="Smart Cache Tuning" /> |
+| <img src="../../../screenshots/pc-space.png" width="440" alt="Storage Space Allocation" /> | <img src="../../../screenshots/pc-smart-cache.png" width="440" alt="Smart Cache Tuning" /> |
 | Visual space analyzer showing local vs cloud savings | Intelligent predictive prefetching and cache budgeting |
 
 <br/>
 
 | 9. Desktop App Settings | 10. Live Bell Alerts & Requests |
 |:---:|:---:|
-| <img src="screenshots/pc-settings.png" width="440" alt="Settings & Appearance" /> | <img src="screenshots/pc-bell-alerts.png" width="440" alt="Bell notifications and remote access requests" /> |
+| <img src="../../../screenshots/pc-settings.png" width="440" alt="Settings & Appearance" /> | <img src="../../../screenshots/pc-bell-alerts.png" width="440" alt="Bell notifications and remote access requests" /> |
 | Autostart, dark/light themes, and link preferences | Live popup notifications for incoming phone pairing requests |
 
 </div>
@@ -907,11 +907,11 @@ Whenever changes or updates are committed to this repository, the following four
 
 | For | File | Size | |
 |---|---|---|---|
-| 💻 **Windows PC** | `Cloud-SSD-0.7.0-setup.exe` | 69 MB | [**⬇ Download .exe**](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe) |
-| 📱 **Android phone** | `Cloud-SSD-Mobile.apk` | 1.2 MB | [**⬇ Download .apk**](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android/Cloud-SSD-Mobile.apk) |
-| 🔒 Checksum for the .exe | `Cloud-SSD-0.7.0-setup.exe.sha256` | — | [View](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe.sha256) |
+| 💻 **Windows PC** | `Cloud-SSD-0.9.0-win-x64.zip` | 69 MB | [**⬇ Download .exe**](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-0.9.0-win-x64.zip) |
+| 📱 **Android phone** | `Cloud-SSD-Mobile-0.12.0.apk` | 1.4 MB | [**⬇ Download .apk**](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-Mobile-0.12.0.apk) |
+| 🔒 Checksum for the .exe | `Cloud-SSD-0.9.0-win-x64.zip.sha256` | — | [View](./releases/Cloud-SSD-0.9.0-win-x64.zip.sha256) |
 
-- **Windows:** run the `.exe`. The app is not code-signed, so Windows SmartScreen may warn the first time — choose *More info → Run anyway*.
+- **Windows:** unzip the `.zip` and run `Install-CloudSSD.ps1` (or the `.exe` from `dist/`). The app is not code-signed, so Windows SmartScreen may warn the first time — choose *More info → Run anyway*.
 - **Android:** open the `.apk` on the phone and allow "Install unknown apps" when asked.
 - The phone app also ships inside the PC app: while the PC app is running, `http://<PC-IP>:8090/cloudssd.apk` in the phone's browser downloads it too.
 
@@ -923,7 +923,7 @@ Whenever changes or updates are committed to this repository, the following four
 
 ### Easiest: let an AI agent do it
 
-The complete setup — from the PC to the phone — is written step by step in one file: **[`SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md)** (written in Hinglish; the commands are the same in any language).
+The complete setup — from the PC to the phone — is written step by step in one file: **[`SETUP.md`](./docs/archive/SETUP.md)** (written in Hinglish; the commands are the same in any language).
 Open your AI agent (Claude Code, Antigravity, Codex…) in the project folder and tell it:
 
 ```text
@@ -935,13 +935,13 @@ You have my full permission. Where my click is needed, tell me in one line what 
 
 **On the PC**
 
-1. Run [`Cloud-SSD-0.7.0-setup.exe`](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases/Cloud-SSD-0.7.0-setup.exe). If Windows asks about WinFsp, choose **Yes**.
+1. Run [`Cloud-SSD-0.9.0-win-x64.zip`](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-0.9.0-win-x64.zip). If Windows asks about WinFsp, choose **Yes**.
 2. Open the app → **Cloud Drives** → **Sign in with Google** → pick your account in the browser and press **Allow**.
 3. Drives `Y:` and `Z:` appear in File Explorer. Done.
 
 **On the phone**
 
-1. Install the [APK](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android/Cloud-SSD-Mobile.apk) (or open `http://<PC-IP>:8090` in a browser).
+1. Install the [APK](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-Mobile-0.12.0.apk) (or open `http://<PC-IP>:8090` in a browser).
 2. Put the phone and the PC on **the same Wi-Fi**.
 3. Type the **6-digit code** shown on the PC app's **Mobile Hub** page into the phone.
 
@@ -954,7 +954,7 @@ You have my full permission. Where my click is needed, tell me in one line what 
 | Phone | Android 7.0+ (any browser for the web version) |
 | Wi-Fi | Phone and PC on the same network |
 
-If something goes wrong: the ["Dikkat aaye to" (troubleshooting) section of `SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md#6-dikkat-aaye-to) and [`docs/TROUBLESHOOTING.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/TROUBLESHOOTING.md). To create your own Google key, see [`docs/GOOGLE_DRIVE_SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/GOOGLE_DRIVE_SETUP.md).
+If something goes wrong: the ["Dikkat aaye to" (troubleshooting) section of `SETUP.md`](./docs/archive/SETUP.md) and [`docs/TROUBLESHOOTING.md`](./docs/archive/TROUBLESHOOTING.md). To create your own Google key, see [`docs/GOOGLE_DRIVE_SETUP.md`](./docs/archive/GOOGLE_DRIVE_SETUP.md).
 
 <details>
 <summary><b>Developers: build from source</b></summary>
@@ -962,7 +962,7 @@ If something goes wrong: the ["Dikkat aaye to" (troubleshooting) section of `SET
 <br/>
 
 ```powershell
-cd Cloud-SSD\Cloud-SSD-0.7.0-source\Cloud-SSD
+cd .\
 powershell -ExecutionPolicy Bypass -File installer\fetch-rclone.ps1      # fetches rclone (checksum-verified)
 dotnet build CloudSSD.slnx -c Release
 dotnet test tests\CloudSSD.Tests -c Release --no-build                   # unit tests
@@ -970,7 +970,7 @@ powershell -ExecutionPolicy Bypass -File installer\build-release.ps1     # zip +
 powershell -NoProfile -ExecutionPolicy Bypass -File mobile-android\build-apk.ps1   # phone APK
 ```
 
-You need: .NET SDK 10, WinFsp, Inno Setup 6 (for the setup.exe), and the Android SDK + JDK 17 (for the APK). Full details are in ["Rasta B" of `SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md#4-rasta-b--source-code-se-build-developer--naya-build).
+You need: .NET SDK 10, WinFsp, Inno Setup 6 (for the setup.exe), and the Android SDK + JDK 17 (for the APK). Full details are in ["Rasta B" of `SETUP.md`](./docs/archive/SETUP.md).
 
 </details>
 
@@ -985,9 +985,9 @@ The app is written in **.NET 10 (C#)** with a **WPF + MVVM** user interface. It 
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="screenshots/archify-system-design-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="screenshots/archify-system-design-light.png">
-  <img alt="Cloud Drive — Archify Master Architecture" src="screenshots/archify-system-design-dark.png" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="../../../screenshots/archify-system-design-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="../../../screenshots/archify-system-design-light.png">
+  <img alt="Cloud Drive — Archify Master Architecture" src="../../../screenshots/archify-system-design-dark.png" width="100%">
 </picture>
 
 </div>
@@ -1063,24 +1063,24 @@ flowchart LR
 
 | Project | Responsibility |
 |---|---|
-| [`CloudSSD.Core`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Core) | Settings (JSON), paths, units, models, disk information |
-| [`CloudSSD.Mount`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Mount) | Finding and running rclone, Google sign-in, mounting / unmounting drives, restart after a crash, reading rclone's log |
-| [`CloudSSD.Cache`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Cache) | What is in the cache, how much disk is left, safe clean-up |
-| [`CloudSSD.Streaming`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Streaming) | Predictors, prefetch queue, network governor, a profile per game (SQLite) |
-| [`CloudSSD.Games`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Games) | Game library, folder scan, compatibility, launcher, Hybrid / Full Local |
-| [`CloudSSD.Providers`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Providers) | Which cloud providers are supported, and how well |
-| [`CloudSSD.Diagnostics`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Diagnostics) | Logs, token redaction, DPAPI secret store, report zip |
-| [`CloudSSD.App`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.App) | `AppHost` that ties everything together, phone bridge, RAM relief, storage offload |
-| [`CloudSSD.Desktop`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Desktop) | WPF window, pages, theme, languages; the phone's web page is also served from here (`wwwroot/mobile`) |
-| [`CloudSSD.Cli`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Cli) | The `cpx.exe` command-line tool |
-| [`CloudSSD.SimCloud`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.SimCloud) | A fake "slow cloud" server used for tests |
-| [`mobile-android`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android) | Android app (WebView + native parts: camera backup, cloud drive in the Files app) |
+| [`CloudSSD.Core`](./src/CloudSSD.Core) | Settings (JSON), paths, units, models, disk information |
+| [`CloudSSD.Mount`](./src/CloudSSD.Mount) | Finding and running rclone, Google sign-in, mounting / unmounting drives, restart after a crash, reading rclone's log |
+| [`CloudSSD.Cache`](./src/CloudSSD.Cache) | What is in the cache, how much disk is left, safe clean-up |
+| [`CloudSSD.Streaming`](./src/CloudSSD.Streaming) | Predictors, prefetch queue, network governor, a profile per game (SQLite) |
+| [`CloudSSD.Games`](./src/CloudSSD.Games) | Game library, folder scan, compatibility, launcher, Hybrid / Full Local |
+| [`CloudSSD.Providers`](./src/CloudSSD.Providers) | Which cloud providers are supported, and how well |
+| [`CloudSSD.Diagnostics`](./src/CloudSSD.Diagnostics) | Logs, token redaction, DPAPI secret store, report zip |
+| [`CloudSSD.App`](./src/CloudSSD.App) | `AppHost` that ties everything together, phone bridge, RAM relief, storage offload |
+| [`CloudSSD.Desktop`](./src/CloudSSD.Desktop) | WPF window, pages, theme, languages; the phone's web page is also served from here (`wwwroot/mobile`) |
+| [`CloudSSD.Cli`](./src/CloudSSD.Cli) | The `cpx.exe` command-line tool |
+| [`CloudSSD.SimCloud`](./src/CloudSSD.SimCloud) | A fake "slow cloud" server used for tests |
+| [`mobile-android`](./mobile-android) | Android app (WebView + native parts: camera backup, cloud drive in the Files app) |
 
-More detail: [`ARCHITECTURE.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/ARCHITECTURE.md).
+More detail: [`ARCHITECTURE.md`](./docs/archive/ARCHITECTURE.md).
 
 ### 📊 How fast is it (measured)
 
-Test: loading one level of the demo game, with the "cloud" limited to 70 Mbps. Full report: [`BENCHMARKS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/BENCHMARKS.md).
+Test: loading one level of the demo game, with the "cloud" limited to 70 Mbps. Full report: [`BENCHMARKS.md`](./docs/archive/BENCHMARKS.md).
 
 | Situation | Load time |
 |---|---|
@@ -1097,7 +1097,7 @@ Test: loading one level of the demo game, with the "cloud" limited to 70 Mbps. F
 - The phone cannot reach the cloud **without the PC** yet.
 - The app is not code-signed, so Windows SmartScreen may warn on first start.
 
-Full list: [`KNOWN_LIMITATIONS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/KNOWN_LIMITATIONS.md).
+Full list: [`KNOWN_LIMITATIONS.md`](./docs/archive/KNOWN_LIMITATIONS.md).
 
 ---
 
@@ -1106,35 +1106,37 @@ Full list: [`KNOWN_LIMITATIONS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/K
 ## 🗂️ Folder map (click to jump there)
 
 ```text
-Cloud-Drive
-├── README.md                          ← you are here
-├── Cloud-SSD
-│   ├── Cloud-SSD-0.7.0-source.zip     older source zip
-│   └── Cloud-SSD-0.7.0-source
-│       ├── Cloud-SSD                  ★ THE PROJECT (the code lives here)
-│       │   ├── src                    PC app code (CloudSSD.* projects)
-│       │   ├── mobile-android         phone app code + APK
-│       │   ├── tests                  unit + integration tests
-│       │   ├── benchmarks             speed tests
-│       │   ├── installer              scripts that build the setup.exe
-│       │   ├── tools                  rclone, WinFsp installer, 5TB scripts
-│       │   ├── docs                   guides
-│       │   ├── releases               ready-made setup.exe and APK
-│       │   └── dist                   build output
-│       └── Cloud-SSD-0.7.0-source     copy of older release files
-└── Cloud-SSD-5TB                      older PowerShell scripts (the approach used before the app)
+Cloud-Drive                                  <- workspace root (this README)
+├── README.md
+├── Cloud-Drive/                             <- the git repository (branch main)
+│   ├── README.md                           <- the README GitHub shows
+│   ├── RULE.md                             <- the rulebook for every AI agent
+│   ├── Cloud-SSD/
+│   │   └── Cloud-SSD/                       <- ★ THE PROJECT (the code lives here)
+│   │       ├── src                          PC app code (CloudSSD.* projects)
+│   │       ├── mobile-android               phone app code + APK
+│   │       ├── tests                        unit + integration tests
+│   │       ├── benchmarks                   speed tests
+│   │       ├── installer                    scripts that build the setup.exe / zip
+│   │       ├── tools                        rclone, WinFsp installer, live-test scripts
+│   │       ├── docs                         guides (docs/archive = older docs)
+│   │       ├── releases                     ready-made zip, setup.exe and APK
+│   │       └── dist                         build output
+│   ├── Cloud-SSD-5TB                        older PowerShell scripts (the approach used before the app)
+│   └── screenshots                          the pictures this README shows
+└── Cloud-SSD-backups                        backup snapshots of the project
 ```
 
 | Go to | Link |
 |---|---|
-| ★ The project | [`Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD) |
-| PC app code | [`src`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src) |
-| Phone app code | [`mobile-android`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/mobile-android) |
-| Phone web page | [`src/CloudSSD.Desktop/wwwroot/mobile`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/src/CloudSSD.Desktop/wwwroot/mobile) |
-| Tests | [`tests`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/tests) |
-| Installer scripts | [`installer`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/installer) |
-| Ready-made downloads | [`releases`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/releases) |
-| Older 5TB scripts | [`Cloud-SSD-5TB`](Cloud-SSD-5TB) · [its README](Cloud-SSD-5TB/README.md) |
+| ★ The project | [`Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD`](./) |
+| PC app code | [`src`](./src) |
+| Phone app code | [`mobile-android`](./mobile-android) |
+| Phone web page | [`src/CloudSSD.Desktop/wwwroot/mobile`](./src/CloudSSD.Desktop/wwwroot/mobile) |
+| Tests | [`tests`](./tests) |
+| Installer scripts | [`installer`](./installer) |
+| Ready-made downloads | [`releases`](./releases) |
+| Older 5TB scripts | [`Cloud-SSD-5TB`](../../../Cloud-SSD-5TB) · [its README](../../../Cloud-SSD-5TB/README.md) |
 
 ---
 
@@ -1144,19 +1146,19 @@ Cloud-Drive
 
 | Document | About |
 |---|---|
-| [`SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SETUP.md) | **The whole setup, step by step** (for an AI agent or by hand; in Hinglish) |
-| [`README.md` (project)](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/README.md) | The project's own introduction |
-| [`ARCHITECTURE.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/ARCHITECTURE.md) | Internal design and data flows |
-| [`BENCHMARKS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/BENCHMARKS.md) | Speed measurements |
-| [`KNOWN_LIMITATIONS.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/KNOWN_LIMITATIONS.md) | What does not work, and why |
-| [`COMPATIBILITY.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/COMPATIBILITY.md) | Which games and clouds work |
-| [`RAM.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/RAM.md) | Guide to RAM and virtual memory |
-| [`docs/GOOGLE_DRIVE_SETUP.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/GOOGLE_DRIVE_SETUP.md) | Connecting Google Drive, creating your own key |
-| [`docs/TROUBLESHOOTING.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/TROUBLESHOOTING.md) | Problems and fixes |
-| [`docs/GAME_AWARE_PROTOCOL.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/docs/GAME_AWARE_PROTOCOL.md) | Protocol for getting hints straight from a game |
-| [`SECURITY.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/SECURITY.md) | Security policy |
-| [`CONTRIBUTING.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/CONTRIBUTING.md) | How to contribute code |
-| [`THIRD_PARTY_NOTICES.md`](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/THIRD_PARTY_NOTICES.md) | Licenses of rclone, WinFsp and others |
+| [`SETUP.md`](./docs/archive/SETUP.md) | **The whole setup, step by step** (for an AI agent or by hand; in Hinglish) |
+| [`README.md` (project)](./README.md) | The project's own introduction |
+| [`ARCHITECTURE.md`](./docs/archive/ARCHITECTURE.md) | Internal design and data flows |
+| [`BENCHMARKS.md`](./docs/archive/BENCHMARKS.md) | Speed measurements |
+| [`KNOWN_LIMITATIONS.md`](./docs/archive/KNOWN_LIMITATIONS.md) | What does not work, and why |
+| [`COMPATIBILITY.md`](./docs/archive/COMPATIBILITY.md) | Which games and clouds work |
+| [`RAM.md`](./docs/archive/RAM.md) | Guide to RAM and virtual memory |
+| [`docs/GOOGLE_DRIVE_SETUP.md`](./docs/archive/GOOGLE_DRIVE_SETUP.md) | Connecting Google Drive, creating your own key |
+| [`docs/TROUBLESHOOTING.md`](./docs/archive/TROUBLESHOOTING.md) | Problems and fixes |
+| [`docs/GAME_AWARE_PROTOCOL.md`](./docs/archive/GAME_AWARE_PROTOCOL.md) | Protocol for getting hints straight from a game |
+| [`SECURITY.md`](./docs/archive/SECURITY.md) | Security policy |
+| [`CONTRIBUTING.md`](./docs/archive/CONTRIBUTING.md) | How to contribute code |
+| [`THIRD_PARTY_NOTICES.md`](./docs/archive/THIRD_PARTY_NOTICES.md) | Licenses of rclone, WinFsp and others |
 
 ---
 
@@ -1193,6 +1195,6 @@ Press the button below — a small form opens where you can write and send it.
 
 <div align="center">
 
-Cloud-SSD contributors · [MIT License](Cloud-SSD/Cloud-SSD-0.7.0-source/Cloud-SSD/LICENSE)
+Cloud-SSD contributors · [MIT License](./LICENSE)
 
 </div>

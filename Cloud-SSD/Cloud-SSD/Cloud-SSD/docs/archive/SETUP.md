@@ -139,7 +139,7 @@ Pehli baar Windows Firewall ka popup aa sakta hai → user **Allow** (Private ne
 
 Agent: Google ka page khud mat bharo. User ko bolo "browser me apna account chun kar Allow dabaiye" aur Step 6 ke check se dekho ki ho gaya.
 
-Baar-baar login maange ya "rate limit" aaye to apni khud ki Google key banao: [`docs/GOOGLE_DRIVE_SETUP.md`](docs/GOOGLE_DRIVE_SETUP.md).
+Baar-baar login maange ya "rate limit" aaye to apni khud ki Google key banao: [`docs/GOOGLE_DRIVE_SETUP.md`](GOOGLE_DRIVE_SETUP.md).
 
 ### Step 6 — Drive check karo
 
@@ -333,7 +333,7 @@ Report me yeh bhi likho: kaun se step insaan ne kiye, kya skip hua aur kyun, aur
 | Project folder rename / delete nahi hota ("in use") | Koi program us folder ke andar se chal raha hai | `dotnet build-server shutdown`, aur app ko install folder se chalao (Step 4) |
 | Build me "file is being used" | Do build ek saath | Dusre ke khatm hone tak ruko |
 
-Aur madad: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md). App ke **Diagnostics** page se "Export sanitized report" bhi nikal sakte ho (usme login / token nahi hote).
+Aur madad: [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md). App ke **Diagnostics** page se "Export sanitized report" bhi nikal sakte ho (usme login / token nahi hote).
 
 ---
 
