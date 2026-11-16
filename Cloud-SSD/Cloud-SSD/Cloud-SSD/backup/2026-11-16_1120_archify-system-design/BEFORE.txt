@@ -1,0 +1,9 @@
+﻿Work: archify-system-design
+Agent: Antigravity
+TaskId: TASK-ARCH-002
+Source as it was before the work started: 626 files, 11.9 MB.
+Taken: 2026-11-16 11:21
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-16_1120_archify-system-design"
+and write complete\README.md.

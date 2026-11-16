@@ -1,0 +1,9 @@
+﻿{
+    "name":  "archify-system-design",
+    "agent":  "Antigravity",
+    "taskId":  "TASK-ARCH-002",
+    "prompt":  "archify interactive system design in README.md",
+    "startTime":  "2026-11-16T11:21:01.1050737+05:30",
+    "backupDir":  "2026-11-16_1120_archify-system-design",
+    "fileCount":  626
+}

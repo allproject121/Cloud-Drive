@@ -56,54 +56,136 @@ Cloud Drive connects your **Google Drive account** to Windows as a **real drive 
 
 ## ⚙️ How it works
 
-### 🗺️ Master Architecture Diagram
+### 🗺️ Master Archify System Design Diagram
+
+> 💡 **Interactive Architecture:** Left side par **Login Section** aur **Connection Section** hain jo central **Home Page Dashboard** ko feed karte hain. Home Page par aate hi saare **9 Features** expand hote hain. Jab aap kisi bhi feature par click karte hain ya usse trigger karte hain, toh ek direct execution line jaati hai jo dikhati hai ki woh feature system ke andar (Kernel driver, Win32 API, Sparse cache, ya Local network) mein kaise work karta hai!
+>
+> *(GitHub par kisi bhi node par click karke aap seedhe uske technical deep-dive par jump kar sakte hain)*
 
 ```mermaid
-flowchart TD
-    subgraph CLOUD[" ☁️ Google Cloud Storage "]
-        GD1["Google Account 1 (15 GB - 2 TB)"]
-        GD2["Google Account 2 (15 GB - 2 TB)"]
-        GDN["Google Account N... (5 TB - 15 TB Pooled)"]
+flowchart LR
+    %% Column 1: Gateways (Login & Connection on Left Side)
+    subgraph GATEWAYS[" 1️⃣ INBOUND GATEWAYS (Side Gateways) "]
+        direction TB
+        LOGIN["🔐 Login & Auth Section<br/>• Google OAuth2 PKCE<br/>• 15GB - 15TB Multi-Account Pool<br/>• Windows DPAPI Vault"]
+        CONN["📡 Connection & Device Section<br/>• Mobile Phone Bridge (Port 8090)<br/>• 6-Digit PIN & QR Pair<br/>• Local LAN mTLS 1.3"]
     end
 
-    subgraph ENGINE[" ⚡ Core Engine & Virtual Filesystem (CloudSSD.Mount) "]
-        RC["rclone VFS Engine<br/>• Sparse Chunked Streamer<br/>• DPAPI-protected loopback RC<br/>• Multi-account Aggregator"]
-        WF["WinFsp User-Mode Driver<br/>• Virtual Drive Letters (Z: All Accounts, Y: Each Account)<br/>• Non-kernel I/O Interceptor"]
-        CACHE[("Sparse SSD Cache on C:\<br/>• Sector-sparse allocation (only used chunks)<br/>• 10GB-40GB Budget Guard & 10GB Reserve")]
+    %% Column 2: Home Page Dashboard (Central Hub)
+    subgraph HUB[" 2️⃣ COMMAND CENTER "]
+        HOME["🏠 Home Page Dashboard<br/>(Central Orchestrator & Dispatcher)<br/><b>Click to View All Features</b>"]
     end
 
-    subgraph INTELLIGENCE[" 🧠 Performance, RAM & Gaming (CloudSSD.Streaming & Games) "]
-        PRED["Prediction Engine<br/>• StartupPredictor & MarkovPredictor<br/>• Reads offset sequence & preloads data"]
-        MEM["Memory Relief Engine<br/>• Win32 EmptyWorkingSet monitor<br/>• Frees 3-5 GB RAM for active games"]
-        GAME["Game Launcher & Job Object Sandbox<br/>• Cloud Direct · Hybrid · Full Local"]
+    %% Column 3: Features Matrix (All Features Displayed from Home Page)
+    subgraph FEATURES[" 3️⃣ CORE ACTIVE FEATURES (Click Any Feature) "]
+        direction TB
+        F1["💽 Feature 1: Virtual Cloud SSD Mount<br/>• Z: Unified (5-15TB) & Y: Per-Account<br/>• Non-blocking Windows Explorer"]
+        F2["⚡ Feature 2: High-Speed LAN Share<br/>• Phone ⇄ PC Wire-speed (70 MB/s)<br/>• Zero Cloud Bandwidth Cost"]
+        F3["🧠 Feature 3: Smart Chunked Cache<br/>• 4MB Range HTTP 206 Slices<br/>• Sparse VHDX on C:\ (Zero Waste)"]
+        F4["🔄 Feature 4: 'When PC is Off' Mirror<br/>• Background Cloud Staging<br/>• Android Encrypted Vault"]
+        F5["🚀 Feature 5: Memory Relief Engine<br/>• Win32 EmptyWorkingSet API<br/>• 3-5 GB Instant RAM Drop"]
+        F6["🎮 Feature 6: Gaming HUD & Low Latency<br/>• Windows Job Object Sandbox<br/>• Markov ML Access Predictor"]
+        F7["📌 Feature 7: Pin Offline Access<br/>• 100% Local Fast-path Locking<br/>• Zero-Latency Access"]
+        F8["🎨 Feature 8: Dynamic Icon & Theme Picker<br/>• WPF Dynamic ResourceDictionary<br/>• Win32 Shell Notification Icon"]
+        F9["🔔 Feature 9: Live Bell Alerts & Auditor<br/>• Reactive EventAggregator<br/>• Windows Toast & access-log.json"]
     end
 
-    subgraph DESKTOP[" 💻 Windows Desktop Workstation (CloudSSD.Desktop) "]
-        WPF["WPF MVVM Desktop App<br/>• Real-time Drive Health & Speeds<br/>• Live Bell Notification Center<br/>• Device Permissions & Access Logs"]
-        CLI["cpx CLI Terminal<br/>• Daemon & headless mounting"]
+    %% Column 4: System Execution Pipelines (Where the Line Goes into the System)
+    subgraph PIPELINES[" 4️⃣ INTERNAL SUBSYSTEMS & ENGINES (HOW IT WORKS IN SYSTEM) "]
+        direction TB
+        SYS_VFS["⚙️ [WinFsp & rclone VFS Engine]<br/>• IRP_MJ_READ driver interceptor<br/>• Pooled drive letters Z:\ & Y:\<br/>• Virtual filesystem mount"]
+        SYS_NET["⚙️ [Port 8090 LAN Socket Streamer]<br/>• Pure C# ISO/IEC 18004 QR engine<br/>• Multipart async socket listener<br/>• Auto-router to local SSD / Drive Z:"]
+        SYS_CACHE["⚙️ [Sparse NTFS Block Cache Manager]<br/>• HTTP 206 Partial Range request<br/>• FSCTL_SET_SPARSE sector allocation<br/>• 10GB reserve guard & LRU eviction"]
+        SYS_OFF["⚙️ [Cloud Staging & Mobile DB Engine]<br/>• Direct Google Drive V3 REST API<br/>• Android encrypted IndexedDB vault<br/>• Auto-sync on PC power-on boot"]
+        SYS_RAM["⚙️ [Win32 Memory Relief Core Engine]<br/>• psapi.dll!EmptyWorkingSet invocation<br/>• ArrayPool byte buffer recycling<br/>• Gen2 Garbage Collection suppression"]
+        SYS_GAME["⚙️ [Job Object Sandbox & Markov ML]<br/>• Windows Job Object process isolation<br/>• Markov-chain block pattern predictor<br/>• Background asset hydration queue"]
+        SYS_PIN["⚙️ [Offline Pin Index & Lock Engine]<br/>• SQLite metadata pin flag attachment<br/>• Full chunk hydration to C:\ cache<br/>• Cache-eviction immunity lock"]
+        SYS_UI["⚙️ [WPF Theme & Shell Icon Engine]<br/>• Dynamic ResourceDictionary switcher<br/>• shell32.dll!Shell_NotifyIconW call<br/>• Real-time desktop taskbar update"]
+        SYS_BELL["⚙️ [Event Pub/Sub & Audit Ledger]<br/>• Reactive EventAggregator dispatcher<br/>• Windows Toast notification manager<br/>• Sanitized access-log.json ledger"]
     end
 
-    subgraph BRIDGE[" 🔗 Secure Local Phone Bridge (Port 8090) "]
-        SRV["Zero-Admin Async Bridge Server<br/>• Pure C# ISO/IEC 18004 QR Generator<br/>• 6-Digit Random PIN Handshake<br/>• HTTP 206 Partial Content Streamer"]
-    end
+    %% Inbound Connections to Home Page
+    LOGIN ===>|"Auth Token Granted"| HOME
+    CONN ===>|"Mobile Bridge Paired"| HOME
 
-    subgraph MOBILE[" 📱 Mobile Companion (Android App / PWA) "]
-        APP["Cloud-SSD Android App<br/>• Live Storage Health & PC Drive Cards<br/>• Remote Gaming HUD & PC Stats<br/>• Multi-language (English / Hindi / Hinglish)"]
-        VAULT[("100% Offline Save Vault<br/>• IndexedDB local client storage<br/>• 'When PC is Off' Cloud Copy")]
-    end
+    %% Outbound Fan-out from Home Page to Features
+    HOME ===> F1
+    HOME ===> F2
+    HOME ===> F3
+    HOME ===> F4
+    HOME ===> F5
+    HOME ===> F6
+    HOME ===> F7
+    HOME ===> F8
+    HOME ===> F9
 
-    %% Flow connections
-    GD1 & GD2 & GDN <====|"HTTP 206 Partial Range Requests (TLS 1.3)"|===> RC
-    RC <====> CACHE
-    RC <====> WF
-    WF <====>|"Native NTFS I/O"| WPF & GAME & CLI
-    RC -.->|"Microsecond Access Telemetry"| PRED
-    PRED =====>|"Preload predicted offsets"| CACHE
-    MEM -.->|"Trims idle background processes"| WPF
-    WF <====>|"Bidirectional File Transfers"| SRV
-    SRV <====|"Local Home Wi-Fi (LAN only, zero cloud bounce)"|====> APP
-    APP <====> VAULT
-    APP -.->|"When PC is powered down: direct OAuth fallback"| GD1
+    %% Direct Execution Lines: Feature -> System Internals (Showing How It Works)
+    F1 ===>|"Line: User-Mode FS Dispatch"| SYS_VFS
+    F2 ===>|"Line: Direct Wi-Fi TCP Stream"| SYS_NET
+    F3 ===>|"Line: Sparse Chunk Allocation"| SYS_CACHE
+    F4 ===>|"Line: Cloud Relay & Staging"| SYS_OFF
+    F5 ===>|"Line: Win32 Working Set Flush"| SYS_RAM
+    F6 ===>|"Line: Process Sandbox & Prefetch"| SYS_GAME
+    F7 ===>|"Line: Permanent Sector Lock"| SYS_PIN
+    F8 ===>|"Line: Shell Resource Switcher"| SYS_UI
+    F9 ===>|"Line: Event Pub/Sub & Audit Log"| SYS_BELL
+
+    %% Interactive Click Directives
+    click LOGIN href "#flow-login" "Jump to Login Architecture Flow"
+    click CONN href "#flow-pair" "Jump to Connection Architecture Flow"
+    click HOME href "#features" "Jump to Home Dashboard Features Overview"
+    click F1 href "#flow-mount" "Jump to Virtual SSD Mount Details"
+    click F2 href "#flow-share" "Jump to LAN File Share Details"
+    click F3 href "#flow-read" "Jump to Sparse Chunk Cache Details"
+    click F4 href "#flow-whenoff" "Jump to When PC is Off Details"
+    click F5 href "#flow-memory" "Jump to Memory Relief Engine Details"
+    click F6 href "#flow-gaming" "Jump to Gaming HUD & Sandbox Details"
+    click F7 href "#flow-pin" "Jump to Pin Offline Access Details"
+    click F8 href "#flow-icons" "Jump to Dynamic App Icon Picker Details"
+    click F9 href "#flow-notifications" "Jump to Live Bell Alerts Details"
+    click SYS_VFS href "#flow-mount" "Jump to WinFsp VFS Engine Specifications"
+    click SYS_NET href "#flow-share" "Jump to LAN Bridge Specifications"
+    click SYS_CACHE href "#flow-read" "Jump to Sparse Cache Specifications"
+    click SYS_OFF href "#flow-whenoff" "Jump to Cloud Staging Specifications"
+    click SYS_RAM href "#flow-memory" "Jump to Win32 Memory Relief Specifications"
+    click SYS_GAME href "#flow-gaming" "Jump to Gaming Sandbox Specifications"
+    click SYS_PIN href "#flow-pin" "Jump to Pin Offline Specifications"
+    click SYS_UI href "#flow-icons" "Jump to Shell Theme Specifications"
+    click SYS_BELL href "#flow-notifications" "Jump to Live Bell Alerts Specifications"
+```
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                ARCHIFY SYSTEM DESIGN & VISUAL WORKFLOW MAP                                       │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                  │
+│  [🔐 LOGIN SECTION]  ──┐                                                                                         │
+│  • Google OAuth2 PKCE  │                                                                                         │
+│  • 15GB-15TB Pooling   │                                                                                         │
+│  • Windows DPAPI Vault │                                                                                         │
+│                        ├──► ┌───────────────────────────────────────────────────────┐                            │
+│                             │             🏠 HOME PAGE DASHBOARD                    │                            │
+│  [📡 CONNECT SECTION] ──┤   │             (Central Command Hub)                     │                            │
+│  • Mobile Port 8090    │    └──────────────────────────┬────────────────────────────┘                            │
+│  • 6-Digit PIN Pairing │                               │                                                         │
+│  • Local LAN Bridge    │                               │ (Home Page par aane par saare features dikhte hain)     │
+│                        └──                             ▼                                                         │
+│     ┌────────────────────────────────────────────────────────────────────────────────────────┐                   │
+│     │                                  ALL ACTIVE FEATURES                                   │                   │
+│     ├──────────────────────────┬─────────────────────────────┬───────────────────────────────┤                   │
+│     │ 💽 1. Virtual SSD Mount │ ⚡ 2. LAN File Share        │ 🧠 3. Smart Chunk Cache       │                   │
+│     │ 🔄 4. PC is Off Mirror   │ 🚀 5. Memory Relief Engine  │ 🎮 6. Gaming HUD & Sandbox    │                   │
+│     │ 📌 7. Pin Offline Access │ 🎨 8. Dynamic Icon Picker   │ 🔔 9. Bell Alerts & Auditor   │                   │
+│     └─────────────┬────────────┴──────────────┬──────────────┴───────────────┬───────────────┘                   │
+│                   │                           │                              │                                   │
+│                   │ (Line jaati hai)          │ (Line jaati hai)             │ (Line jaati hai)                  │
+│                   ▼                           ▼                              ▼                                   │
+│     ┌──────────────────────────┬─────────────────────────────┬───────────────────────────────┐                   │
+│     │ ⚙️ WinFsp / rclone VFS   │ ⚙️ Port 8090 TCP Streamer   │ ⚙️ FSCTL_SET_SPARSE Cache     │                   │
+│     │ IRP_MJ_READ ──► Z:\ Y:\  │ Multipart Socket ──► SSD    │ 4MB HTTP 206 ──► C:\ SSD      │                   │
+│     └──────────────────────────┴─────────────────────────────┴───────────────────────────────┘                   │
+│                                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ```
@@ -112,15 +194,18 @@ flowchart TD
 ├─────────────────────────┬──────────────────────────────┬─────────────────────────────────────────────────────────┤
 │ Operational Domain      │ Core Internal Engine         │ Key Protocol / Technologies                             │
 ├─────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ 1. Account Auth         │ CloudSSD.Mount.GoogleAuth    │ OAuth 2.0 PKCE, Loopback Listener, Windows DPAPI         │
-│ 2. VFS Mount & Pooling  │ WinFsp + rclone VFS          │ User-Mode Filesystem, Multi-Account Merger, Drive Z:/Y: │
-│ 3. Streaming & Cache    │ CloudSSD.Cache               │ HTTP 206 Range Slicing, Sparse NTFS Files, LRU Eviction │
-│ 4. Prediction Engine    │ CloudSSD.Streaming           │ Markov Model, Startup Sequence Learning, Prefetch Queue │
-│ 5. Phone Bridge         │ CloudSSD.App.MobileBridge    │ Port 8090/8091 HTTP/WebSocket, 6-Digit PIN, Zero-Config  │
-│ 6. Phone File Sharing   │ Transfers & NotificationCtr  │ Multipart Streaming, Auto-Storage Router, Bell Alerts   │
-│ 7. When PC is Off       │ WhenOffStore + Offline Vault │ Cloud Mirror Markers, IndexedDB, Direct Mobile OAuth    │
-│ 8. Memory Relief        │ MemoryRelief + Telemetry     │ Win32 EmptyWorkingSet API, 10s Low-RAM Auto-Relief      │
-│ 9. Security & Privacy   │ SecretStore & Redactor       │ Hardware-bound CryptProtectData, Zero Plaintext Keys    │
+│ 1. Account Auth (Login) │ CloudSSD.Mount.GoogleAuth    │ OAuth 2.0 PKCE, Loopback Listener, Windows DPAPI         │
+│ 2. Device Pairing (Conn)│ CloudSSD.App.MobileBridge    │ Port 8090/8091 HTTP/WebSocket, 6-Digit PIN, Zero-Config  │
+│ 3. VFS Mount & Pooling  │ WinFsp + rclone VFS          │ User-Mode Filesystem, Multi-Account Merger, Drive Z:/Y: │
+│ 4. LAN File Sharing     │ Transfers & NotificationCtr  │ Multipart Streaming, Auto-Storage Router, Bell Alerts   │
+│ 5. Streaming & Cache    │ CloudSSD.Cache               │ HTTP 206 Range Slicing, Sparse NTFS Files, LRU Eviction │
+│ 6. When PC is Off       │ WhenOffStore + Offline Vault │ Cloud Mirror Markers, IndexedDB, Direct Mobile OAuth    │
+│ 7. Memory Relief        │ MemoryRelief + Telemetry     │ Win32 EmptyWorkingSet API, 10s Low-RAM Auto-Relief      │
+│ 8. Prediction & Gaming  │ CloudSSD.Streaming & Games   │ Markov Model, Startup Sequence Learning, Job Sandbox    │
+│ 9. Pin Offline Access   │ CloudSSD.Cache.PinStore      │ SQLite Pin Ledger, Full Chunk Hydration, 0ms Local Read │
+│ 10. Dynamic Icon/Theme  │ WPF Dynamic Resources        │ Win32 Shell_NotifyIconW, Runtime XAML MergedDictionaries│
+│ 11. Live Bell Alerts    │ EventAggregator & Toast      │ Pub/Sub Event System, Windows Toast, access-log.json    │
+│ 12. Security & Privacy  │ SecretStore & Redactor       │ Hardware-bound CryptProtectData, Zero Plaintext Keys    │
 └─────────────────────────┴──────────────────────────────┴─────────────────────────────────────────────────────────┘
 ```
 
@@ -138,7 +223,10 @@ Neeche diye gaye interactive sections mein har ek system component aur uske chal
 * [Flow 6: 'When PC is Off' — Cloud Mirror & Offline Vault (जब पीसी बंद हो तब)](#flow-whenoff)
 * [Flow 7: Memory Relief Engine & RAM Auto-Mode (3-5 GB रैम तुरंत खाली करने की प्रक्रिया)](#flow-memory)
 * [Flow 8: Predictive Prefetch & Zero-Stutter Gaming (गेमिंग प्रेडिक्शन और प्रिफेच)](#flow-gaming)
-* [Flow 9: Security, Privacy & DPAPI Secret Protection (सुरक्षा और डेटा प्राइवेसी)](#flow-security)
+* [Flow 9: Pin Offline Access & 100% Zero-Latency Local Locking (पिन ऑफलाइन कैसे काम करता है)](#flow-pin)
+* [Flow 10: Dynamic App Icon Picker & Shell Theme Switching (ऐप आइकन और थीम इंजन)](#flow-icons)
+* [Flow 11: Live Bell Alerts, Access Control & Audit Ledger (नोटिफिकेशन बेल और सिक्योरिटी ऑडिटर)](#flow-notifications)
+* [Flow 12: Security, Privacy & DPAPI Storage Architecture (सुरक्षा और डेटा प्राइवेसी)](#flow-security)
 
 ---
 
@@ -437,8 +525,99 @@ PrefetchScheduler preloads predicted offset blocks into SSD Cache BEFORE you pre
 
 ---
 
+<a id="flow-pin"></a>
+#### 📌 Flow 9: Pin Offline Access & 100% Zero-Latency Local Locking (पिन ऑफलाइन कैसे काम करता है)
+
+Jab user kisi critical project file, video ya game folder par right-click karke **"Pin for Offline Access"** select karta hai ya UI se toggle karta hai, tab system internet par depend rehne ke bajaye use 100% local NVMe/SSD par bind kar deta hai:
+
+```
+[User Selects "Pin Offline" on File / Folder]
+           │
+           ▼
+[Step 1] Metadata Manager SQLite ledger mein `is_pinned = 1` flag mark karta hai
+           │
+           ▼
+[Step 2] Background Hydrator missing 4MB chunks ko parallel HTTP 206 streams se download karta hai
+           │
+           ▼
+[Step 3] Chunks C:\ Sparse Cache file mein write hokar 'Permanent / Locked' status mein set hote hain
+           │
+           ▼
+[Step 4] LRU/LFU Cache Eviction Engine pinned sectors ko eviction scan se exempt/immune kar deta hai
+           │
+           ▼
+[Offline Test] Internet disconnected hone par bhi read requests 3,500+ MB/s local SSD speed se execute hoti hain!
+```
+
+1. **Pin Flag Attachment:** File metadata SQLite local database (`pin-store.db`) mein persist hoti hai. Isme file hash, size, chunk count aur pinning timestamp register hota hai.
+2. **Background Chunk Hydration:** Agar file ka koi part abhi cache mein nahi hai, toh ek low-priority background worker thread pool Google Drive se bache hue sabhi 4MB chunks parallel mein download karke complete sparse file hydrate karta hai.
+3. **Eviction Immunity Lock:** Jab C: drive par cache limit reach hoti hai ya disk clean-up trigger hota hai, toh cache eviction worker pinned chunks ko touch nahi karta. Wo 100% protected rehte hain.
+4. **Fast-Path Kernel Read:** WinFsp driver file request aane par network probe nahi karta; directly local cache file ka handle open karke zero-latency I/O serve karta hai.
+
+---
+
+<a id="flow-icons"></a>
+#### 🎨 Flow 10: Dynamic App Icon Picker & Shell Theme Switching (ऐप आइकन और थीम इंजन)
+
+User jab interface customize karta hai ya gaming/night mode select karta hai, tab poora WPF visual tree aur Windows taskbar dynamically modify hota hai bina app restart kiye:
+
+```
+[User Selects New Theme / App Icon]
+           │
+           ▼
+[Step 1] ThemeEngine loads corresponding XAML ResourceDictionary (Colors, Brushes, Accents)
+           │
+           ▼
+[Step 2] Application.Current.Resources.MergedDictionaries replaces old palette in memory (Zero Flicker)
+           │
+           ▼
+[Step 3] Win32 Shell API (Shell_NotifyIconW) calls update taskbar tray icon with 32-bit alpha ICO
+           │
+           ▼
+[Step 4] Active window chrome & title bar redraws with Windows 11 DWM (DwmSetWindowAttribute)
+           │
+           ▼
+[Step 5] Preferences persisted to AppSettings.json for persistent launch configuration
+```
+
+1. **Non-Restart Dynamic Theme Switch:** WPF ke `MergedDictionaries` ko runtime par swap kiya jata hai jisse sabhi open dialogs, menus aur graphs bina restart ya UI freeze hue new theme (Dark, Light, Cyberpunk Neon, ya High-Contrast) reflect karte hain.
+2. **Shell Tray Integration:** Windows taskbar notification tray icon ko update karne ke liye native `shell32.dll` ka `Shell_NotifyIconW(NIM_MODIFY, ...)` API use hota hai.
+3. **Hardware DWM Accent:** Windows 11 Desktop Window Manager (`dwmapi.dll`) ke through titlebar color (`DWMWA_CAPTION_COLOR`) aur dark mode flags dynamically set kiye jaate hain.
+
+---
+
+<a id="flow-notifications"></a>
+#### 🔔 Flow 11: Live Bell Alerts, Access Control & Audit Ledger (नोटिफिकेशन बेल और सिक्योरिटी ऑडिटर)
+
+Jab bhi koi mobile device connect hota hai, file receive hoti hai ya koi unauthorized request aati hai, tab security system real-time alerts generate karta hai:
+
+```
+[Inbound System Event: Phone Upload / Device Connect / Access Request]
+           │
+           ▼
+[Step 1] Event published to Central Reactive EventAggregator
+           │
+           ▼
+[Step 2] Notification Bell icon badge increments (+1) in desktop top header
+           │
+           ▼
+[Step 3] Interactive Windows Toast Notification appears (Allows 1-Click Approve / Deny)
+           │
+           ▼
+[Step 4] Request evaluated against device permission rules in `device-grants.json`
+           │
+           ▼
+[Step 5] Event audit entry appended to `access-log.json` with cryptographic SHA-256 fingerprint
+```
+
+1. **Decoupled Pub/Sub:** Koi bhi subsystem (MobileBridge, MountEngine, CacheManager) synchronous lock lagaye bina event broadcast kar sakta hai.
+2. **Interactive Actionable Toasts:** Agar kisi naye phone ne file transfer ya cloud access request ki hai, toh desktop toast notification par "Approve" ya "Deny" buttons aate hain.
+3. **Audit Ledger Logging:** Har action local `access-log.json` mein audit timestamp, client device ID, IP address aur status ke sath append hota hai. Koi private token ya personal credentials log mein include nahi kiye jaate.
+
+---
+
 <a id="flow-security"></a>
-#### 🛡️ Flow 9: Security, Privacy & DPAPI Storage Architecture (सुरक्षा और डेटा प्राइवेसी)
+#### 🛡️ Flow 12: Security, Privacy & DPAPI Storage Architecture (सुरक्षा और डेटा प्राइवेसी)
 
 User ke personal data, Google keys aur tokens ki complete security:
 

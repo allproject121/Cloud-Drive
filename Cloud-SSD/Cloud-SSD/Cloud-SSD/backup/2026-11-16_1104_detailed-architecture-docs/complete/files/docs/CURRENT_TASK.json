@@ -1,0 +1,12 @@
+﻿{
+    "active":  true,
+    "taskId":  "TASK-ARCH-001",
+    "taskTitle":  "detailed-architecture-docs",
+    "agent":  "Antigravity",
+    "startTime":  "2026-11-16T11:04:31.5652538+05:30",
+    "backupFolder":  "2026-11-16_1104_detailed-architecture-docs",
+    "targetFiles":  {
+
+                    },
+    "status":  "IN_PROGRESS"
+}

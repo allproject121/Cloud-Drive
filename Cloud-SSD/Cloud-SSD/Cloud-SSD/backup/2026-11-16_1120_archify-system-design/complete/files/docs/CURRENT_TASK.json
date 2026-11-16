@@ -1,0 +1,12 @@
+﻿{
+    "active":  true,
+    "taskId":  "TASK-ARCH-002",
+    "taskTitle":  "archify-system-design",
+    "agent":  "Antigravity",
+    "startTime":  "2026-11-16T11:21:01.1993611+05:30",
+    "backupFolder":  "2026-11-16_1120_archify-system-design",
+    "targetFiles":  {
+
+                    },
+    "status":  "IN_PROGRESS"
+}
