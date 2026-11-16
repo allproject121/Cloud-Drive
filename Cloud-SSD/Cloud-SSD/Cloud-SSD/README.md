@@ -58,17 +58,30 @@ Cloud Drive connects your **Google Drive account** to Windows as a **real drive 
 
 <a id="how"></a>
 
-## ⚙️ How it works
+## ⚙️ How it works (Live Interactive Archify System Design)
+
+<div align="center">
+
+### 🔴 [👉 CLICK HERE TO OPEN LIVE INTERACTIVE ARCHIFY APP (1-CLICK)](https://htmlpreview.github.io/?https://github.com/allproject121/Cloud-Drive/blob/main/archify-system-design.html)
+*(Click above to launch the live interactive interface: click Home Page to reveal features, click any feature to trace the animated live line directly into the system engine!)*
+
+<br/>
+
+[![Open Live Archify](https://img.shields.io/badge/LIVE%20DEMO-Open%20Interactive%20Archify%20App-0078D6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://htmlpreview.github.io/?https://github.com/allproject121/Cloud-Drive/blob/main/archify-system-design.html)
+&nbsp;&nbsp;
+[![Local HTML](https://img.shields.io/badge/Local%20File-archify--system--design.html-10B981?style=for-the-badge&logo=html5&logoColor=white)](archify-system-design.html)
+
+</div>
+
+---
 
 ### 🗺️ Master Archify System Design Diagram
 
 > 💡 **Official Archify System Design Architecture:**  
 > This system design is built and compiled using the official GitHub **[tt-a1i/archify](https://github.com/tt-a1i/archify)** engine.  
-> 🔗 **Interactive Standalone Viewer:** [Open Full Archify Interactive HTML](Cloud-SSD/Cloud-SSD/Cloud-SSD/docs/architecture-archify.html)  
+> 🔗 **Live Standalone App:** [Open Live Interactive App](https://htmlpreview.github.io/?https://github.com/allproject121/Cloud-Drive/blob/main/archify-system-design.html) · [Local HTML File](archify-system-design.html)  
 >
 > **Architecture Flow:** Left side par **Login Section** aur **Connection Section** hain jo central **Home Page Dashboard** ko feed karte hain. Home Page par aate hi saare **9 Features** expand hote hain. Jab aap kisi bhi feature par click karte hain ya usse trigger karte hain, toh ek direct execution line jaati hai jo dikhati hai ki woh feature system ke andar (Kernel driver, Win32 API, Sparse cache, ya Local network) mein kaise work karta hai!
->
-> *(GitHub par kisi bhi node par click karke aap seedhe uske technical deep-dive par jump kar sakte hain)*
 
 ```mermaid
 flowchart LR

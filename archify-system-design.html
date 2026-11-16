@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cloud Drive — Archify Master System Design</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --emerald: #10b981;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    .card-box {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .feature-btn {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      padding: 8px 10px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .feature-btn:hover {
+      border-color: var(--accent);
+      background-color: rgba(59, 130, 246, 0.15);
+      transform: translateX(2px);
+    }
+    .feature-btn.active {
+      border: 2px solid var(--accent);
+      background-color: rgba(59, 130, 246, 0.25);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+    }
+    .pulse-line {
+      stroke-dasharray: 6 4;
+      animation: dash 1.5s linear infinite;
+    }
+    @keyframes dash {
+      from { stroke-dashoffset: 20; }
+      to { stroke-dashoffset: 0; }
+    }
+  </style>
+</head>
+<body class="antialiased select-none">
+  <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px;">
+
+    <!-- Top Header -->
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+          <h2 style="margin: 0; font-size: 15px; font-weight: 700; color: #fff;">Cloud Drive — Archify System Architecture</h2>
+        </div>
+        <p style="margin: 4px 0 0 0; font-size: 11px; color: var(--muted);">
+          1️⃣ Left Side Gateways ──► 2️⃣ Home Dashboard ──► 3️⃣ Features Matrix ──► 4️⃣ Live System Pipeline
+        </p>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <span id="activeStatus" style="font-family: monospace; font-size: 11px; padding: 4px 10px; border-radius: 4px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">
+          Feature 1 Active (Line Drawn)
+        </span>
+      </div>
+    </div>
+
+    <!-- 4 Columns Grid -->
+    <div style="display: grid; grid-template-columns: 240px 180px 240px 1fr; gap: 12px; position: relative;">
+
+      <!-- SVG Canvas for Connecting Wires -->
+      <svg id="svgWires" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; overflow: visible;">
+      </svg>
+
+      <!-- COLUMN 1: Gateways (Login & Connection) -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px;">
+          1️⃣ Side Gateways
+        </div>
+
+        <!-- Login Card -->
+        <div id="nodeLogin" onclick="selectGateway('login')" class="card-box" style="padding: 10px; cursor: pointer; border-left: 3px solid #3b82f6;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <strong style="font-size: 12px; color: #fff;">🔐 Login Section</strong>
+            <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.2); color: #34d399;">OAuth2 DPAPI</span>
+          </div>
+          <p style="font-size: 10px; color: var(--muted); margin: 6px 0 0 0; line-height: 1.4;">
+            Google Account PKCE on <code style="color: #93c5fd;">127.0.0.1</code>. DPAPI hardware vault. 15GB–15TB Multi-Account Pool.
+          </p>
+        </div>
+
+        <!-- Connection Card -->
+        <div id="nodeConn" onclick="selectGateway('conn')" class="card-box" style="padding: 10px; cursor: pointer; border-left: 3px solid #a855f7;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <strong style="font-size: 12px; color: #fff;">📡 Connection Section</strong>
+            <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(168, 85, 247, 0.2); color: #c084fc;">Port 8090 LAN</span>
+          </div>
+          <p style="font-size: 10px; color: var(--muted); margin: 6px 0 0 0; line-height: 1.4;">
+            Zero-admin phone pairing. 6-digit PIN, pure C# QR generator, mutual local Wi-Fi TLS 1.3 socket.
+          </p>
+        </div>
+
+        <div class="card-box" style="padding: 8px 10px; font-size: 10px; color: var(--muted); margin-top: auto; border: 1px dashed var(--border);">
+          <div style="font-weight: 600; color: #e2e8f0; margin-bottom: 2px;">Security Baseline:</div>
+          <div>• Zero third-party cloud SaaS</div>
+          <div>• DPAPI hardware key derived</div>
+          <div>• User-mode WinFsp non-kernel</div>
+        </div>
+      </div>
+
+      <!-- COLUMN 2: Home Page Dashboard -->
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px;">
+          2️⃣ Command Center
+        </div>
+
+        <div id="nodeHome" onclick="toggleHome()" class="card-box" style="width: 100%; padding: 18px 10px; text-align: center; cursor: pointer; border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.12); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);">
+          <div style="font-size: 26px; line-height: 1; margin-bottom: 6px;">🏠</div>
+          <div style="font-size: 12px; font-weight: 700; color: #fff;">Home Page Dashboard</div>
+          <div style="font-size: 10px; color: #60a5fa; margin-top: 2px;">Central Dispatcher</div>
+          <div style="margin-top: 10px; display: inline-block; font-size: 9px; font-weight: 700; background: #3b82f6; color: #fff; padding: 3px 8px; border-radius: 12px;">
+            Click to View Features
+          </div>
+        </div>
+
+        <div style="font-size: 9px; color: var(--muted); text-align: center; line-height: 1.3;">
+          Feeds auth tokens & paired sockets to all 9 features
+        </div>
+      </div>
+
+      <!-- COLUMN 3: All 9 Features Matrix -->
+      <div style="display: flex; flex-direction: column; gap: 4px; max-height: 480px; overflow-y: auto; padding-right: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 2px;">
+          <span>3️⃣ Features (Click Any)</span>
+          <span style="font-size: 10px; color: #60a5fa;">9 Items</span>
+        </div>
+
+        <button id="feat-1" onclick="selectFeature(1)" class="feature-btn active">
+          <span style="font-size: 14px;">💽</span>
+          <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="font-size: 11px; font-weight: 600;">1. Virtual SSD Mount</div>
+            <div style="font-size: 9px; color: var(--muted);">Z: 5–15TB / Y: Drives</div>
+          </div>
+          <span style="font-size: 11px; color: #60a5fa;">→</span>
+        </button>
+
+        <button id="feat-2" onclick="selectFeature(2)" class="feature-btn">
+          <span style="font-size: 14px;">⚡</span>
+          <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="font-size: 11px; font-weight: 600;">2. LAN File Share</div>
+            <div style="font-size: 9px; color: var(--muted);">Phone ⇄ PC 70MB/s</div>
+          </div>
+          <span style="font-size: 11px; color: #60a5fa;">→</span>
+        </button>
+
+        <button id="feat-3" onclick="selectFeature(3)" class="feature-btn">
+          <span style="font-size: 14px;">🧠</span>
+          <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="font-size: 11px; font-weight: 600;">3. Smart Chunk Cache</div>
+            <div style="font-size: 9px; color: var(--muted);">Sparse NTFS on C:\</div>
+          </div>
+          <span style="font-size: 11px; color: #60a5fa;">→</span>
+        </button>
+
+        <button id="feat-4" onclick="selectFeature(4)" class="feature-btn">
+          <span style="font-size: 14px;">🔄</span>
+          <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="font-size: 11px; font-weight: 600;">4. PC is Off Mirror</div>
+            <div style="font-size: 9px; color: var(--muted);">Cloud Staging & Vault</div>
+          </div>
+          <span style="font-size: 11px; color: #60a5fa;">→</span>
+        </button>
+
+        <button id="feat-5" onclick="selectFeature(5)" class="feature-btn">
+          <span style="font-size: 14px;">🚀</span>
+          <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="font-size: 11px; font-weight: 600;">5. Memory Relief Engine</div>
+            <div style="font-size: 9px; color: var(--muted);">Win32 3–5GB RAM Free</div>
+          </div>
+          <span style="font-size: 11px; color: #60a5fa;">→</span>
+        </button>
+
+        <button id="feat-6" onclick="selectFeature(6)" class="feature-btn">
+          <span style="font-size: 14px;">🎮</span>
+          <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="font-size: 11px; font-weight: 600;">6. Gaming HUD & Sandbox</div>
+            <div style="font-size: 9px; color: var(--muted);">Job Sandbox + ML</div>
+          </div>
+          <span style="font-size: 11px; color: #60a5fa;">→</span>
+        </button>
+
+        <button id="feat-7" onclick="selectFeature(7)" class="feature-btn">
+          <span style="font-size: 14px;">📌</span>
+          <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="font-size: 11px; font-weight: 600;">7. Pin Offline Access</div>
+            <div style="font-size: 9px; color: var(--muted);">0ms Local Fast-Path</div>
+          </div>
+          <span style="font-size: 11px; color: #60a5fa;">→</span>
+        </button>
+
+        <button id="feat-8" onclick="selectFeature(8)" class="feature-btn">
+          <span style="font-size: 14px;">🎨</span>
+          <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="font-size: 11px; font-weight: 600;">8. App Icon Picker</div>
+            <div style="font-size: 9px; color: var(--muted);">Shell Tray & Themes</div>
+          </div>
+          <span style="font-size: 11px; color: #60a5fa;">→</span>
+        </button>
+
+        <button id="feat-9" onclick="selectFeature(9)" class="feature-btn">
+          <span style="font-size: 14px;">🔔</span>
+          <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="font-size: 11px; font-weight: 600;">9. Bell Alerts & Auditor</div>
+            <div style="font-size: 9px; color: var(--muted);">Security Access Logs</div>
+          </div>
+          <span style="font-size: 11px; color: #60a5fa;">→</span>
+        </button>
+      </div>
+
+      <!-- COLUMN 4: How It Works in System (Execution Pipeline) -->
+      <div class="card-box" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px;">
+            4️⃣ Live System Pipeline (How It Works)
+          </div>
+          <span id="pipelineTag" style="font-size: 10px; font-family: monospace; padding: 2px 8px; border-radius: 4px; background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
+            WinFsp / rclone VFS
+          </span>
+        </div>
+
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 410px;">
+          <div>
+            <h3 id="sysTitle" style="margin: 0; font-size: 13px; font-weight: 700; color: #fff;">
+              💽 Feature 1: Virtual Cloud SSD Mount & Multi-Account Pooling
+            </h3>
+            <p id="sysSummary" style="margin: 4px 0 0 0; font-size: 11px; color: var(--muted); line-height: 1.4;">
+              Windows Explorer file read requests are intercepted by the user-mode filesystem driver and streamed dynamically from pooled Google accounts with zero upfront download.
+            </p>
+          </div>
+
+          <!-- Numbered Steps Box -->
+          <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #60a5fa; letter-spacing: 0.5px;">
+              ⚡ Execution Steps:
+            </div>
+            <div id="sysStep1" style="display: flex; gap: 6px;">
+              <span style="color: #60a5fa; font-weight: 700;">01.</span>
+              <span style="color: #e2e8f0;"><b>WinFsp Driver Intercept:</b> Catches Windows Explorer <code style="color: #93c5fd;">IRP_MJ_READ</code> non-blocking I/O calls.</span>
+            </div>
+            <div id="sysStep2" style="display: flex; gap: 6px;">
+              <span style="color: #60a5fa; font-weight: 700;">02.</span>
+              <span style="color: #e2e8f0;"><b>Chunk Slicer:</b> rclone VFS router checks local sparse cache on C:\; slices missing regions into 4MB blocks.</span>
+            </div>
+            <div id="sysStep3" style="display: flex; gap: 6px;">
+              <span style="color: #60a5fa; font-weight: 700;">03.</span>
+              <span style="color: #e2e8f0;"><b>Parallel HTTP 206 Range:</b> Requests sent directly to Google Drive API over TLS 1.3 multiplexed stream.</span>
+            </div>
+            <div id="sysStep4" style="display: flex; gap: 6px;">
+              <span style="color: #60a5fa; font-weight: 700;">04.</span>
+              <span style="color: #e2e8f0;"><b>Zero-Copy Memory Fill:</b> Injects received byte buffer directly into calling process RAM without blue-screen risk.</span>
+            </div>
+          </div>
+
+          <!-- APIs and Specs -->
+          <div style="margin-top: auto; padding-top: 6px; border-top: 1px solid var(--border);">
+            <div style="font-size: 10px; font-weight: 600; color: #cbd5e1; margin-bottom: 2px;">Underlying APIs & Protocols:</div>
+            <div id="sysApis" style="font-size: 10px; color: var(--muted); font-family: monospace; line-height: 1.5;">
+              <div>• Driver: WinFsp User-Mode File System (Z: All, Y: Individual)</div>
+              <div>• Cache: Sparse NTFS File (FSCTL_SET_SPARSE)</div>
+              <div>• Network: HTTP/2 Multiplexing + TLS 1.3 AES-GCM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Active Line Path Legend -->
+    <div class="card-box" style="padding: 8px 12px; font-size: 11px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="color: #60a5fa; font-weight: 700;">Active Line:</span>
+        <span id="activePathText" style="font-family: monospace; color: #fff;">
+          Login + Connection ──► Home Page Dashboard ──► Feature 1 (Virtual SSD) ──► WinFsp / rclone VFS (Z:\)
+        </span>
+      </div>
+      <div style="font-size: 10px; color: #34d399; font-family: monospace;">
+        ● Live System Design Ready
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const features = {
+      1: {
+        title: "💽 Feature 1: Virtual Cloud SSD Mount & Multi-Account Pooling",
+        tag: "WinFsp / rclone VFS",
+        summary: "Windows Explorer file read requests are intercepted by the user-mode filesystem driver and streamed dynamically from pooled Google accounts with zero upfront download.",
+        step1: "<b>WinFsp Driver Intercept:</b> Catches Windows Explorer <code style='color: #93c5fd;'>IRP_MJ_READ</code> non-blocking I/O calls.",
+        step2: "<b>Chunk Slicer:</b> rclone VFS router checks local sparse cache on C:\\; slices missing regions into 4MB blocks.",
+        step3: "<b>Parallel HTTP 206 Range:</b> Requests sent directly to Google Drive API over TLS 1.3 multiplexed stream.",
+        step4: "<b>Zero-Copy Memory Fill:</b> Injects received byte buffer directly into calling process RAM without blue-screen risk.",
+        apis: ["• Driver: WinFsp User-Mode File System (Z: All, Y: Individual)", "• Cache: Sparse NTFS File (FSCTL_SET_SPARSE)", "• Network: HTTP/2 Multiplexing + TLS 1.3 AES-GCM"],
+        path: "Login + Conn ──► Home Page ──► Feature 1 (Virtual SSD) ──► WinFsp / rclone VFS (Drive Z:\\)"
+      },
+      2: {
+        title: "⚡ Feature 2: High-Speed Direct LAN Phone File Share",
+        tag: "Async Socket / Port 8090",
+        summary: "Transfers multi-gigabyte files between Android smartphone and Windows PC at wire speed over local Wi-Fi router (70+ MB/s) with 0KB cloud bandwidth.",
+        step1: "<b>Discovery Beacon:</b> Phone connects to PC's zero-admin HTTP bridge on Port 8090 via 6-digit PIN handshake.",
+        step2: "<b>Multipart Stream:</b> File chunks are transmitted in parallel TCP streams directly across local LAN subnet.",
+        step3: "<b>Storage Auto-Router:</b> Files under 100MB route to local SSD; large files route directly to Cloud SSD drive Z:\\.",
+        step4: "<b>Bell Notification:</b> Fires Windows toast notification and logs transfer metadata in Access Control Audit.",
+        apis: ["• Protocol: Local LAN HTTP 206 Partial Range Streamer", "• Security: 6-Digit Rotating PIN + Device Fingerprint Pinning", "• Destination: C:\\Downloads\\PhoneShare or Z:\\SharedDrives"],
+        path: "Phone Connection ──► Home Page ──► Feature 2 (LAN Share) ──► Port 8090 Socket ──► SSD / Drive Z:\\"
+      },
+      3: {
+        title: "🧠 Feature 3: Smart Chunked Sparse Cache Engine",
+        tag: "Sparse NTFS / LFU Eviction",
+        summary: "Only the exact 4MB byte ranges requested by applications are downloaded and written into sparse files on C:\\, preserving 90% disk space.",
+        step1: "<b>I/O Offset Detection:</b> System identifies exact byte offset requested by app (e.g., offset 1024KB to 5120KB).",
+        step2: "<b>Sparse Allocation:</b> Calls Win32 <code style='color: #93c5fd;'>FSCTL_SET_SPARSE</code> so unread regions take 0 bytes on disk.",
+        step3: "<b>Safety Reserve Guard:</b> Monitors C:\\ free disk space; halts cache allocation if free space falls below 10GB reserve.",
+        step4: "<b>LFU/LRU Eviction:</b> Automatically prunes least-frequently-used chunks when allocated cache budget reaches limit.",
+        apis: ["• Win32 API: FSCTL_SET_SPARSE & DeviceIoControl", "• Cache Policy: Sector-level Sparse Chunk Indexing", "• Protection: 10GB Emergency Free Disk Buffer Reserve"],
+        path: "Home Page ──► Feature 3 (Smart Cache) ──► Chunk Slicer ──► FSCTL_SET_SPARSE ──► C:\\CloudSSD_Cache"
+      },
+      4: {
+        title: "🔄 Feature 4: 'When PC is Off' Cloud Mirror & Vault",
+        tag: "IndexedDB / Cloud Staging",
+        summary: "Allows mobile companion to stage files to Google Cloud directly when PC is powered down; auto-syncs to PC upon next boot.",
+        step1: "<b>PC Status Probe:</b> Android companion app probes local PC heartbeat; detects PC is suspended or offline.",
+        step2: "<b>Direct Cloud Upload:</b> Shifts transport to direct Google Drive OAuth2 API into <code style='color: #93c5fd;'>/Pending_PC_Sync</code> folder.",
+        step3: "<b>Offline Vault Storage:</b> Metadata and thumbnail previews cached in Android client's encrypted IndexedDB store.",
+        step4: "<b>Boot-up Synchronization:</b> PC app launches, detects staged cloud files, downloads or links them into Drive Z:\\.",
+        apis: ["• Mobile Store: HTML5 / Android Encrypted IndexedDB", "• Cloud Relay: Google Drive V3 REST API (Direct Device Auth)", "• State Reconciler: Background Change-token Poller"],
+        path: "Phone Connection ──► Home Page ──► Feature 4 (PC Off Mirror) ──► Cloud Staging ──► Boot Re-sync Engine"
+      },
+      5: {
+        title: "🚀 Feature 5: Memory Relief Engine & RAM Auto-Mode",
+        tag: "Win32 EmptyWorkingSet",
+        summary: "Monitors system RAM pressure; immediately flushes idle background working sets to instantly reclaim 3-5 GB of physical RAM for active games.",
+        step1: "<b>Telemetry Poller:</b> Scans available physical RAM every 10 seconds via GlobalMemoryStatusEx.",
+        step2: "<b>Pressure Trigger:</b> When free RAM drops below 20%, triggers automated or manual Memory Relief pipeline.",
+        step3: "<b>Kernel Set Trimming:</b> Calls Win32 <code style='color: #93c5fd;'>EmptyWorkingSet</code> on non-critical processes and browser helpers.",
+        step4: "<b>ArrayPool Buffer Cleanup:</b> Recycles large byte arrays in .NET runtime, preventing Gen2 Garbage Collection freezes.",
+        apis: ["• Native Win32: psapi.dll!EmptyWorkingSet", "• Memory Diagnostics: kernel32.dll!GlobalMemoryStatusEx", "• Runtime Tuning: System.Buffers.ArrayPool<byte>.Shared"],
+        path: "Home Page ──► Feature 5 (Memory Relief) ──► Win32 EmptyWorkingSet ──► ArrayPool Recycling ──► +4GB Free RAM"
+      },
+      6: {
+        title: "🎮 Feature 6: Gaming HUD & Low Latency I/O Sandbox",
+        tag: "Job Objects / Markov ML",
+        summary: "Launches demanding PC games directly from cloud storage with zero micro-stutter by predictive block pre-fetching and process sandboxing.",
+        step1: "<b>Execution Sandbox:</b> Wraps game executable inside Windows Job Object to prioritize I/O bandwidth and CPU threads.",
+        step2: "<b>Markov Pattern Learning:</b> Predicts next sequential game asset blocks based on startup sequence telemetry.",
+        step3: "<b>Pre-burst Streaming:</b> Streams level textures and audio assets into RAM cache 2-3 seconds before the game requests them.",
+        step4: "<b>HUD Telemetry:</b> Mobile companion displays live PC GPU/CPU usage, I/O read throughput, and cache hit rates.",
+        apis: ["• Process Sandbox: CreateJobObjectW + SetInformationJobObject", "• ML Prefetcher: StartupPredictor & MarkovPredictor", "• Companion HUD: Low-latency WebSocket stats stream"],
+        path: "Home Page ──► Feature 6 (Gaming HUD) ──► Job Object Sandbox ──► Markov Prefetcher ──► Direct NVMe Cache"
+      },
+      7: {
+        title: "📌 Feature 7: Pin Offline Access (Zero Latency)",
+        tag: "Local VFS Lock / Fast-Path",
+        summary: "Pins critical files and game folders permanently to local SSD cache so they are 100% accessible even when disconnected from internet.",
+        step1: "<b>Pin Flag Attachment:</b> User marks file as 'Pin Offline' in Windows Explorer context menu or Desktop UI.",
+        step2: "<b>Full Chunk Hydration:</b> Background worker downloads all missing 4MB chunks and marks sectors as permanent.",
+        step3: "<b>Eviction Immunity:</b> Sparse cache manager locks pinned blocks, making them completely immune to LRU disk pruning.",
+        step4: "<b>Zero-Network Fallback:</b> File I/O serves at 3,500+ MB/s native NVMe speeds directly from local disk.",
+        apis: ["• Metadata: CloudSSD Pin Flag in SQLite Index", "• Allocation: Full range hydration into C:\\CloudSSD_Cache", "• Cache Policy: Pinned chunk priority immunity lock"],
+        path: "Home Page ──► Feature 7 (Pin Offline) ──► Background Hydrator ──► Permanent Sector Lock ──► 0ms Access"
+      },
+      8: {
+        title: "🎨 Feature 8: Dynamic App Icon & Theme Picker",
+        tag: "WPF DynamicResource / Shell",
+        summary: "Personalizes the desktop interface and Windows Shell taskbar icon with custom high-contrast, gaming neon, and dark/light palettes.",
+        step1: "<b>Theme Selection:</b> User chooses between Dark, Light, Cyberpunk Neon, and High-Contrast Accessibility themes.",
+        step2: "<b>Resource Dictionary Switch:</b> WPF Application dynamically swaps active XAML ResourceDictionary without app restart.",
+        step3: "<b>Shell Tray Icon Update:</b> Calls Win32 <code style='color: #93c5fd;'>Shell_NotifyIcon</code> to replace system tray icon dynamically.",
+        step4: "<b>Persistence:</b> Configuration serialized to local user profile settings; automatically restored on system startup.",
+        apis: ["• Framework: WPF Application.Current.Resources.MergedDictionaries", "• Win32 Shell: shell32.dll!Shell_NotifyIconW", "• Icon Assets: Embedded multi-resolution 256x256 ICOs"],
+        path: "Home Page ──► Feature 8 (Icon & Theme) ──► MergedDictionaries ──► Win32 Shell_NotifyIcon ──► Instant UI Refresh"
+      },
+      9: {
+        title: "🔔 Feature 9: Live Bell Alerts & Security Auditor",
+        tag: "EventAggregator / Access-Log",
+        summary: "Real-time notification bell and security audit ledger tracking all inbound device pairings, permission requests, and file access attempts.",
+        step1: "<b>Event Broadcast:</b> Internal components publish events (file received, device joined) via central EventAggregator.",
+        step2: "<b>Notification Center:</b> Desktop Bell icon badge increments; displays interactive approval / rejection toasts.",
+        step3: "<b>Permission Enforcement:</b> Evaluates inbound mobile requests against device whitelist; blocks unauthorized attempts.",
+        step4: "<b>Audit Serialization:</b> Appends cryptographically hashed log entries to <code style='color: #93c5fd;'>access-log.json</code> with zero secrets.",
+        apis: ["• Architecture: Reactive EventAggregator Pub/Sub pattern", "• Toast Engine: Microsoft.Toolkit.Uwp.Notifications", "• Audit Logger: System.Text.Json sanitized file appender"],
+        path: "Home Page ──► Feature 9 (Bell Alerts) ──► EventAggregator ──► Windows Toast ──► access-log.json Ledger"
+      }
+    };
+
+    let activeId = 1;
+
+    function selectFeature(id) {
+      activeId = id;
+      const data = features[id];
+      if (!data) return;
+
+      for (let i = 1; i <= 9; i++) {
+        const btn = document.getElementById('feat-' + i);
+        if (btn) {
+          if (i === id) {
+            btn.className = 'feature-btn active';
+          } else {
+            btn.className = 'feature-btn';
+          }
+        }
+      }
+
+      document.getElementById('sysTitle').innerText = data.title;
+      document.getElementById('pipelineTag').innerText = data.tag;
+      document.getElementById('sysSummary').innerText = data.summary;
+      document.getElementById('sysStep1').innerHTML = `<span style="color: #60a5fa; font-weight: 700;">01.</span><span style="color: #e2e8f0;">${data.step1}</span>`;
+      document.getElementById('sysStep2').innerHTML = `<span style="color: #60a5fa; font-weight: 700;">02.</span><span style="color: #e2e8f0;">${data.step2}</span>`;
+      document.getElementById('sysStep3').innerHTML = `<span style="color: #60a5fa; font-weight: 700;">03.</span><span style="color: #e2e8f0;">${data.step3}</span>`;
+      document.getElementById('sysStep4').innerHTML = `<span style="color: #60a5fa; font-weight: 700;">04.</span><span style="color: #e2e8f0;">${data.step4}</span>`;
+
+      let apisHtml = '';
+      data.apis.forEach(api => {
+        apisHtml += `<div>${api}</div>`;
+      });
+      document.getElementById('sysApis').innerHTML = apisHtml;
+
+      document.getElementById('activePathText').innerText = data.path;
+      document.getElementById('activeStatus').innerText = `Feature ${id} Line Active`;
+
+      drawWires();
+    }
+
+    function toggleHome() {
+      selectFeature(1);
+    }
+
+    function selectGateway(type) {
+      if (type === 'login') {
+        selectFeature(1);
+        document.getElementById('activeStatus').innerText = "Login Gateway Traced";
+      } else {
+        selectFeature(2);
+        document.getElementById('activeStatus').innerText = "Connection Gateway Traced";
+      }
+    }
+
+    function drawWires() {
+      const svg = document.getElementById('svgWires');
+      if (!svg) return;
+      svg.innerHTML = '';
+
+      const home = document.getElementById('nodeHome');
+      const feat = document.getElementById('feat-' + activeId);
+      const pipe = document.getElementById('pipelineTag');
+
+      if (!home || !feat || !pipe) return;
+
+      const svgRect = svg.getBoundingClientRect();
+      const homeRect = home.getBoundingClientRect();
+      const featRect = feat.getBoundingClientRect();
+      const pipeRect = pipe.getBoundingClientRect();
+
+      const x1 = homeRect.right - svgRect.left;
+      const y1 = homeRect.top + homeRect.height / 2 - svgRect.top;
+      const x2 = featRect.left - svgRect.left;
+      const y2 = featRect.top + featRect.height / 2 - svgRect.top;
+
+      const x3 = featRect.right - svgRect.left;
+      const y3 = y2;
+      const x4 = pipeRect.left - svgRect.left;
+      const y4 = pipeRect.top + pipeRect.height / 2 - svgRect.top;
+
+      // Line 1: Home to Feature
+      const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path1.setAttribute('d', `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`);
+      path1.setAttribute('fill', 'none');
+      path1.setAttribute('stroke', '#3b82f6');
+      path1.setAttribute('stroke-width', '2.5');
+      path1.setAttribute('class', 'pulse-line');
+
+      // Line 2: Feature to System Pipeline
+      const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path2.setAttribute('d', `M ${x3} ${y3} C ${(x3 + x4) / 2} ${y3}, ${(x3 + x4) / 2} ${y4}, ${x4} ${y4}`);
+      path2.setAttribute('fill', 'none');
+      path2.setAttribute('stroke', '#10b981');
+      path2.setAttribute('stroke-width', '2.5');
+      path2.setAttribute('class', 'pulse-line');
+
+      svg.appendChild(path1);
+      svg.appendChild(path2);
+    }
+
+    window.addEventListener('resize', drawWires);
+    window.addEventListener('load', () => selectFeature(1));
+    setTimeout(() => selectFeature(1), 150);
+  </script>
+</body>
+</html>
