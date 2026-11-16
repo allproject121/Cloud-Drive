@@ -1,11 +1,43 @@
 # Closes the running Cloud-SSD PC app the way a person does: asks its window to close, then answers its
 # "Close Cloud Drive" box with No (the drives are unmounted; pending uploads get up to 60 s). When the box says a game
-# is still running it answers Cancel and leaves the app open. UI Automation only: no mouse, no keys.
+# is still running it answers Cancel and leaves the app open.
+#
+# Two things that used to break this helper:
+#  * The "Close Cloud Drive" box is its OWN top level window (a WPF MessageBox is owned by the main window, not a
+#    child of it), so it has to be looked up on the desktop - looking inside the main window never finds it and the
+#    app then waits for a person forever.
+#  * CloseMainWindow() posts WM_CLOSE, but this app's window (custom title bar) does not always take it: the call
+#    returns False and nothing happens. Then the X of the title bar is clicked for real.
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $p = Get-Process Cloud-SSD -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
 if (-not $p) { 'not running'; exit 0 }
-[void]$p.CloseMainWindow()
-$main = [System.Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)
+
+if (-not $p.CloseMainWindow()) {
+    Add-Type @'
+using System;
+using System.Drawing;
+using System.Runtime.InteropServices;
+public static class CloudSsdClose {
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, IntPtr e);
+    [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out Rectangle lpRect);
+    public const uint LEFTDOWN = 0x0002, LEFTUP = 0x0004;
+    public static bool ClickX(IntPtr h) {
+        Rectangle r;
+        if (!GetWindowRect(h, out r)) return false;
+        int x = r.Right - 24, y = r.Top + 24;
+        SetCursorPos(x, y);
+        System.Threading.Thread.Sleep(300);
+        mouse_event(LEFTDOWN, 0, 0, 0, IntPtr.Zero);
+        mouse_event(LEFTUP, 0, 0, 0, IntPtr.Zero);
+        return true;
+    }
+}
+'@
+    if ([CloudSsdClose]::ClickX($p.MainWindowHandle)) { 'clicked the X of the title bar' }
+}
+
+$root = [System.Windows.Automation.AutomationElement]::RootElement
 $isWindow = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Window)
 $deadline = (Get-Date).AddSeconds(90)
 $answered = $false
@@ -13,7 +45,13 @@ while ((Get-Date) -lt $deadline) {
     Start-Sleep -Milliseconds 700
     if ($p.HasExited) { 'exited'; exit 0 }
     if ($answered) { continue }
-    try { $box = $main.FindFirst([System.Windows.Automation.TreeScope]::Children, $isWindow) } catch { $box = $null }
+    $box = $null
+    try {
+        $windows = $root.FindAll([System.Windows.Automation.TreeScope]::Children, $isWindow)
+        foreach ($w in $windows) {
+            if ($w.Current.Name -eq 'Close Cloud Drive' -or ($w.Current.ProcessId -eq $p.Id -and $w.Current.Name -ne $p.MainWindowTitle)) { $box = $w; break }
+        }
+    } catch { $box = $null }
     if (-not $box) { continue }
     $all = $box.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
     $text = ($all | ForEach-Object { $_.Current.Name }) -join ' '

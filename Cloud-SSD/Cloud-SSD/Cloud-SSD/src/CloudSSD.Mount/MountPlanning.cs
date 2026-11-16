@@ -71,7 +71,10 @@ public static class MountFlagBuilder
             if (value != null) a.Add(value);
         }
 
-        Flag("vfs-cache-mode", "full");
+        // "full" downloads a whole file when it is opened (great for games, hopeless for archives: a 460 MB zip
+        // had to be downloaded completely before Windows could show its file list). "writes" serves reads straight
+        // from the cloud, so an archive opens with one request. The user can switch (Cloud Drives -> Fast browsing).
+        Flag("vfs-cache-mode", i.Cache.VfsCacheMode.Equals("writes", StringComparison.OrdinalIgnoreCase) ? "writes" : "full");
         Flag("cache-dir", i.CacheDir);
         Flag("vfs-cache-max-size", ByteSize.ToRclone(Math.Max(16 * ByteSize.MiB, i.EffectiveCacheMaxBytes)));
         if (i.Cache.MinFreeSpaceBytes > 0) Flag("vfs-cache-min-free-space", ByteSize.ToRclone(i.Cache.MinFreeSpaceBytes));
@@ -83,7 +86,11 @@ public static class MountFlagBuilder
         // prediction engine owns read-ahead; users on very fast links can still raise both in Settings.
         Flag("buffer-size", ByteSize.ToRclone(i.Cache.BufferSizeBytes));
         Flag("vfs-read-ahead", ByteSize.ToRclone(i.Cache.ReadAheadBytes));
-        Flag("vfs-read-chunk-size", ByteSize.ToRclone(i.Cache.ReadChunkSizeBytes > 0 ? i.Cache.ReadChunkSizeBytes : 8 * ByteSize.MiB));
+        // One request per chunk, and every request can hit Google Drive's quota. A small chunk keeps a small read
+        // small: Windows reads an archive's file list from the END of the file, and with a 32 MiB chunk that single
+        // probe pulled 32 MiB (measured: 21.5 s instead of 5.3 s). 4 MiB is the balanced value.
+        var chunkSize = i.Cache.ReadChunkSizeBytes > 0 ? i.Cache.ReadChunkSizeBytes : 4 * ByteSize.MiB;
+        Flag("vfs-read-chunk-size", ByteSize.ToRclone(chunkSize));
         var chunkStreams = i.Cache.ReadChunkStreams > 0 ? i.Cache.ReadChunkStreams : 1;
         if (chunkStreams > 1) Flag("vfs-read-chunk-streams", chunkStreams.ToString(CultureInfo.InvariantCulture));
         Flag("vfs-write-back", Dur(i.Cache.WriteBack));
@@ -99,9 +106,30 @@ public static class MountFlagBuilder
         Flag("vfs-handle-caching", "5s");
         // No --vfs-disk-space-total-size: a fixed "15T" made every drive claim 15 TB in File Explorer. Without it rclone
         // reports the account's real quota (for a combined drive, the sum of its accounts).
+        //
+        // --vfs-refresh stays. It walks the whole drive tree at every mount, which costs Drive API requests (the
+        // shared quota is tight), but WITHOUT it a directory listing that failed once (for example because the quota
+        // was exhausted) stays cached as empty for --dir-cache-time (72 h): the folder then shows up empty although
+        // every file is still in the cloud. Seen for real: "Google AI Studio" came up empty after a mount without
+        // the refresh, while the same folder listed fine straight from the remote. A wrong listing is much worse
+        // than a slow mount, so the refresh stays. The read speed comes from the chunk size instead.
         Flag("vfs-refresh");
-        Flag("vfs-read-chunk-size-limit", "256Mi");
+        // The chunk size limit must EQUAL the chunk size, so rclone never doubles the chunk while reading.
+        // rclone grows the chunk on every read (4 MiB, 8 MiB, 16 MiB ... up to the limit), and a growing chunk
+        // turns one small probe into a huge one: with a 256 MiB limit, reading the END of a 460 MB archive
+        // (all Windows needs to list it) took 38.4 s, while with the limit at 4 MiB the same read took 4.3 s -
+        // nine times faster, with the same ~0.8 MB of data coming down either way.
+        // With the limit at the chunk size, "full" cache mode becomes safe: it keeps only the ranges that were
+        // really read (sparse files), so re-opening the same archive is instant instead of another slow download.
+        Flag("vfs-read-chunk-size-limit", ByteSize.ToRclone(chunkSize));
         Flag("no-checksum");
+        // Without --links rclone refuses symlinks: every mount ended with "symlinks not supported without
+        // the --links flag: /" and the drive root stayed a symlink, so the mount needed far longer than
+        // the 45 s readiness check to show up and Statfs failed ("union root '': Statfs failed: this usage
+        // field is not supported") - File Explorer then showed no space for the drive. With --links the
+        // root resolves, the drive appears in ~15 s and the real quota (union of all accounts) is reported.
+        // rclone stores such symlinks as .rclonelink files, so the cloud data stays untouched.
+        Flag("links");
         // The copies devices keep of themselves ("Files when it is off") are not part of the drive: hidden here so a
         // device that may only browse the drives cannot read them, and so the mount does not load their huge file lists.
         Flag("filter", "- Cloud-SSD Devices/**");

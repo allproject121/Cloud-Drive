@@ -109,6 +109,14 @@ public sealed class RcloneMountService : IAsyncDisposable
     public int MaxRestarts { get; set; } = 5;
     public TimeSpan RestartWindow { get; set; } = TimeSpan.FromMinutes(10);
 
+    /// <summary>
+    /// How long the drive letter may take to appear after rclone was started. The Google Drive API can
+    /// answer "403 Quota exceeded" for a while when rclone's shared client id is busy, and every retry
+    /// delays the first listing, so a healthy mount can need 75-90 s. The old 45 s cut it off, the app
+    /// killed rclone and started again, and the user saw a failure although the drive appears seconds later.
+    /// </summary>
+    public static readonly TimeSpan DriveAppearTimeout = TimeSpan.FromSeconds(120);
+
     public void SetRclone(RcloneInfo info) => _rclone = info;
     public RcloneInfo? Rclone => _rclone;
 
@@ -202,26 +210,29 @@ public sealed class RcloneMountService : IAsyncDisposable
         if (s.Request.ExtraEnvironment != null) foreach (var (k, v) in s.Request.ExtraEnvironment) env[k] = v;
 
         var psi = new RcloneRunner(rclone.Path, env).CreateStartInfo(plan.Arguments);
-        // Redirect and drain std streams: rclone logs to its file, and an un-redirected child would inherit (and pin)
-        // the parent's console/pipe handles - a mount kept alive after exit must not hold a terminal or test host open.
-        psi.RedirectStandardOutput = true;
-        psi.RedirectStandardError = true;
+        // A child that writes into a PIPE of this app dies with this app: the write end gets EPIPE as soon
+        // as this app closes the read end, and rclone (a Go program) turns that into SIGPIPE and exits.
+        // Measured: a mount disappeared about a minute after the app was closed, even though the user had
+        // answered "yes, keep the drives mounted" - and nothing in the logs said why. So the mount is started
+        // with its standard handles on the NUL device: no pipe that can break, no console to hold open.
         _log.LogInformation("Mount {Id}: {Command}", s.Id, RcloneRunner.DescribeCommand(psi));
 
-        var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        var proc = DetachedProcess.Start(rclone.Path, plan.Arguments, psi.Environment);
+        proc.EnableRaisingEvents = true;
         proc.Exited += (_, _) => OnProcessExited(s, proc);
         s.StartingProcess = proc;
-        proc.Start();
-        proc.OutputDataReceived += (_, _) => { };
-        proc.ErrorDataReceived += (_, e) => { if (!string.IsNullOrEmpty(e.Data)) _log.LogDebug("rclone[{Id}] stderr: {Line}", s.Id, Redactor.Redact(e.Data)); };
-        proc.BeginOutputReadLine();
-        proc.BeginErrorReadLine();
         s.Process = proc;
         s.Rc?.Dispose();
         s.Rc = new RcClient(port, s.RcUser, s.RcPass);
         AttachTelemetry(s, fromEnd: false);
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(45);
+        // How long the drive letter may take to appear. Google Drive's API can answer with
+        // "403 Quota exceeded" for a while when rclone's shared client id is busy (or rate limited), and
+        // every one of those retries delays the first directory listing - the mount then really needs
+        // 75-90 s. The old 45 s cut the mount off while it was still healthy, the app killed rclone and
+        // started over, and the user saw "Drive Z: did not appear within 45 s" although the drive does
+        // show up a few seconds later.
+        var deadline = DateTime.UtcNow + DriveAppearTimeout;
         while (DateTime.UtcNow < deadline)
         {
             ct.ThrowIfCancellationRequested();
@@ -248,9 +259,68 @@ public sealed class RcloneMountService : IAsyncDisposable
             await Task.Delay(250, ct);
         }
         s.State = MountState.Failed;
-        Publish(s, "Timed out waiting for the drive to appear.");
+        // The most common cause is Google Drive answering "403 Quota exceeded" while the mount waits for
+        // the first listing: say that instead of a bare timeout, so the user knows what to do.
+        // The quota error is many lines up in the log (the walk continues after it), so read a long tail:
+        // with only 40 lines the message came out as a plain DEBUG line and the user learned nothing.
+        var timeoutTail = SafeTail(s.LogFile, 400);
+        var hint = RcloneConfigService.ExplainError(timeoutTail);
+        // rclone is still alive and still working - Google Drive is only slow (or rate limited) right now.
+        // Killing it here threw away everything it had done so far, and the automatic restart began the whole
+        // walk from zero again, so the drive never came up at all (measured: 240 s and 186 quota errors).
+        // Instead the mount keeps running and a watcher waits for the drive letter to appear on its own.
+        if (s.Process is { } alive && !MountSession.SafeHasExited(alive))
+        {
+            s.State = MountState.Starting;
+            Publish(s, $"The drive is still coming up (Google Drive is slow); it will appear on its own. {hint}");
+            _ = WatchForDriveAsync(s);
+            return;
+        }
+        Publish(s, $"Timed out waiting for the drive to appear. {hint}");
         TryKill(proc);
-        throw new TimeoutException($"Drive {s.DriveLetter}: did not appear within 45 s. See {s.LogFile}.");
+        throw new TimeoutException($"Drive {s.DriveLetter}: did not appear within {DriveAppearTimeout.TotalSeconds:0} s. {hint} See {s.LogFile}.");
+    }
+
+    /// <summary>
+    /// How long a mount that was still starting when the app stopped waiting is watched for its drive letter.
+    /// Google Drive's shared rclone client id can answer "403 Quota exceeded" for many minutes, and the
+    /// mount becomes usable the moment the quota frees up - so the process is kept alive and watched.
+    /// </summary>
+    public static readonly TimeSpan DriveAppearWatchTimeout = TimeSpan.FromMinutes(15);
+
+    /// <summary>
+    /// Waits for a mount whose drive letter did not appear within <see cref="DriveAppearTimeout"/>. The rclone
+    /// process is left running (it is often only slow, not broken), and this watcher marks the session as
+    /// mounted as soon as the letter shows up. If rclone dies in the meantime, OnProcessExited takes over and
+    /// the normal restart logic applies.
+    /// </summary>
+    private async Task WatchForDriveAsync(MountSession s)
+    {
+        // From now on an exit of rclone is a crash of a running mount, not a failed start:
+        // OnProcessExited must handle it (otherwise the session would stay "Starting" forever).
+        s.StartingProcess = null;
+        var deadline = DateTime.UtcNow + DriveAppearWatchTimeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (s.StopRequested) return;
+            var proc = s.Process;
+            // rclone died on its own - OnProcessExited already published the reason and starts the restart loop.
+            if (proc is null || MountSession.SafeHasExited(proc)) return;
+            if (Directory.Exists(s.Root) && s.Rc is { } rc && await rc.PingAsync())
+            {
+                s.State = MountState.Mounted;
+                s.Since = DateTimeOffset.Now;
+                s.FailedPings = 0;
+                Persist();
+                Publish(s, $"Mounted at {s.DriveLetter}: (the drive appeared while the app was waiting)");
+                _log.LogInformation("Mount {Id}: the drive appeared at {Letter} while the app was still waiting", s.Id, s.DriveLetter);
+                return;
+            }
+            try { await Task.Delay(1000); }
+            catch (OperationCanceledException) { return; }
+        }
+        _log.LogWarning("Drive {Letter}: still not visible after {Minutes} min; rclone is left running", s.DriveLetter, DriveAppearWatchTimeout.TotalMinutes);
+        Publish(s, $"Drive {s.DriveLetter}: is still not visible. rclone keeps running - check Diagnostics or your Google Drive quota.");
     }
 
     private void AttachTelemetry(MountSession s, bool fromEnd)

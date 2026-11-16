@@ -24,6 +24,18 @@
                 </StackPanel>
             </Border>
 
+            <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="Drive mode" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,8"
+                               Text="On: the parts you open are kept on this PC, so opening the same archive or installer again is instant (best for browsing). Off: nothing is kept here and every open goes to the cloud again." />
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox Content="Fast browsing (keep what you open, re-open instantly)" IsChecked="{Binding FastBrowsing}" VerticalAlignment="Center" />
+                        <Button Content="Apply and reconnect" Command="{Binding ApplyDriveModeCommand}" Margin="12,0,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <TextBlock Text="Connected Cloud Drives" Style="{StaticResource H2}" />
             <TextBlock Text="No cloud drives yet. Connect an account: “Each Account” and “All Accounts” then appear by themselves." Style="{StaticResource Caption}" Margin="0,0,0,12"
                        Visibility="{Binding Drives.Count, Converter={StaticResource NotVis}}" />

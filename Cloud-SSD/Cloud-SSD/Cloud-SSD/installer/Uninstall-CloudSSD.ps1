@@ -69,6 +69,8 @@ Remove-Item (Join-Path ([Environment]::GetFolderPath("Programs")) "CLOUDPLAY X.l
 Remove-Item (Join-Path ([Environment]::GetFolderPath("Desktop")) "CLOUDPLAY X.lnk") -Force -ErrorAction SilentlyContinue
 Remove-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CloudSSD" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CloudPlayX" -Recurse -Force -ErrorAction SilentlyContinue
+# The "start with Windows" entry the installer added, so nothing is left behind that starts a program that is gone.
+Remove-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "Cloud-SSD" -Force -ErrorAction SilentlyContinue
 $removedFiles = $false
 if (((Test-Path (Join-Path $installDir "Cloud-SSD.exe")) -or (Test-Path (Join-Path $installDir "CloudPlayX.exe"))) -and ($installDir -like "*CloudPlayX*" -or $installDir -like "*Cloud-SSD*")) {
     Set-Location $env:TEMP

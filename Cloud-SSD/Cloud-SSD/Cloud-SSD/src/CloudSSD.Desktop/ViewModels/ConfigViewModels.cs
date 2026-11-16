@@ -572,7 +572,11 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
         {
             ["system.txt"] = $"OS: {Environment.OSVersion}\n.NET: {Environment.Version}\nCPU cores: {Environment.ProcessorCount}\nCloud Drive: {typeof(App).Assembly.GetName().Version}\n" +
                              $"rclone: {Host.Rclone?.Version}\nWinFsp: {WinFspDetector.Detect().Version}\nData root: {Host.Paths.DataRoot}\n",
-            ["settings.json"] = JsonSerializer.Serialize(Host.Settings, JsonSettingsStore.Options),
+            // The file from disk, not the live settings: the pairing token and the media key are stored
+            // protected there, so the diagnostics zip does not hand them out in plain text.
+            ["settings.json"] = File.Exists(Host.Paths.SettingsFile)
+                ? File.ReadAllText(Host.Paths.SettingsFile)
+                : JsonSerializer.Serialize(Host.Settings, JsonSettingsStore.Options),
             ["dependencies.txt"] = string.Join("\n", Host.Dependencies.Select(d => $"[{d.State}] {d.Name}: {d.Detail} {d.Remedy}")),
             ["mounts.txt"] = string.Join("\n", Host.Mounts.Sessions.Select(s => $"{s.Id} {s.DriveLetter}: {s.State} {s.Message} errors={s.ProviderErrors} retries={s.Retries} auth={s.AuthErrors}")),
             ["metrics.json"] = JsonSerializer.Serialize(Host.Metrics.Latest, JsonSettingsStore.Options),

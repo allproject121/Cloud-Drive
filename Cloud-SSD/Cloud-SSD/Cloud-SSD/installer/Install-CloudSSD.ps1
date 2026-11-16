@@ -77,6 +77,18 @@ try {
     }
 } catch { }
 
+# Start with Windows: the app comes up by itself after every restart, so the cloud drives are back without
+# anyone opening the program by hand. This is the same entry the app's own checkbox writes
+# (CloudSSD.App.StartWithWindows), and Uninstall-CloudSSD.ps1 removes it again.
+try {
+    $runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+    New-Item -Path $runKey -Force | Out-Null
+    Set-ItemProperty -Path $runKey -Name "Cloud-SSD" -Value ('"{0}" --minimized' -f $exe) -Type String
+    Write-Host "Cloud-SSD will now start with Windows (minimized)." -ForegroundColor Green
+} catch {
+    Write-Host "Could not add the 'start with Windows' entry: $($_.Exception.Message)" -ForegroundColor Yellow
+}
+
 # Prerequisite check (informational only).
 $winfsp = Test-Path "${env:ProgramFiles(x86)}\WinFsp\bin\winfsp-x64.dll"
 Write-Host ""

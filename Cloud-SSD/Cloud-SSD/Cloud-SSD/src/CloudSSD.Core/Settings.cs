@@ -66,6 +66,15 @@ public sealed class CacheSettings
     /// <summary>Free space that must always remain on the cache volume for Windows.</summary>
     public long MinFreeSpaceBytes { get; set; } = 8 * ByteSize.GiB;
 
+    /// <summary>
+    /// rclone --vfs-cache-mode. "full" downloads a file completely as soon as it is opened: good for games (the
+    /// file then sits on the local disk and reads are instant), but opening a 460 MB archive meant downloading
+    /// 460 MB first - measured: a 1 MiB read pulled the whole file and took 39 s, so a zip simply did not open.
+    /// "writes" keeps only what is written on the disk and serves reads straight from the cloud, so an archive
+    /// opens with just its file list (one request, measured 5 s for the same file and 0 MB extra).
+    /// </summary>
+    public string VfsCacheMode { get; set; } = "full";
+
     /// <summary>How long unused cached data may stay before rclone evicts it.</summary>
     public TimeSpan MaxAge { get; set; } = TimeSpan.FromDays(30);
 
@@ -80,6 +89,12 @@ public sealed class CacheSettings
 
     public long ReadAheadBytes { get; set; } = 0;
 
+    /// <summary>
+    /// rclone --vfs-read-chunk-size: one request per chunk, and every request can hit Google Drive's quota.
+    /// A small chunk keeps a small read small: Windows reads an archive's file list from the END of the file, and
+    /// with a 32 MiB chunk that single probe pulled 32 MiB (measured: 21.5 s instead of 5.3 s for the same read).
+    /// 4 MiB is the balanced value: a probe stays cheap and a 63 MB file still needs only 16 requests.
+    /// </summary>
     public long ReadChunkSizeBytes { get; set; } = 4 * ByteSize.MiB;
 
     public int ReadChunkStreams { get; set; } = 0;
@@ -379,7 +394,12 @@ public sealed class JsonSettingsStore : ISettingsStore
             try
             {
                 var json = File.ReadAllText(Path);
-                return JsonSerializer.Deserialize<AppSettings>(json, Options) ?? new AppSettings();
+                var s = JsonSerializer.Deserialize<AppSettings>(json, Options) ?? new AppSettings();
+                // The pairing token and the media key are stored protected (DPAPI); open them here so the
+                // rest of the app works with the real values.
+                s.MobileBridge.PairingToken = SecretProtector.Unprotect(s.MobileBridge.PairingToken);
+                s.MobileBridge.MediaKey = SecretProtector.Unprotect(s.MobileBridge.MediaKey);
+                return s;
             }
             catch (JsonException)
             {
@@ -396,7 +416,21 @@ public sealed class JsonSettingsStore : ISettingsStore
         {
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
             var tmp = Path + ".tmp";
-            File.WriteAllText(tmp, JsonSerializer.Serialize(settings, Options));
+            // Write the secrets protected, but keep the live settings object untouched (the app needs the
+            // plain values).
+            var token = settings.MobileBridge.PairingToken;
+            var media = settings.MobileBridge.MediaKey;
+            try
+            {
+                settings.MobileBridge.PairingToken = SecretProtector.Protect(token);
+                settings.MobileBridge.MediaKey = SecretProtector.Protect(media);
+                File.WriteAllText(tmp, JsonSerializer.Serialize(settings, Options));
+            }
+            finally
+            {
+                settings.MobileBridge.PairingToken = token;
+                settings.MobileBridge.MediaKey = media;
+            }
             if (File.Exists(Path)) File.Replace(tmp, Path, null);
             else File.Move(tmp, Path);
         }

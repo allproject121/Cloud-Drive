@@ -56,7 +56,9 @@ public sealed class AppLoggerProvider : ILoggerProvider
         _writer.Start();
     }
 
-    public string CurrentLogFile => Path.Combine(_directory, $"cloudplayx-{DateTime.Now:yyyyMMdd}.log");
+    // The app was renamed CloudPlayX -> Cloud-SSD, but the log file kept the old name. New logs are
+    // cloudssd-<date>.log; the old cloudplayx-*.log files are still pruned (see PruneOldLogs).
+    public string CurrentLogFile => Path.Combine(_directory, $"cloudssd-{DateTime.Now:yyyyMMdd}.log");
 
     public ILogger CreateLogger(string categoryName) => new AppLogger(this, categoryName);
 
@@ -111,8 +113,10 @@ public sealed class AppLoggerProvider : ILoggerProvider
     {
         try
         {
-            foreach (var f in Directory.EnumerateFiles(_directory, "cloudplayx-*.log"))
-                if (File.GetLastWriteTime(f) < DateTime.Now.AddDays(-14)) File.Delete(f);
+            // Both names: the logs used to be called cloudplayx-<date>.log before the rename.
+            foreach (var pattern in new[] { "cloudssd-*.log", "cloudplayx-*.log" })
+                foreach (var f in Directory.EnumerateFiles(_directory, pattern))
+                    if (File.GetLastWriteTime(f) < DateTime.Now.AddDays(-14)) File.Delete(f);
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }

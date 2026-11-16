@@ -42,6 +42,43 @@ public sealed partial class CloudDrivesViewModel : PageViewModel
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowKeyNotice))] private string _sharedKeyNotice = "";
     public bool ShowKeyNotice => SharedKeyNotice.Length > 0;
 
+    /// <summary>
+    /// True = what you read is kept on this PC, so opening the same archive again is instant (fast browsing).
+    /// False = nothing is kept; every open goes to the cloud again.
+    /// </summary>
+    [ObservableProperty] private bool _fastBrowsing;
+
+    /// <summary>
+    /// Which rclone cache mode belongs to the "Fast browsing" switch.
+    /// On  = "full": what was read is kept on this PC (sparse), so the next open is instant.
+    /// Off = "writes": nothing is kept for reading, every open goes to the cloud again.
+    /// </summary>
+    public static string CacheModeFor(bool fastBrowsing) => fastBrowsing ? "full" : "writes";
+
+    /// <summary>
+    /// Saves the drive mode and reconnects the drives so it takes effect right away: the cache mode is fixed when
+    /// rclone starts, so a running mount keeps the old one until it is remounted.
+    /// </summary>
+    [RelayCommand]
+    private async Task ApplyDriveMode()
+    {
+        Host.Settings.Cache.VfsCacheMode = CacheModeFor(FastBrowsing);
+        Host.SaveSettings();
+        await RunAsync(async () =>
+        {
+            foreach (var m in Host.Settings.Mounts.Where(m => Host.Mounts.Get(m.Id) != null).ToList())
+                await Host.UnmountAsync(m.Id);
+            foreach (var m in Host.Settings.Mounts)
+            {
+                try { await Host.MountAsync(m); }
+                catch (Exception e) { Say($"{m.DisplayName}: {e.Message}", "error"); }
+            }
+        }, FastBrowsing
+            ? "Fast browsing is on: the parts you open are kept on this PC, so the next open is instant."
+            : "Fast browsing is off: nothing is kept on this PC, every open goes to the cloud again.");
+        OnStateChanged();
+    }
+
     public override void OnShown()
     {
         OnStateChanged();
@@ -53,6 +90,7 @@ public sealed partial class CloudDrivesViewModel : PageViewModel
     {
         var shared = Host.SharedClientRemotes;
         Accounts.ReplaceWith(AccountText.Rows(Host));
+        FastBrowsing = !Host.Settings.Cache.VfsCacheMode.Equals("writes", StringComparison.OrdinalIgnoreCase);
         SharedKeyNotice = shared.Count == 0 ? "" :
             $"{shared.Count} Google account(s) ({string.Join(", ", shared.Select(Host.AccountLabel))}) still sign in through rclone's shared Google login. rclone is retiring it during 2026; " +
             "when Google stops accepting it, these drives stop working. Switch them to your own Google key — your files and drive letters stay the same.";

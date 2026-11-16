@@ -25,12 +25,20 @@ param(
     [string]$Current,
     [string[]]$Files,
     [string]$Stamp,
-    [string]$Agent = "Antigravity",
+    [string]$Agent = "",
     [string]$TaskId = "",
     [string]$Prompt = "",
     [switch]$Force
 )
 $ErrorActionPreference = 'Stop'
+
+# -Files accepts a list. When the script is started with "powershell -File ... -Files a,b,c" the whole
+# "a,b,c" arrives as ONE string, so the comma list has to be split here. Without this the complete step
+# silently reported "new 0, changed 0" and copied nothing into complete\files.
+if ($Files) {
+    $Files = @($Files | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
+
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $root = Join-Path $repo 'backup'
 $docRoot = Join-Path $repo 'docs'
@@ -64,6 +72,47 @@ function Resolve-Backup([string]$folder) {
     $p
 }
 
+# Reads the task lock file (docs\CURRENT_TASK.json) into a plain hashtable.
+# Windows PowerShell 5.1 has no "ConvertFrom-Json -AsHashtable" (that came with PowerShell 6), so on
+# 5.1 the lock file could not be read at all - and the catch-all around it hid the error. Result: the
+# lock stayed "active" forever, the validation status was never written, and the "another task is
+# running" warning never appeared. This works the same on 5.1 and on 7+.
+function Read-TaskLock([string]$path) {
+    $map = @{}
+    try {
+        $parsed = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+        foreach ($prop in $parsed.PSObject.Properties) { $map[$prop.Name] = $prop.Value }
+    } catch { }
+    $map
+}
+
+# The agent name and task id of a backup are written once, at "start", into TASK_INFO.json. The "complete"
+# and "restore" steps however only had their own command line values - and those default to the script
+# default ("Antigravity") with an empty TaskId. Result: complete\README.md and RESTORE_LOG.md named the
+# wrong agent and no task id at all, even though the real ones were sitting in TASK_INFO.json. The identity
+# is read back from there now. A value given on the command line always wins.
+function Get-BackupMeta([string]$dir) {
+    $map = @{}
+    $infoPath = Join-Path $dir 'TASK_INFO.json'
+    if (Test-Path $infoPath) {
+        try {
+            $parsed = Get-Content -LiteralPath $infoPath -Raw | ConvertFrom-Json
+            foreach ($prop in $parsed.PSObject.Properties) { $map[$prop.Name] = $prop.Value }
+        } catch { }
+    }
+    $map
+}
+
+function Resolve-Identity([string]$dir) {
+    $meta = Get-BackupMeta $dir
+    if ($meta.Count -gt 0) {
+        if (-not $script:Agent -and $meta['agent']) { $script:Agent = $meta['agent'] }
+        if (-not $script:TaskId -and $meta['taskId']) { $script:TaskId = $meta['taskId'] }
+    }
+    if (-not $script:Agent) { $script:Agent = 'Antigravity' }
+    if (-not $script:TaskId) { $script:TaskId = (Split-Path $dir -Leaf) }
+}
+
 function Get-DotNetPath() {
     $local = "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe"
     if (Test-Path $local) {
@@ -90,16 +139,15 @@ if ($Mode -eq 'list') {
 
 if ($Mode -eq 'start') {
     if (-not $Name) { throw '-Name is needed (a short name of the work, e.g. "app-icon").' }
+    if (-not $Agent) { $Agent = 'Antigravity' }
     
     # Conflict check via CURRENT_TASK.json
     if (Test-Path $taskLockFile) {
-        try {
-            $currentTask = Get-Content $taskLockFile -Raw | ConvertFrom-Json -AsHashtable
-            if ($currentTask -and $currentTask['active'] -and -not $Force) {
-                Write-Warning "Another task '$($currentTask['taskId'])' by agent '$($currentTask['agent'])' is currently in progress."
-                Write-Warning "Use -Force to override if this is a continuation or intentional concurrent step."
-            }
-        } catch {}
+        $currentTask = Read-TaskLock $taskLockFile
+        if ($currentTask.Count -gt 0 -and $currentTask['active'] -and -not $Force) {
+            Write-Warning "Another task '$($currentTask['taskId'])' by agent '$($currentTask['agent'])' is currently in progress."
+            Write-Warning "Use -Force to override if this is a continuation or intentional concurrent step."
+        }
     }
 
     $safe = ($Name -replace '[^A-Za-z0-9._-]+', '-').Trim('-')
@@ -203,12 +251,9 @@ if ($Mode -eq 'validate') {
 
     # Update lock file status
     if (Test-Path $taskLockFile) {
-        try {
-            $currentTask = Get-Content $taskLockFile -Raw | ConvertFrom-Json -AsHashtable
-            if (-not $currentTask) { $currentTask = @{} }
-            $currentTask['validationStatus'] = $finalStatus
-            $currentTask | ConvertTo-Json -Depth 5 | Set-Content $taskLockFile -Encoding utf8
-        } catch {}
+        $currentTask = Read-TaskLock $taskLockFile
+        $currentTask['validationStatus'] = $finalStatus
+        $currentTask | ConvertTo-Json -Depth 5 | Set-Content $taskLockFile -Encoding utf8
     }
 
     "Result: $finalStatus"
@@ -217,6 +262,7 @@ if ($Mode -eq 'validate') {
 
 if ($Mode -eq 'restore') {
     $dir = Resolve-Backup $Folder
+    Resolve-Identity $dir
     $before = Join-Path $dir 'before'
     $complete = Join-Path $dir 'complete'
     $folderLeaf = Split-Path $dir -Leaf
@@ -288,14 +334,11 @@ if ($Mode -eq 'restore') {
 
     # Update lock in CURRENT_TASK.json
     if (Test-Path $taskLockFile) {
-        try {
-            $currentTask = Get-Content $taskLockFile -Raw | ConvertFrom-Json -AsHashtable
-            if (-not $currentTask) { $currentTask = @{} }
-            $currentTask['active'] = $false
-            $currentTask['status'] = "RESTORED"
-            $currentTask['completionTime'] = (Get-Date -Format 'o')
-            $currentTask | ConvertTo-Json -Depth 5 | Set-Content $taskLockFile -Encoding utf8
-        } catch {}
+        $currentTask = Read-TaskLock $taskLockFile
+        $currentTask['active'] = $false
+        $currentTask['status'] = "RESTORED"
+        $currentTask['completionTime'] = (Get-Date -Format 'o')
+        $currentTask | ConvertTo-Json -Depth 5 | Set-Content $taskLockFile -Encoding utf8
     }
 
     "Restore complete! Historical backups remain 100% intact."
@@ -304,6 +347,7 @@ if ($Mode -eq 'restore') {
 
 # complete
 $dir = Resolve-Backup $Folder
+Resolve-Identity $dir
 $before = Join-Path $dir 'before'
 $now = if ($Current) { (Resolve-Path $Current).Path.TrimEnd('\') } else { $repo }
 $complete = Join-Path $dir 'complete'
@@ -343,14 +387,11 @@ $valStatus = if (Test-Path $valFile) { (Get-Content $valFile)[0] } else { 'Valid
 
 # Release lock in CURRENT_TASK.json
 if (Test-Path $taskLockFile) {
-    try {
-        $currentTask = Get-Content $taskLockFile -Raw | ConvertFrom-Json -AsHashtable
-        if (-not $currentTask) { $currentTask = @{} }
-        $currentTask['active'] = $false
-        $currentTask['status'] = "COMPLETED"
-        $currentTask['completionTime'] = (Get-Date -Format 'o')
-        $currentTask | ConvertTo-Json -Depth 5 | Set-Content $taskLockFile -Encoding utf8
-    } catch {}
+    $currentTask = Read-TaskLock $taskLockFile
+    $currentTask['active'] = $false
+    $currentTask['status'] = "COMPLETED"
+    $currentTask['completionTime'] = (Get-Date -Format 'o')
+    $currentTask | ConvertTo-Json -Depth 5 | Set-Content $taskLockFile -Encoding utf8
 }
 
 "complete: $complete (new $($new.Count), changed $($changed.Count), removed $($gone.Count)) [$valStatus]"

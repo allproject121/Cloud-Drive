@@ -1,5 +1,6 @@
 using CloudSSD.Cache;
 using CloudSSD.Core;
+using CloudSSD.Desktop.ViewModels;
 using CloudSSD.Diagnostics;
 using CloudSSD.Mount;
 
@@ -234,7 +235,7 @@ public class MountPlanningTests
             "dir-perms", "volname", "read-only", "bwlimit", "tpslimit", "rc", "rc-addr", "log-file", "log-format", "log-file-max-size",
             "log-file-max-backups", "http-url", "attr-timeout", "poll-interval", "vfs-fast-fingerprint", "vfs-handle-caching", "vfs-read-chunk-size-limit",
             "vfs-disk-space-total-size", "vfs-refresh", "no-checksum", "filter", "drive-pacer-min-sleep", "drive-pacer-burst",
-            "drive-acknowledge-abuse", "drive-encoding"
+            "drive-acknowledge-abuse", "drive-encoding", "links"
         }.Except(missing).ToHashSet();
         return new RcloneInfo("rclone.exe", "rclone v1.75.2", new Version(1, 75, 2), flags);
     }
@@ -264,10 +265,68 @@ public class MountPlanningTests
         Assert.Contains("--file-perms 0777", a);
         Assert.Contains("--rc-addr 127.0.0.1:5572", a);
         Assert.Contains("--tpslimit 10", a);
+        Assert.Contains("--links", a);
         Assert.Contains("-vv", a);
         Assert.DoesNotContain("rc-pass", a);
         Assert.DoesNotContain("rc-user", a);
         Assert.Empty(plan.Warnings);
+    }
+
+    [Fact]
+    public void The_mount_reads_in_big_chunks_and_refreshes_the_listing()
+    {
+        // --vfs-refresh stays: without it a directory listing that failed once (quota exhausted) stays cached as
+        // empty for 72 h, and the folder then looks empty although every file is still in the cloud.
+        var a = string.Join(' ', MountFlagBuilder.Build(Input(), FakeRclone()).Arguments);
+        Assert.Contains("--vfs-refresh", a);
+        // A small chunk keeps a small read small: Windows reads an archive's file list from the END of the file, and
+        // with a 32 MiB chunk that single probe pulled 32 MiB (measured: 21.5 s instead of 5.3 s).
+        Assert.Contains("--vfs-read-chunk-size 4Mi", a);
+        // The chunk size limit must equal the chunk size: rclone doubles the chunk on every read, and a growing
+        // chunk turns one small probe into a huge one. Measured on the real drive, reading the END of a 460 MB
+        // archive (all Windows needs to list it): limit 256 MiB -> 38.4 s, limit 4 MiB -> 4.3 s, same ~0.8 MB of
+        // data coming down either way.
+        Assert.Contains("--vfs-read-chunk-size-limit 4Mi", a);
+    }
+
+    [Fact]
+    public void The_drive_mode_chooses_how_a_file_is_cached()
+    {
+        // "full" keeps what was read on this PC (as a sparse file), so the NEXT open of the same archive is
+        // instant - measured: 10-14 ms instead of 3-5 s. With the chunk size limit at the chunk size (see
+        // The_mount_reads_in_big_chunks_and_refreshes_the_listing) "full" no longer drags the whole file down:
+        // reading the end of a 460 MB archive pulled ~0.8 MB and took 4.3 s.
+        // "writes" serves reads straight from the cloud and keeps nothing, so every open costs a fresh download.
+        static string Args(CacheSettings cache) => string.Join(' ', MountFlagBuilder.Build(Input() with { Cache = cache }, FakeRclone()).Arguments);
+        Assert.Contains("--vfs-cache-mode full", Args(new CacheSettings()));
+        Assert.Contains("--vfs-cache-mode writes", Args(new CacheSettings { VfsCacheMode = "writes" }));
+        // Anything unknown falls back to the safe default.
+        Assert.Contains("--vfs-cache-mode full", Args(new CacheSettings { VfsCacheMode = "nonsense" }));
+    }
+
+    [Fact]
+    public void Fast_browsing_keeps_the_file_locally_and_switching_it_off_keeps_nothing()
+    {
+        // The switch used to point the other way round: "Fast browsing" meant "writes", which keeps nothing for
+        // reading - so every archive had to be downloaded again on every open, which is the opposite of browsing
+        // fast. Now it means "full" (keep what was read -> re-open is instant) and turning it off means "writes"
+        // (nothing kept -> every open goes to the cloud).
+        Assert.Equal("full", CloudDrivesViewModel.CacheModeFor(true));
+        Assert.Equal("writes", CloudDrivesViewModel.CacheModeFor(false));
+    }
+
+    [Fact]
+    public void Symlink_support_is_on_so_the_drive_root_is_not_a_symlink()
+    {
+        // Without --links rclone refuses the symlink at the root of the union/combine drive:
+        // "symlinks not supported without the --links flag: /" on every mount. The drive then needed
+        // far longer than the readiness check (and Statfs failed, so Explorer showed no space).
+        var a = string.Join(' ', MountFlagBuilder.Build(Input(), FakeRclone()).Arguments);
+        Assert.Contains("--links", a);
+        // An older rclone that does not know the flag must be skipped with a warning, not crash the mount.
+        var old = MountFlagBuilder.Build(Input(), FakeRclone("links"));
+        Assert.DoesNotContain("--links", string.Join(' ', old.Arguments));
+        Assert.Contains(old.Warnings, w => w.Contains("--links"));
     }
 
     [Fact]
@@ -283,6 +342,73 @@ public class MountPlanningTests
         Assert.Contains("--vfs-handle-caching 5s", Args(Input()));
         // File Explorer must show the account's real size, not a fixed 15 TB.
         Assert.DoesNotContain("--vfs-disk-space-total-size", Args(Input()));
+    }
+
+    [Fact]
+    public void The_pairing_token_and_the_media_key_are_not_written_in_plain_text()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "cloudssd-settings-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var file = Path.Combine(dir, "settings.json");
+            var store = new JsonSettingsStore(file);
+            var s = new AppSettings();
+            s.MobileBridge.PairingToken = "pairing-token-0123456789";
+            s.MobileBridge.MediaKey = "media-key-0123456789";
+            store.Save(s);
+
+            var onDisk = File.ReadAllText(file);
+            Assert.DoesNotContain("pairing-token-0123456789", onDisk);
+            Assert.DoesNotContain("media-key-0123456789", onDisk);
+            Assert.Contains("dpapi:", onDisk);
+
+            // The live settings object keeps the plain values (the app works with them) ...
+            Assert.Equal("pairing-token-0123456789", s.MobileBridge.PairingToken);
+            Assert.Equal("media-key-0123456789", s.MobileBridge.MediaKey);
+            // ... and loading gives the same values back.
+            var back = store.Load();
+            Assert.Equal("pairing-token-0123456789", back.MobileBridge.PairingToken);
+            Assert.Equal("media-key-0123456789", back.MobileBridge.MediaKey);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void An_older_settings_file_with_plain_secrets_still_loads()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "cloudssd-settings-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var file = Path.Combine(dir, "settings.json");
+            File.WriteAllText(file, "{\"MobileBridge\":{\"PairingToken\":\"plain-token-0123456789\",\"MediaKey\":\"plain-media-0123456789\"}}");
+            var back = new JsonSettingsStore(file).Load();
+            Assert.Equal("plain-token-0123456789", back.MobileBridge.PairingToken);
+            Assert.Equal("plain-media-0123456789", back.MobileBridge.MediaKey);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void The_drive_may_take_longer_than_45_seconds_to_appear()
+    {
+        // Google Drive's API answers "403 Quota exceeded" for a while when rclone's shared client id is
+        // busy, and every retry delays the first listing: a healthy mount needed 75-90 s. The old 45 s
+        // cut it off, the app killed rclone and started again.
+        Assert.True(RcloneMountService.DriveAppearTimeout >= TimeSpan.FromSeconds(120),
+            $"the drive may need 120 s, but the timeout is {RcloneMountService.DriveAppearTimeout}");
+    }
+
+    [Fact]
+    public void A_google_drive_quota_error_says_what_to_do()
+    {
+        var msg = RcloneConfigService.ExplainError(
+            "ERROR : 403 Quota exceeded for quota metric 'Queries' and limit 'Previous quota: Requests per minute' of service 'drive.googleapis.com'");
+        Assert.Contains("How do I get a key?", msg);
+        Assert.Contains("Switch to my own Google key", msg);
+        // A plain rate limit (another provider) keeps the old wording.
+        Assert.Contains("rate limiting", RcloneConfigService.ExplainError("ERROR : 429 Too Many Requests"));
     }
 
     [Fact]

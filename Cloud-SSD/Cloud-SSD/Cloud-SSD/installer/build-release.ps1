@@ -69,7 +69,19 @@ rclone $rcloneVersion (https://rclone.org), MIT License, Copyright (C) 2012 by N
 Downloaded from https://downloads.rclone.org/$rcloneVersion/ - the zip's SHA256 was verified against the official
 SHA256SUMS file (included). SHA256 of rclone.exe: $hash
 "@
-Copy-Item (Join-Path $repo "THIRD_PARTY_NOTICES.md") $stage -Force
+# The project docs were moved into docs\archive when the folder structure changed, so a document can live
+# in one of two places. Look in both, otherwise the release build stops on a missing file.
+function Find-Doc([string]$name) {
+    $root = Join-Path $repo $name
+    if (Test-Path $root) { return $root }
+    $archived = Join-Path $repo "docs\archive\$name"
+    if (Test-Path $archived) { return $archived }
+    return $null
+}
+
+$notices = Find-Doc "THIRD_PARTY_NOTICES.md"
+if (-not $notices) { throw "THIRD_PARTY_NOTICES.md not found (looked in the project root and in docs\archive)" }
+Copy-Item $notices $stage -Force
 
 # 4b. WinFsp's official installer goes along (tools\winfsp): the app and the install script put it on a PC that lacks it.
 # Only the genuine one: it must carry a valid signature of its maker.
@@ -91,7 +103,9 @@ if (Test-Path $publisherKey) {
 
 # 5. Docs and scripts.
 foreach ($f in "README.md", "KNOWN_LIMITATIONS.md", "COMPATIBILITY.md", "BENCHMARKS.md", "TEST_REPORT.md", "BUILD_STATUS.md", "ARCHITECTURE.md") {
-    if (Test-Path (Join-Path $repo $f)) { Copy-Item (Join-Path $repo $f) $stage -Force }
+    $doc = Find-Doc $f
+    if ($doc) { Copy-Item $doc $stage -Force }
+    else { Write-Host "Document not found (skipped): $f" -ForegroundColor Yellow }
 }
 New-Item -ItemType Directory -Force (Join-Path $stage "docs") | Out-Null
 Copy-Item (Join-Path $repo "docs\*") (Join-Path $stage "docs") -Recurse -Force

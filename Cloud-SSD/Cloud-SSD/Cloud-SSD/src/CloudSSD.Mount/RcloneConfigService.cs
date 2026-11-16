@@ -259,10 +259,18 @@ public sealed class RcloneConfigService
     public static string ExplainError(string stderr)
     {
         var s = Redactor.Redact(stderr);
+        // Google Drive's shared rclone client id is shared by every rclone user and is being retired in
+        // 2026: its quota runs out ("403 Quota exceeded ... Requests per minute") and the drive then takes
+        // a long time to appear. The fix is the user's own OAuth client. This is checked BEFORE the
+        // generic rate-limit text, which would otherwise swallow it.
+        if (s.Contains("Quota exceeded", StringComparison.OrdinalIgnoreCase) && s.Contains("drive.googleapis.com", StringComparison.OrdinalIgnoreCase))
+            return "Google Drive API quota khatam ho gaya (403). Apni OAuth key use karo: Cloud Drives -> 'How do I get a key?' -> 'Switch to my own Google key'. rclone ka shared key 2026 me retire ho raha hai. (" + LastLine(s) + ")";
         if (s.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase) || s.Contains("token expired", StringComparison.OrdinalIgnoreCase)
             || s.Contains("couldn't fetch token", StringComparison.OrdinalIgnoreCase) || s.Contains("empty token", StringComparison.OrdinalIgnoreCase))
             return "Cloud authentication required: the saved login has expired or was revoked. Reconnect the account. (" + LastLine(s) + ")";
-        if (s.Contains("rateLimitExceeded", StringComparison.OrdinalIgnoreCase) || s.Contains("userRateLimitExceeded", StringComparison.OrdinalIgnoreCase) || s.Contains(" 429", StringComparison.Ordinal))
+        if (s.Contains("rateLimitExceeded", StringComparison.OrdinalIgnoreCase) || s.Contains("userRateLimitExceeded", StringComparison.OrdinalIgnoreCase)
+            || s.Contains("Quota exceeded", StringComparison.OrdinalIgnoreCase) || s.Contains("Error 403", StringComparison.OrdinalIgnoreCase)
+            || s.Contains(" 429", StringComparison.Ordinal))
             return "The provider is rate limiting requests. rclone retries with exponential backoff; try again shortly. (" + LastLine(s) + ")";
         if (s.Contains("no such host", StringComparison.OrdinalIgnoreCase) || s.Contains("dial tcp", StringComparison.OrdinalIgnoreCase))
             return "Network unavailable: cannot reach the provider. (" + LastLine(s) + ")";
