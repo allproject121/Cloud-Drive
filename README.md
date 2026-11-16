@@ -244,17 +244,24 @@ The Android companion connects securely to your PC over Wi-Fi, allowing you to b
 
 <br/>
 
-| 7. Glow Theme Cards | 8. Kit Theme Cards | 9. Paper Theme Cards |
+| 7. Gaming Performance & Remote HUD | 8. 100% Offline Save Vault | 9. App Settings & Languages |
 |:---:|:---:|:---:|
-| <img src="screenshots/phone-cards-glow.png" width="220" alt="Glow theme effects on cards" /> | <img src="screenshots/phone-cards-kit.png" width="220" alt="Kit theme effects on cards" /> | <img src="screenshots/phone-cards-paper.png" width="220" alt="Paper theme effects on cards" /> |
-| Vibrant neon glowing border and elevation styling | Clean tactile kit styling with subtle borders | Minimalist paper document card presentation |
+| <img src="screenshots/phone-gaming-hud.png" width="220" alt="Phone Gaming HUD" /> | <img src="screenshots/phone-offline-vault.png" width="220" alt="IndexedDB Offline Vault" /> | <img src="screenshots/phone-settings-lang.png" width="220" alt="Settings & Languages" /> |
+| Real-time PC stats: FPS, GPU/CPU temps, remote game launch | Secure IndexedDB offline storage for game saves and docs | English, Hindi & Hinglish localization + paired PC list |
 
 <br/>
 
-| 10. Auto Theme Cards | 11. Permission & Security Editor |
-|:---:|:---:|
-| <img src="screenshots/phone-cards-auto.png" width="220" alt="Auto theme responsive cards" /> | <img src="screenshots/phone-perm-editor.png" width="220" alt="Permissions and folder access manager" /> |
-| System-adaptive dark/light theme switching | Granular per-device file and drive permission controls |
+| 10. Remote Access Allowed | 11. Permission & Security Editor | 12. Remote Pin Offline Kept |
+|:---:|:---:|:---:|
+| <img src="screenshots/phone-remote-access-allowed.png" width="220" alt="Remote Access Allowed" /> | <img src="screenshots/phone-perm-editor.png" width="220" alt="Permissions and folder access manager" /> | <img src="screenshots/phone-remote-pin-kept.png" width="220" alt="Remote Pin Kept" /> |
+| Verified remote connection status from trusted phone | Granular per-device file and drive permission controls | Persistent local pinning indicator on cloud items |
+
+<br/>
+
+| 13. Glow Theme Cards | 14. Kit Theme Cards | 15. Paper Theme Cards |
+|:---:|:---:|:---:|
+| <img src="screenshots/phone-cards-glow.png" width="220" alt="Glow theme effects on cards" /> | <img src="screenshots/phone-cards-kit.png" width="220" alt="Kit theme effects on cards" /> | <img src="screenshots/phone-cards-paper.png" width="220" alt="Paper theme effects on cards" /> |
+| Vibrant neon glowing border and elevation styling | Clean tactile kit styling with subtle borders | Minimalist paper document card presentation |
 
 </div>
 
