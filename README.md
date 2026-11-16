@@ -58,30 +58,38 @@ Cloud Drive connects your **Google Drive account** to Windows as a **real drive 
 
 <a id="how"></a>
 
-## ⚙️ How it works (Live Interactive Archify System Design)
+## ⚙️ How it works (Archify Master System Design)
 
 <div align="center">
 
-### 🔴 [👉 CLICK HERE TO OPEN LIVE INTERACTIVE ARCHIFY APP (1-CLICK)](https://htmlpreview.github.io/?https://github.com/allproject121/Cloud-Drive/blob/main/archify-system-design.html)
-*(Click above to launch the live interactive interface: click Home Page to reveal features, click any feature to trace the animated live line directly into the system engine!)*
+### 🗺️ Master Archify System Design Architecture
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="screenshots/archify-system-design-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="screenshots/archify-system-design-light.png">
+  <img alt="Cloud Drive — Archify Master System Design" src="screenshots/archify-system-design-dark.png" width="100%">
+</picture>
 
 <br/>
 
-[![Open Live Archify](https://img.shields.io/badge/LIVE%20DEMO-Open%20Interactive%20Archify%20App-0078D6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://htmlpreview.github.io/?https://github.com/allproject121/Cloud-Drive/blob/main/archify-system-design.html)
+*Official Archify System Design Architecture (Compiled with [tt-a1i/archify](https://github.com/tt-a1i/archify))*  
+**Architecture Flow:** Left side par **Login Section** aur **Connection Section** hain jo central **Home Dashboard** ko feed karte hain. Home Dashboard se saare **9 Core Features** expand hote hain. Har ek feature se direct execution line nikalti hai jo dikhati hai ki woh feature system ke internal engines (Kernel driver, Win32 API, Sparse cache, ya Local network) mein kaise work karta hai.
+
+<br/>
+
+[![Open SVG Vector](https://img.shields.io/badge/VECTOR%20DIAGRAM-Open%20High--Res%20SVG-0078D6?style=for-the-badge&logo=svg&logoColor=white)](screenshots/archify-system-design.svg)
 &nbsp;&nbsp;
-[![Local HTML](https://img.shields.io/badge/Local%20File-archify--system--design.html-10B981?style=for-the-badge&logo=html5&logoColor=white)](archify-system-design.html)
+[![Dark Theme](https://img.shields.io/badge/IMAGE-Dark%20Theme%20PNG-1E293B?style=for-the-badge&logo=affinitydesigner&logoColor=white)](screenshots/archify-system-design-dark.png)
+&nbsp;&nbsp;
+[![Light Theme](https://img.shields.io/badge/IMAGE-Light%20Theme%20PNG-F8FAFC?style=for-the-badge&logoColor=black)](screenshots/archify-system-design-light.png)
+&nbsp;&nbsp;
+[![Live Interactive App](https://img.shields.io/badge/INTERACTIVE%20APP-Open%20Live%20Viewer-10B981?style=for-the-badge&logo=html5&logoColor=white)](https://htmlpreview.github.io/?https://github.com/allproject121/Cloud-Drive/blob/main/archify-system-design.html)
 
 </div>
 
 ---
 
-### 🗺️ Master Archify System Design Diagram
-
-> 💡 **Official Archify System Design Architecture:**  
-> This system design is built and compiled using the official GitHub **[tt-a1i/archify](https://github.com/tt-a1i/archify)** engine.  
-> 🔗 **Live Standalone App:** [Open Live Interactive App](https://htmlpreview.github.io/?https://github.com/allproject121/Cloud-Drive/blob/main/archify-system-design.html) · [Local HTML File](archify-system-design.html)  
->
-> **Architecture Flow:** Left side par **Login Section** aur **Connection Section** hain jo central **Home Page Dashboard** ko feed karte hain. Home Page par aate hi saare **9 Features** expand hote hain. Jab aap kisi bhi feature par click karte hain ya usse trigger karte hain, toh ek direct execution line jaati hai jo dikhati hai ki woh feature system ke andar (Kernel driver, Win32 API, Sparse cache, ya Local network) mein kaise work karta hai!
+### 🗺️ Live Workflow Topology Diagram
 
 ```mermaid
 flowchart LR
@@ -973,6 +981,16 @@ You need: .NET SDK 10, WinFsp, Inno Setup 6 (for the setup.exe), and the Android
 ## 🏗️ Architecture (Master Archify System Design)
 
 The app is written in **.NET 10 (C#)** with a **WPF + MVVM** user interface. It stands on two proven tools — **rclone** (cloud + cache) and **WinFsp** (Windows drive) — and adds its own logic on top: managing mounts, protecting the disk, prediction, games and the phone bridge.
+
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="screenshots/archify-system-design-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="screenshots/archify-system-design-light.png">
+  <img alt="Cloud Drive — Archify Master Architecture" src="screenshots/archify-system-design-dark.png" width="100%">
+</picture>
+
+</div>
 
 ```mermaid
 flowchart LR
