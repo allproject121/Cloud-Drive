@@ -237,10 +237,24 @@ The Android companion connects securely to your PC over Wi-Fi, allowing you to b
 
 <br/>
 
-| 4. Offline Access ("When PC is Off") | 5. Visual Theme Effects | 6. App Icon Picker |
+| 4. Pin Offline Access | 5. Offline Cloud Mirror ("When PC Off") | 6. App Icon Picker |
 |:---:|:---:|:---:|
-| <img src="screenshots/phone-whenoff.png" width="220" alt="Files when it is off cloud sync permission" /> | <img src="screenshots/phone-cards-glow.png" width="220" alt="Glow theme effects on cards" /> | <img src="screenshots/phone-icon-picker.png" width="220" alt="Custom icon styles: Ocean, Kit, Glow, Paper" /> |
-| Access mirrored PC copies in cloud when PC is powered off | Modern UI cards with Glow, Kit, & Paper styling | Customize mobile app icon (Ocean, Kit, Paper, Sunset) |
+| <img src="screenshots/phone-pin-offline.png" width="220" alt="Keep in Cloud SSD / Pin Offline" /> | <img src="screenshots/phone-whenoff.png" width="220" alt="Files when it is off cloud sync permission" /> | <img src="screenshots/phone-icon-picker.png" width="220" alt="Custom icon styles: Ocean, Kit, Glow, Paper" /> |
+| Pin files & folders offline to open without PC or internet | Access mirrored PC copies in cloud when PC is powered off | Customize mobile app icon (Ocean, Kit, Paper, Sunset) |
+
+<br/>
+
+| 7. Glow Theme Cards | 8. Kit Theme Cards | 9. Paper Theme Cards |
+|:---:|:---:|:---:|
+| <img src="screenshots/phone-cards-glow.png" width="220" alt="Glow theme effects on cards" /> | <img src="screenshots/phone-cards-kit.png" width="220" alt="Kit theme effects on cards" /> | <img src="screenshots/phone-cards-paper.png" width="220" alt="Paper theme effects on cards" /> |
+| Vibrant neon glowing border and elevation styling | Clean tactile kit styling with subtle borders | Minimalist paper document card presentation |
+
+<br/>
+
+| 10. Auto Theme Cards | 11. Permission & Security Editor |
+|:---:|:---:|
+| <img src="screenshots/phone-cards-auto.png" width="220" alt="Auto theme responsive cards" /> | <img src="screenshots/phone-perm-editor.png" width="220" alt="Permissions and folder access manager" /> |
+| System-adaptive dark/light theme switching | Granular per-device file and drive permission controls |
 
 </div>
 
@@ -259,24 +273,31 @@ The Windows desktop app manages your Google Drive mount points, RAM caching, sma
 
 <br/>
 
-| 3. Mobile Hub | 4. Game Library & Launcher |
+| 3. Devices & Virtual Backup | 4. Mobile Hub & Pairing |
 |:---:|:---:|
-| <img src="screenshots/pc-mobile-hub.png" width="440" alt="Mobile Hub" /> | <img src="screenshots/pc-game-library.png" width="440" alt="Game Library" /> |
-| QR pairing code, connected phones, and transfer history | Direct game launcher from cloud disk without full install |
+| <img src="screenshots/pc-devices-backup.png" width="440" alt="Devices & Cloud Backup" /> | <img src="screenshots/pc-mobile-hub.png" width="440" alt="Mobile Hub" /> |
+| Paired phones, remote access rules, and automated PC mirror | QR pairing code, connected phones, and transfer history |
 
 <br/>
 
-| 5. RAM & Virtual Memory | 6. Storage Space Analyzer |
+| 5. Game Library & Launcher | 6. RAM & Virtual Memory |
 |:---:|:---:|
-| <img src="screenshots/pc-memory.png" width="440" alt="RAM & Memory Cache" /> | <img src="screenshots/pc-space.png" width="440" alt="Storage Space Allocation" /> |
-| High-speed RAM write buffer and read-ahead tuning | Visual space analyzer showing local vs cloud savings |
+| <img src="screenshots/pc-game-library.png" width="440" alt="Game Library" /> | <img src="screenshots/pc-memory.png" width="440" alt="RAM & Memory Cache" /> |
+| Direct game launcher from cloud disk without full install | High-speed RAM write buffer and read-ahead tuning |
 
 <br/>
 
-| 7. Smart Cache Performance | 8. Desktop App Settings |
+| 7. Storage Space Analyzer | 8. Smart Cache Performance |
 |:---:|:---:|
-| <img src="screenshots/pc-smart-cache.png" width="440" alt="Smart Cache Tuning" /> | <img src="screenshots/pc-settings.png" width="440" alt="Settings & Appearance" /> |
-| Intelligent predictive prefetching and cache budgeting | Autostart, dark/light themes, and link preferences |
+| <img src="screenshots/pc-space.png" width="440" alt="Storage Space Allocation" /> | <img src="screenshots/pc-smart-cache.png" width="440" alt="Smart Cache Tuning" /> |
+| Visual space analyzer showing local vs cloud savings | Intelligent predictive prefetching and cache budgeting |
+
+<br/>
+
+| 9. Desktop App Settings | 10. Live Bell Alerts & Requests |
+|:---:|:---:|
+| <img src="screenshots/pc-settings.png" width="440" alt="Settings & Appearance" /> | <img src="screenshots/pc-bell-alerts.png" width="440" alt="Bell notifications and remote access requests" /> |
+| Autostart, dark/light themes, and link preferences | Live popup notifications for incoming phone pairing requests |
 
 </div>
 
