@@ -28,9 +28,13 @@ Keep big games and files in the cloud, keep your SSD free, and open everything f
 
 <br/><br/>
 
-[What it does](#what) • [How it works](#how) • [Features](#features) • [CLI Terminal](#cli) • [Phone & Web](#phone) • [Screenshots](#screenshots) • [Repository Standards](#standards) • [Download](#download) • [Setup](#setup) • [Architecture](#architecture) • [Folder map](#structure) • [Docs](#docs) • [Send feedback](#feedback)
+[What it does](#what) • [⚙️ How it works (Archify System Design)](#how) • [Features](#features) • [CLI Terminal](#cli) • [Phone & Web](#phone) • [Screenshots](#screenshots) • [Repository Standards](#standards) • [Download](#download) • [Setup](#setup) • [Architecture](#architecture) • [Folder map](#structure) • [Docs](#docs) • [Send feedback](#feedback)
 
 </div>
+
+> 🌟 **NEW: Master Archify System Design Available!**  
+> Complete interactive architecture: **Side Gateways (Login & Connection)** ──► **Home Page Command Hub** ──► **All 9 Features** ──► **Live System Pipelines**.  
+> 👉 **[Click here to jump directly to the System Design Diagram & Deep-Dive Flows](#how)**
 
 ---
 
@@ -750,7 +754,7 @@ You will be greeted with live vitals, disk sizes, cache status, and an interacti
   • Process: PID 20532 (Running)
   • Storage: Y:\ 14.95 TiB  ·  Z:\ 14.95 TiB
   • Cache:   122 GiB available
-  • Phone:   vivo I2221 (PAIRED · Online)
+  • Phone:   Android Device (PAIRED · Online)
 ============================================================
 
 cloudssd > status
