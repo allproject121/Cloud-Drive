@@ -980,42 +980,100 @@ You need: .NET SDK 10, WinFsp, Inno Setup 6 (for the setup.exe), and the Android
 
 <a id="architecture"></a>
 
-## 🏗️ Architecture
+## 🏗️ Architecture (Master Archify System Design)
 
 The app is written in **.NET 10 (C#)** with a **WPF + MVVM** user interface. It stands on two proven tools — **rclone** (cloud + cache) and **WinFsp** (Windows drive) — and adds its own logic on top: managing mounts, protecting the disk, prediction, games and the phone bridge.
 
 ```mermaid
-flowchart TD
-    UI["CloudSSD.Desktop<br/>WPF app pages"]
-    CLI["CloudSSD.Cli<br/>cpx.exe"]
-    PH["Phone app / Web<br/>mobile-android, wwwroot/mobile"]
-    APP["CloudSSD.App<br/>AppHost, phone bridge, RAM relief, storage offload"]
-    MNT["CloudSSD.Mount<br/>rclone + WinFsp mount"]
-    CCH["CloudSSD.Cache<br/>cache accounting and safety"]
-    STR["CloudSSD.Streaming<br/>prediction + prefetch"]
-    GMS["CloudSSD.Games<br/>library, scan, launch"]
-    PRV["CloudSSD.Providers<br/>cloud providers"]
-    DIA["CloudSSD.Diagnostics<br/>logs, secrets, report"]
-    CORE["CloudSSD.Core<br/>settings, paths, models"]
-    RC["rclone.exe"]
-    GD["Google Drive"]
+flowchart LR
+    %% Column 1: Gateways (Login & Connection on Left Side)
+    subgraph GATEWAYS[" 1️⃣ INBOUND GATEWAYS (Side Gateways) "]
+        direction TB
+        LOGIN["🔐 Login & Auth Section<br/>• Google OAuth2 PKCE<br/>• 15GB - 15TB Multi-Account Pool<br/>• Windows DPAPI Vault"]
+        CONN["📡 Connection & Device Section<br/>• Mobile Phone Bridge (Port 8090)<br/>• 6-Digit PIN & QR Pair<br/>• Local LAN mTLS 1.3"]
+    end
 
-    UI --> APP
-    CLI --> APP
-    PH -->|"HTTP 8090 + token"| APP
-    APP --> MNT
-    APP --> CCH
-    APP --> STR
-    APP --> GMS
-    APP --> PRV
-    APP --> DIA
-    MNT --> CORE
-    CCH --> CORE
-    STR --> CORE
-    GMS --> CORE
-    DIA --> CORE
-    MNT --> RC
-    RC --> GD
+    %% Column 2: Home Page Dashboard (Central Hub)
+    subgraph HUB[" 2️⃣ COMMAND CENTER "]
+        HOME["🏠 Home Page Dashboard<br/>(Central Orchestrator & Dispatcher)<br/><b>Click to View All Features</b>"]
+    end
+
+    %% Column 3: Features Matrix (All Features Displayed from Home Page)
+    subgraph FEATURES[" 3️⃣ CORE ACTIVE FEATURES (Click Any Feature) "]
+        direction TB
+        F1["💽 Feature 1: Virtual Cloud SSD Mount<br/>• Z: Unified (5-15TB) & Y: Per-Account<br/>• Non-blocking Windows Explorer"]
+        F2["⚡ Feature 2: High-Speed LAN Share<br/>• Phone ⇄ PC Wire-speed (70 MB/s)<br/>• Zero Cloud Bandwidth Cost"]
+        F3["🧠 Feature 3: Smart Chunked Cache<br/>• 4MB Range HTTP 206 Slices<br/>• Sparse VHDX on C:\ (Zero Waste)"]
+        F4["🔄 Feature 4: 'When PC is Off' Mirror<br/>• Background Cloud Staging<br/>• Android Encrypted Vault"]
+        F5["🚀 Feature 5: Memory Relief Engine<br/>• Win32 EmptyWorkingSet API<br/>• 3-5 GB Instant RAM Drop"]
+        F6["🎮 Feature 6: Gaming HUD & Low Latency<br/>• Windows Job Object Sandbox<br/>• Markov ML Access Predictor"]
+        F7["📌 Feature 7: Pin Offline Access<br/>• 100% Local Fast-path Locking<br/>• Zero-Latency Access"]
+        F8["🎨 Feature 8: Dynamic Icon & Theme Picker<br/>• WPF Dynamic ResourceDictionary<br/>• Win32 Shell Notification Icon"]
+        F9["🔔 Feature 9: Live Bell Alerts & Auditor<br/>• Reactive EventAggregator<br/>• Windows Toast & access-log.json"]
+    end
+
+    %% Column 4: System Execution Pipelines (Where the Line Goes into the System)
+    subgraph PIPELINES[" 4️⃣ INTERNAL SUBSYSTEMS & ENGINES (HOW IT WORKS IN SYSTEM) "]
+        direction TB
+        SYS_VFS["⚙️ [WinFsp & rclone VFS Engine]<br/>• IRP_MJ_READ driver interceptor<br/>• Pooled drive letters Z:\ & Y:\<br/>• Virtual filesystem mount"]
+        SYS_NET["⚙️ [Port 8090 LAN Socket Streamer]<br/>• Pure C# ISO/IEC 18004 QR engine<br/>• Multipart async socket listener<br/>• Auto-router to local SSD / Drive Z:"]
+        SYS_CACHE["⚙️ [Sparse NTFS Block Cache Manager]<br/>• HTTP 206 Partial Range request<br/>• FSCTL_SET_SPARSE sector allocation<br/>• 10GB reserve guard & LRU eviction"]
+        SYS_OFF["⚙️ [Cloud Staging & Mobile DB Engine]<br/>• Direct Google Drive V3 REST API<br/>• Android encrypted IndexedDB vault<br/>• Auto-sync on PC power-on boot"]
+        SYS_RAM["⚙️ [Win32 Memory Relief Core Engine]<br/>• psapi.dll!EmptyWorkingSet invocation<br/>• ArrayPool byte buffer recycling<br/>• Gen2 Garbage Collection suppression"]
+        SYS_GAME["⚙️ [Job Object Sandbox & Markov ML]<br/>• Windows Job Object process isolation<br/>• Markov-chain block pattern predictor<br/>• Background asset hydration queue"]
+        SYS_PIN["⚙️ [Offline Pin Index & Lock Engine]<br/>• SQLite metadata pin flag attachment<br/>• Full chunk hydration to C:\ cache<br/>• Cache-eviction immunity lock"]
+        SYS_UI["⚙️ [WPF Theme & Shell Icon Engine]<br/>• Dynamic ResourceDictionary switcher<br/>• shell32.dll!Shell_NotifyIconW call<br/>• Real-time desktop taskbar update"]
+        SYS_BELL["⚙️ [Event Pub/Sub & Audit Ledger]<br/>• Reactive EventAggregator dispatcher<br/>• Windows Toast notification manager<br/>• Sanitized access-log.json ledger"]
+    end
+
+    %% Inbound Connections to Home Page
+    LOGIN ===>|"Auth Token Granted"| HOME
+    CONN ===>|"Mobile Bridge Paired"| HOME
+
+    %% Outbound Fan-out from Home Page to Features
+    HOME ===> F1
+    HOME ===> F2
+    HOME ===> F3
+    HOME ===> F4
+    HOME ===> F5
+    HOME ===> F6
+    HOME ===> F7
+    HOME ===> F8
+    HOME ===> F9
+
+    %% Direct Execution Lines: Feature -> System Internals (Showing How It Works)
+    F1 ===>|"Line: User-Mode FS Dispatch"| SYS_VFS
+    F2 ===>|"Line: Direct Wi-Fi TCP Stream"| SYS_NET
+    F3 ===>|"Line: Sparse Chunk Allocation"| SYS_CACHE
+    F4 ===>|"Line: Cloud Relay & Staging"| SYS_OFF
+    F5 ===>|"Line: Win32 Working Set Flush"| SYS_RAM
+    F6 ===>|"Line: Process Sandbox & Prefetch"| SYS_GAME
+    F7 ===>|"Line: Permanent Sector Lock"| SYS_PIN
+    F8 ===>|"Line: Shell Resource Switcher"| SYS_UI
+    F9 ===>|"Line: Event Pub/Sub & Audit Log"| SYS_BELL
+
+    %% Interactive Click Directives
+    click LOGIN href "#flow-login" "Jump to Login Architecture Flow"
+    click CONN href "#flow-pair" "Jump to Connection Architecture Flow"
+    click HOME href "#features" "Jump to Home Dashboard Features Overview"
+    click F1 href "#flow-mount" "Jump to Virtual SSD Mount Details"
+    click F2 href "#flow-share" "Jump to LAN File Share Details"
+    click F3 href "#flow-read" "Jump to Sparse Chunk Cache Details"
+    click F4 href "#flow-whenoff" "Jump to When PC is Off Details"
+    click F5 href "#flow-memory" "Jump to Memory Relief Engine Details"
+    click F6 href "#flow-gaming" "Jump to Gaming HUD & Sandbox Details"
+    click F7 href "#flow-pin" "Jump to Pin Offline Access Details"
+    click F8 href "#flow-icons" "Jump to Dynamic App Icon Picker Details"
+    click F9 href "#flow-notifications" "Jump to Live Bell Alerts Details"
+    click SYS_VFS href "#flow-mount" "Jump to WinFsp VFS Engine Specifications"
+    click SYS_NET href "#flow-share" "Jump to LAN Bridge Specifications"
+    click SYS_CACHE href "#flow-read" "Jump to Sparse Cache Specifications"
+    click SYS_OFF href "#flow-whenoff" "Jump to Cloud Staging Specifications"
+    click SYS_RAM href "#flow-memory" "Jump to Win32 Memory Relief Specifications"
+    click SYS_GAME href "#flow-gaming" "Jump to Gaming Sandbox Specifications"
+    click SYS_PIN href "#flow-pin" "Jump to Pin Offline Specifications"
+    click SYS_UI href "#flow-icons" "Jump to Shell Theme Specifications"
+    click SYS_BELL href "#flow-notifications" "Jump to Live Bell Alerts Specifications"
 ```
 
 | Project | Responsibility |
