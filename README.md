@@ -58,7 +58,11 @@ Cloud Drive connects your **Google Drive account** to Windows as a **real drive 
 
 ### 🗺️ Master Archify System Design Diagram
 
-> 💡 **Interactive Architecture:** Left side par **Login Section** aur **Connection Section** hain jo central **Home Page Dashboard** ko feed karte hain. Home Page par aate hi saare **9 Features** expand hote hain. Jab aap kisi bhi feature par click karte hain ya usse trigger karte hain, toh ek direct execution line jaati hai jo dikhati hai ki woh feature system ke andar (Kernel driver, Win32 API, Sparse cache, ya Local network) mein kaise work karta hai!
+> 💡 **Official Archify System Design Architecture:**  
+> This system design is built and compiled using the official GitHub **[tt-a1i/archify](https://github.com/tt-a1i/archify)** engine.  
+> 🔗 **Interactive Standalone Viewer:** [Open Full Archify Interactive HTML](Cloud-SSD/Cloud-SSD/Cloud-SSD/docs/architecture-archify.html)  
+>
+> **Architecture Flow:** Left side par **Login Section** aur **Connection Section** hain jo central **Home Page Dashboard** ko feed karte hain. Home Page par aate hi saare **9 Features** expand hote hain. Jab aap kisi bhi feature par click karte hain ya usse trigger karte hain, toh ek direct execution line jaati hai jo dikhati hai ki woh feature system ke andar (Kernel driver, Win32 API, Sparse cache, ya Local network) mein kaise work karta hai!
 >
 > *(GitHub par kisi bhi node par click karke aap seedhe uske technical deep-dive par jump kar sakte hain)*
 
