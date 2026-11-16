@@ -1,0 +1,14 @@
+﻿Work finished: 2026-11-16 16:51
+
+NEW files (1):
+  tools\backup\backup.ps1
+
+CHANGED files (3):
+  docs\CHALU_KAAM.md
+  docs\CURRENT_TASK.json
+  docs\MCODE.md
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

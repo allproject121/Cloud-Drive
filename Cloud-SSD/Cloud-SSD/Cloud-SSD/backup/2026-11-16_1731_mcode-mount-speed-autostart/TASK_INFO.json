@@ -1,0 +1,9 @@
+﻿{
+    "name":  "mcode-mount-speed-autostart",
+    "agent":  "MiniMax Code",
+    "taskId":  "TASK-MCODE-004",
+    "prompt":  "Zip/install slow ho raha hai (quota + 4Mi chunk + vfs-refresh tree walk) aur PC restart pe app auto-start nahi hota",
+    "startTime":  "2026-11-16T17:31:21.1972248+05:30",
+    "backupDir":  "2026-11-16_1731_mcode-mount-speed-autostart",
+    "fileCount":  629
+}

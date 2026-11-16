@@ -1,0 +1,20 @@
+﻿Work finished: 2026-11-16 18:03
+
+NEW files (1):
+  src\CloudSSD.Mount\DetachedProcess.cs
+
+CHANGED files (9):
+  docs\CHALU_KAAM.md
+  docs\CURRENT_TASK.json
+  docs\MCODE.md
+  installer\Install-CloudSSD.ps1
+  installer\Uninstall-CloudSSD.ps1
+  src\CloudSSD.Core\Settings.cs
+  src\CloudSSD.Mount\MountPlanning.cs
+  src\CloudSSD.Mount\MountService.cs
+  tests\CloudSSD.Tests\CoreTests.cs
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

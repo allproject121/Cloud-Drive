@@ -1,0 +1,32 @@
+﻿Work finished: 2026-11-16 16:46
+
+NEW files (3):
+  .work\README-DO-NOT-RERUN.md
+  src\CloudSSD.Core\SecretProtector.cs
+  tools\backup\backup.ps1
+
+CHANGED files (19):
+  docs\archive\SETUP.md
+  docs\CHALU_KAAM.md
+  docs\CURRENT_TASK.json
+  docs\DEV_TESTING.md
+  docs\FEATURE_PLANS.md
+  docs\MCODE.md
+  docs\PROJECT_POLICIES.md
+  installer\build-release.ps1
+  README.md
+  RULE.md
+  src\CloudSSD.Core\CloudSSD.Core.csproj
+  src\CloudSSD.Core\Settings.cs
+  src\CloudSSD.Desktop\ViewModels\ConfigViewModels.cs
+  src\CloudSSD.Diagnostics\Logging.cs
+  src\CloudSSD.Mount\MountPlanning.cs
+  src\CloudSSD.Mount\MountService.cs
+  src\CloudSSD.Mount\RcloneConfigService.cs
+  tests\CloudSSD.Tests\CoreTests.cs
+  tools\live-test\pc-close.ps1
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

@@ -1,0 +1,9 @@
+﻿Work: mcode-chunk-size-revert-4mib
+Agent: MiniMax Code
+TaskId: TASK-MCODE-006
+Source as it was before the work started: 630 files, 12.9 MB.
+Taken: 2026-11-16 19:05
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-16_1905_mcode-chunk-size-revert-4mib"
+and write complete\README.md.

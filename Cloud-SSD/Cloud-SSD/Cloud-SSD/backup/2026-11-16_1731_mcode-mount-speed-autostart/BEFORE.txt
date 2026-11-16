@@ -1,0 +1,9 @@
+﻿Work: mcode-mount-speed-autostart
+Agent: MiniMax Code
+TaskId: TASK-MCODE-004
+Source as it was before the work started: 629 files, 12.8 MB.
+Taken: 2026-11-16 17:31
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-16_1731_mcode-mount-speed-autostart"
+and write complete\README.md.

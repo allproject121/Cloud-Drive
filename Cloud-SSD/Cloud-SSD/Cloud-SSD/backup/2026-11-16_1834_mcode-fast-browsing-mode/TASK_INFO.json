@@ -1,0 +1,9 @@
+﻿{
+    "name":  "mcode-fast-browsing-mode",
+    "agent":  "MiniMax Code",
+    "taskId":  "TASK-MCODE-005",
+    "prompt":  "Zip open nahi hota: vfs-cache-mode full me har file poora download hota hai (460 MB zip = 460 MB). Fast browsing toggle (writes mode) add karo.",
+    "startTime":  "2026-11-16T18:34:39.0678800+05:30",
+    "backupDir":  "2026-11-16_1834_mcode-fast-browsing-mode",
+    "fileCount":  630
+}

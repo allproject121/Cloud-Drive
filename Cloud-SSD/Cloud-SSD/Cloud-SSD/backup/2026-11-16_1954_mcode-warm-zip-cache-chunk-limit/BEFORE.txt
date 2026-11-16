@@ -1,0 +1,9 @@
+﻿Work: mcode-warm-zip-cache-chunk-limit
+Agent: MiniMax Code
+TaskId: TASK-MCODE-009
+Source as it was before the work started: 630 files, 12.9 MB.
+Taken: 2026-11-16 19:55
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-16_1954_mcode-warm-zip-cache-chunk-limit"
+and write complete\README.md.

@@ -1,0 +1,9 @@
+﻿{
+    "name":  "mcode-backup-lock-ps51",
+    "agent":  "MiniMax Code",
+    "taskId":  "TASK-MCODE-003",
+    "prompt":  "Fix backup.ps1 task-lock handling on Windows PowerShell 5.1 (ConvertFrom-Json -AsHashtable not supported)",
+    "startTime":  "2026-11-16T16:49:07.4423867+05:30",
+    "backupDir":  "2026-11-16_1648_mcode-backup-lock-ps51",
+    "fileCount":  629
+}

@@ -1,0 +1,9 @@
+﻿{
+    "name":  "mcode-health-audit-readme-links",
+    "agent":  "MiniMax Code",
+    "taskId":  "TASK-MCODE-001",
+    "prompt":  "Read-only health audit: build/test run, runtime log analysis, broken README links; create docs/MCODE.md work log",
+    "startTime":  "2026-11-16T15:18:58.8698992+05:30",
+    "backupDir":  "2026-11-16_1518_mcode-health-audit-readme-links",
+    "fileCount":  627
+}

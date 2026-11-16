@@ -1,0 +1,9 @@
+﻿Work: mcode-backup-lock-ps51
+Agent: MiniMax Code
+TaskId: TASK-MCODE-003
+Source as it was before the work started: 629 files, 12.8 MB.
+Taken: 2026-11-16 16:49
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-16_1648_mcode-backup-lock-ps51"
+and write complete\README.md.
