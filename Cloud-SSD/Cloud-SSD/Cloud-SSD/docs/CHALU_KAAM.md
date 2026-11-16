@@ -1,4 +1,4 @@
-# CHALU KAAM: jo kaam abhi chal raha hai (Claude aur Codex dono ke liye)
+﻿# CHALU KAAM: jo kaam abhi chal raha hai (Claude aur Codex dono ke liye)
 
 Yeh file isliye hai ki kaam beech mein ruk jaye (token / usage limit khatam, session band, PC band) to jo bhi
 agla session aaye, Claude ho ya Codex, wahin se kaam uthaye. Kuch dobara na ho, kuch toote nahi.
@@ -454,3 +454,18 @@ B ne `p3-pc.js`). B ne 3.1 aur 3.2 kiya; 3.3 se aage A ne. Ek hi file do log na 
 - **Release:** `dist\Cloud-SSD-0.9.0-win-x64.zip` (95.3 MB, SHA256 `05741b5931b4b826d0f0343cd2abd7b2e7bbdd92794a2124561d148e764d6919`), install ho chuka hai.
 - **Push nahi hua** (user ne nahi kaha).
 
+- **TASK-MCODE-010 — README "How it works" + naya `docs/HOW-IT-WORKS.md` (sirf wahi jo code me hai):**
+  - **Naya file:** `docs/HOW-IT-WORKS.md` (915 lines) — **12 flows**, har ek ke saath exact `file:line` anchor, real
+    HTTP route / rclone command, measured numbers, aur honest line ("kya nahi hota").
+    Flows: login · doosra login · drive letters + rclone command · chunked read + cache · QR code ·
+    phone?file transfer · phone↔laptop · "PC off" mirror · gaming prepare/launch · game stream (video) ·
+    memory/space/offloader · security + storage.
+  - **README (root + codebase):** fictional "How it works" (Archify diagram + 12 fake Deep Dive flows, ~435 lines)
+    hata ke **12 honest flows ka condensed version** + `docs/HOW-IT-WORKS.md` link. "Architecture" ka fake mermaid
+    (PKCE / mTLS 1.3 / 5-15TB Pool / Sparse VHDX / 3-5 GB RAM Drop / Markov ML) → **asli architecture map**.
+  - **Theek kiye gaye claims:** PKCE nahi (rclone ka flow) · TLS nahi (plain HTTP) · "3-5 GB" target nahi
+    (har run measure) · `K32EmptyWorkingSet` (psapi nahi) · Markov chain "ML" nahi · VHDX nahi ·
+    IndexedDB vault nahi ("Keep offline" copies) · download badge 69 ? **94 MB** (checksum verify kiya).
+  - **Proof:** `backup.ps1 validate` → build 0 warning / 0 error, unit **473/473**, **APPROVED**;
+    backup `2026-11-16_2036_mcode-how-it-works-readme` (new 1, changed 1).
+  - **Push nahi hua** (user ne is task ke liye push nahi kaha).

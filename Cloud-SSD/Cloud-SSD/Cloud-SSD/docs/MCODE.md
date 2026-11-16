@@ -1,4 +1,4 @@
-# MCODE.md — MiniMax Code Work Log & Action Registry
+﻿# MCODE.md — MiniMax Code Work Log & Action Registry
 
 > **Purpose:** MiniMax Code (MCode) agent dwara Cloud-SSD project mein kiye gaye sabhi kaam (audit, bug fixes, code edits, maintenance) ka central work history log.
 > **App Name:** Cloud-SSD (Virtual Drive: Cloud Drive)
@@ -501,4 +501,78 @@ Device test 14 sections — sab PASS. Zip open ab **46 ms** (NOVA AI) / 1504 ms 
 
 - **Push nahi hua** (user ne nahi kaha).
 
+## TASK-MCODE-010 - README + docs/HOW-IT-WORKS.md (how it works, real code ke mutabiq)
 
+**Task:** `mcode-how-it-works-readme` · **Backup:** `2026-11-16_2036_mcode-how-it-works-readme` (new 1, changed 1, removed 0 · Validation **APPROVED**)
+
+#### Kya tha request
+
+Antigravity ne 8-9 ghante pehle README me "How it works" likha tha, wo **fictional** tha (marketing style).
+User ne kaha: "mene usko ... pura gand mar diya tha" aur 5 asli examples diye:
+
+1. App khola, email login kiya → pura system kaise chalega
+2. 2 login kiya → kaise hoga
+3. Phone se connect karke file transfer kiya → kaise kaam karega
+4. Phone ↔ laptop
+5. QR code kaise aata hai
+
+#### Kya kiya
+
+**Naya file:** `docs/HOW-IT-WORKS.md` (49,999 bytes, 915 lines, UTF-8 BOM + CRLF) — **12 flows**, har ek ke saath:
+
+- exact `file:line` anchor (`src/CloudSSD.Mount/RcloneConfigService.cs:314` aisa)
+- real HTTP route (`POST /api/fs/write`, `POST /api/pair?pair=…`) ya real rclone command
+- measured numbers jahan number maani ka claim hai
+- aur ek honest line — kya *nahi* hota
+
+Flows: 1 login · 2 doosra login · 3 drive letters + rclone command · 4 chunked read + cache ·
+5 QR code · 6 phone?file transfer · 7 phone↔laptop · 8 "PC off" mirror · 9 gaming prepare/launch ·
+10 game stream (video) · 11 memory/space/offloader · 12 security + storage.
+
+**README (root + codebase, dono):**
+
+- Purana "How it works" section (Archify diagram + 12 fictional Deep Dive flows, ~435 lines) **hata diya**;
+  uski jagah **12 honest flows ka condensed version** + link to `docs/HOW-IT-WORKS.md`.
+- "Architecture" section ka **fake mermaid** (PKCE, mTLS 1.3, "5-15TB Pool", "Sparse VHDX", "3-5 GB RAM Drop",
+  "Markov ML", `psapi.dll!EmptyWorkingSet`, `FSCTL_SET_SPARSE`, `IRP_MJ_READ`) → **asli architecture map**
+  (`rclone` + `WinFsp` + app ke projects, koi kernel-driver claim nahi).
+- Phone-connect mermaid ab QR + 6-digit dono dikhata hai, aur dono ke rules (one-time / 10 min / LAN-only).
+- Security bullets: "stored encrypted (Windows DPAPI)" → **rclone ki config encryption + DPAPI-protected password**;
+  "listens on the local Wi-Fi only" → **all interfaces par bind, par home-network/Tailscale ke alawa refuse**;
+  naye bullets — PC sirf **token ka SHA-256 hash** rakhta hai, aur bridge **plain HTTP** hai (TLS nahi).
+- Features table: Smart Cache (rclone ke sparse cache files), PC Memory (kitna free hua measure hota hai),
+  Mobile Hub (6-digit + one-time QR).
+- Screenshot caption "100% Offline Save Vault / Secure IndexedDB offline storage" → **"Keep offline" copies
+  phone ke app storage me** (code me `OfflinePins.java` — IndexedDB nahi).
+- Download badge **69 MB → 94 MB** (asli zip 99,067,034 B = 94.5 MiB; checksum verify kiya —
+  `b0c4b10e…` record ke saath match karta hai). APK badge 1.2 ? **1.4 MB** (1,480,213 B).
+- Docs table me `docs/HOW-IT-WORKS.md` pehli row.
+
+#### Fake claims jo theek kiye (code se verify karke)
+
+| Purana claim | Reality | Proof |
+|---|---|---|
+| "Google OAuth2 PKCE" + app ka loopback listener | **PKCE nahi.** rclone ka apna browser flow; app sirf rclone ka rc driver | `src/` me `pkce`/`authorize` = 0 hits |
+| "Local LAN mTLS 1.3" | **Koi TLS nahi** — plain `TcpListener` + hand-written HTTP/1.1 | `SslStream`/`Tls12`/`Tls13` = 0 hits in `src/` |
+| "3-5 GB Instant RAM Drop" | Koi byte target nahi; freed amount har run me **measure** hota hai | `MemoryRelief.cs:91-95` |
+| "psapi.dll!EmptyWorkingSet" | `kernel32.dll!` **`K32EmptyWorkingSet`** | `MemoryHealth.cs:392-393` |
+| "Markov ML Access Predictor" | First-order Markov chain, "Deterministic and fully explainable" | `Predictions.cs:26-31` |
+| "Sparse VHDX on C:" | Koi VHDX nahi — rclone ke sparse `vfs/` files | `vhdx` = 0 hits in `src/` |
+| "IndexedDB Offline Vault" | Phone ke app storage me "Keep offline" copies | `OfflinePins.java` |
+| "15GB-15TB Multi-Account Pool" | Real quota = accounts ka **actual** sum (rclone `about`) | `MountPlanning.cs:107-108` |
+| "Gen2 GC suppression / ArrayPool recycling" | Memory engine me koi GC-suppression nahi | 0 hits |
+
+#### Verify
+
+- `backup.ps1 validate` → build **0 warning / 0 error**, unit tests **473/473 PASS**, result **APPROVED**.
+- Encoding: dono README UTF-8 (no BOM) + pure CRLF, 0 replacement chars; `HOW-IT-WORKS.md` UTF-8 BOM + CRLF
+  (repo docs convention). Ek baar `Get-Content` (ANSI) se encoding corrupt hua tha — `git checkout` se restore
+  karke ASCII-only patch scripts se dobara apply kiya.
+- `docs/HOW-IT-WORKS.md` ke **saare code anchors** agents ke evidence se aaye the; maine 8 anchor spot-check kiye
+  (`RcloneConfigService.cs:314/508/541`, `MemoryHealth.cs:392`, `LocalMobileBridgeService.cs:703-730`,
+  `DiskSafety.cs:26-45`, `AccessControl.cs:8-11`, `GameLauncher.cs:115-135`, `MountService.cs:541`,
+  `Settings.cs:62-70/186-220`) — sab match.
+- Ek explore agent (file-transfer wala) **lost** ho gaya, uska kaam maine khud code padh kar kiya
+  (`LocalMobileBridgeService.Files.cs`, `.Upload.cs`, `.Share.cs`, `.Peer.cs`, `Remote/*`).
+
+**Push nahi hua** (user ne is task ke liye push nahi kaha).

@@ -19,22 +19,21 @@ Keep big games and files in the cloud, keep your SSD free, and open everything f
 <br/>
 
 <a href="https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-0.9.0-win-x64.zip">
-<img src="https://img.shields.io/badge/Download%20for%20Windows-.exe%20%C2%B7%2069%20MB-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows (.exe)" height="44" />
+<img src="https://img.shields.io/badge/Download%20for%20Windows-.exe%20%C2%B7%2094%20MB-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows (.exe)" height="44" />
 </a>
 &nbsp;&nbsp;
 <a href="https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-Mobile-0.12.0.apk">
-<img src="https://img.shields.io/badge/Download%20for%20Android-.apk%20%C2%B7%201.2%20MB-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download for Android (.apk)" height="44" />
+<img src="https://img.shields.io/badge/Download%20for%20Android-.apk%20%C2%B7%201.4%20MB-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download for Android (.apk)" height="44" />
 </a>
 
 <br/><br/>
 
-[What it does](#what) • [⚙️ How it works (Archify System Design)](#how) • [Features](#features) • [CLI Terminal](#cli) • [Phone & Web](#phone) • [Screenshots](#screenshots) • [Repository Standards](#standards) • [Download](#download) • [Setup](#setup) • [Architecture](#architecture) • [Folder map](#structure) • [Docs](#docs) • [Send feedback](#feedback)
+[What it does](#what) • [⚙️ How it works](#how) • [Features](#features) • [CLI Terminal](#cli) • [Phone & Web](#phone) • [Screenshots](#screenshots) • [Repository Standards](#standards) • [Download](#download) • [Setup](#setup) • [Architecture](#architecture) • [Folder map](#structure) • [Docs](#docs) • [Send feedback](#feedback)
 
 </div>
 
-> 🌟 **NEW: Master Archify System Design Available!**  
-> Complete interactive architecture: **Side Gateways (Login & Connection)** ──► **Home Page Command Hub** ──► **All 9 Features** ──► **Live System Pipelines**.  
-> 👉 **[Click here to jump directly to the System Design Diagram & Deep-Dive Flows](#how)**
+> 📖 **How it works — real code, real numbers:** every flow is documented with its exact `file:line` anchor, the real HTTP route or rclone command, and measured timings in **[`docs/HOW-IT-WORKS.md`](./docs/HOW-IT-WORKS.md)**.  
+> 👉 **[Jump to the step-by-step flows](#how)**
 
 ---
 
@@ -58,599 +57,233 @@ Cloud Drive connects your **Google Drive account** to Windows as a **real drive 
 
 <a id="how"></a>
 
-## ⚙️ How it works (Archify Master System Design)
+## ⚙️ How it works
 
-<div align="center">
+Yeh section **sirf wahi batata hai jo code me hai**. Har claim ke saath exact `file:line` anchor hai, asli HTTP route ya rclone command hai, aur measured number hai jahan number maani ka claim hai.
 
-### 🗺️ Master Archify System Design Architecture
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../../../screenshots/archify-system-design-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="../../../screenshots/archify-system-design-light.png">
-  <img alt="Cloud Drive — Archify Master System Design" src="../../../screenshots/archify-system-design-dark.png" width="100%">
-</picture>
-
-<br/>
-
-*Official Archify System Design Architecture (Compiled with [tt-a1i/archify](https://github.com/tt-a1i/archify))*  
-**Architecture Flow:** Left side par **Login Section** aur **Connection Section** hain jo central **Home Dashboard** ko feed karte hain. Home Dashboard se saare **9 Core Features** expand hote hain. Har ek feature se direct execution line nikalti hai jo dikhati hai ki woh feature system ke internal engines (Kernel driver, Win32 API, Sparse cache, ya Local network) mein kaise work karta hai.
-
-<br/>
-
-[![Open SVG Vector](https://img.shields.io/badge/VECTOR%20DIAGRAM-Open%20High--Res%20SVG-0078D6?style=for-the-badge&logo=svg&logoColor=white)](../../../screenshots/archify-system-design.svg)
-&nbsp;&nbsp;
-[![Dark Theme](https://img.shields.io/badge/IMAGE-Dark%20Theme%20PNG-1E293B?style=for-the-badge&logo=affinitydesigner&logoColor=white)](../../../screenshots/archify-system-design-dark.png)
-&nbsp;&nbsp;
-[![Light Theme](https://img.shields.io/badge/IMAGE-Light%20Theme%20PNG-F8FAFC?style=for-the-badge&logoColor=black)](../../../screenshots/archify-system-design-light.png)
-&nbsp;&nbsp;
-[![Live Interactive App](https://img.shields.io/badge/INTERACTIVE%20APP-Open%20Live%20Viewer-10B981?style=for-the-badge&logo=html5&logoColor=white)](https://htmlpreview.github.io/?https://github.com/allproject121/Cloud-Drive/blob/main/archify-system-design.html)
-
-</div>
-
----
-
-### 🗺️ Live Workflow Topology Diagram
+Poora detailed walkthrough — 12 flows, code anchors, real commands, examples — alag file me hai: **[`docs/HOW-IT-WORKS.md`](./docs/HOW-IT-WORKS.md)**.
 
 ```mermaid
 flowchart LR
-    %% Column 1: Gateways (Login & Connection on Left Side)
-    subgraph GATEWAYS[" 1️⃣ INBOUND GATEWAYS (Side Gateways) "]
+    subgraph PC["PC app (Windows, .NET 10 + WPF)"]
         direction TB
-        LOGIN["🔐 Login & Auth Section<br/>• Google OAuth2 PKCE<br/>• 15GB - 15TB Multi-Account Pool<br/>• Windows DPAPI Vault"]
-        CONN["📡 Connection & Device Section<br/>• Mobile Phone Bridge (Port 8090)<br/>• 6-Digit PIN & QR Pair<br/>• Local LAN mTLS 1.3"]
+        UI["CloudSSD.Desktop<br/>WPF pages + MVVM"]
+        HOST["CloudSSD.App / AppHost<br/>orchestrator"]
+        MOUNT["CloudSSD.Mount<br/>rclone rc + WinFsp mount"]
+        CACHE["CloudSSD.Cache<br/>budget, disk pressure, inspection"]
+        BRIDGE["CloudSSD.App<br/>Mobile bridge (plain HTTP :8090)"]
+        GAMES["CloudSSD.Games + .Streaming<br/>prepare, prefetch, launch"]
+    end
+    subgraph CLOUD["Google Drive"]
+        R1["gdrive: (account 1)"]
+        R2["gdrive2: (account 2)"]
+        UNION["CloudSSD: (union)<br/>Z: All Accounts"]
+        COMB["Accounts: (combine)<br/>Y: Each Account"]
+    end
+    subgraph PHONE["Phone / Web"]
+        APP["Android app + PWA<br/>system camera reads the QR"]
     end
 
-    %% Column 2: Home Page Dashboard (Central Hub)
-    subgraph HUB[" 2️⃣ COMMAND CENTER "]
-        HOME["🏠 Home Page Dashboard<br/>(Central Orchestrator & Dispatcher)<br/><b>Click to View All Features</b>"]
-    end
-
-    %% Column 3: Features Matrix (All Features Displayed from Home Page)
-    subgraph FEATURES[" 3️⃣ CORE ACTIVE FEATURES (Click Any Feature) "]
-        direction TB
-        F1["💽 Feature 1: Virtual Cloud SSD Mount<br/>• Z: Unified (5-15TB) & Y: Per-Account<br/>• Non-blocking Windows Explorer"]
-        F2["⚡ Feature 2: High-Speed LAN Share<br/>• Phone ⇄ PC Wire-speed (70 MB/s)<br/>• Zero Cloud Bandwidth Cost"]
-        F3["🧠 Feature 3: Smart Chunked Cache<br/>• 4MB Range HTTP 206 Slices<br/>• Sparse VHDX on C:\ (Zero Waste)"]
-        F4["🔄 Feature 4: 'When PC is Off' Mirror<br/>• Background Cloud Staging<br/>• Android Encrypted Vault"]
-        F5["🚀 Feature 5: Memory Relief Engine<br/>• Win32 EmptyWorkingSet API<br/>• 3-5 GB Instant RAM Drop"]
-        F6["🎮 Feature 6: Gaming HUD & Low Latency<br/>• Windows Job Object Sandbox<br/>• Markov ML Access Predictor"]
-        F7["📌 Feature 7: Pin Offline Access<br/>• 100% Local Fast-path Locking<br/>• Zero-Latency Access"]
-        F8["🎨 Feature 8: Dynamic Icon & Theme Picker<br/>• WPF Dynamic ResourceDictionary<br/>• Win32 Shell Notification Icon"]
-        F9["🔔 Feature 9: Live Bell Alerts & Auditor<br/>• Reactive EventAggregator<br/>• Windows Toast & access-log.json"]
-    end
-
-    %% Column 4: System Execution Pipelines (Where the Line Goes into the System)
-    subgraph PIPELINES[" 4️⃣ INTERNAL SUBSYSTEMS & ENGINES (HOW IT WORKS IN SYSTEM) "]
-        direction TB
-        SYS_VFS["⚙️ [WinFsp & rclone VFS Engine]<br/>• IRP_MJ_READ driver interceptor<br/>• Pooled drive letters Z:\ & Y:\<br/>• Virtual filesystem mount"]
-        SYS_NET["⚙️ [Port 8090 LAN Socket Streamer]<br/>• Pure C# ISO/IEC 18004 QR engine<br/>• Multipart async socket listener<br/>• Auto-router to local SSD / Drive Z:"]
-        SYS_CACHE["⚙️ [Sparse NTFS Block Cache Manager]<br/>• HTTP 206 Partial Range request<br/>• FSCTL_SET_SPARSE sector allocation<br/>• 10GB reserve guard & LRU eviction"]
-        SYS_OFF["⚙️ [Cloud Staging & Mobile DB Engine]<br/>• Direct Google Drive V3 REST API<br/>• Android encrypted IndexedDB vault<br/>• Auto-sync on PC power-on boot"]
-        SYS_RAM["⚙️ [Win32 Memory Relief Core Engine]<br/>• psapi.dll!EmptyWorkingSet invocation<br/>• ArrayPool byte buffer recycling<br/>• Gen2 Garbage Collection suppression"]
-        SYS_GAME["⚙️ [Job Object Sandbox & Markov ML]<br/>• Windows Job Object process isolation<br/>• Markov-chain block pattern predictor<br/>• Background asset hydration queue"]
-        SYS_PIN["⚙️ [Offline Pin Index & Lock Engine]<br/>• SQLite metadata pin flag attachment<br/>• Full chunk hydration to C:\ cache<br/>• Cache-eviction immunity lock"]
-        SYS_UI["⚙️ [WPF Theme & Shell Icon Engine]<br/>• Dynamic ResourceDictionary switcher<br/>• shell32.dll!Shell_NotifyIconW call<br/>• Real-time desktop taskbar update"]
-        SYS_BELL["⚙️ [Event Pub/Sub & Audit Ledger]<br/>• Reactive EventAggregator dispatcher<br/>• Windows Toast notification manager<br/>• Sanitized access-log.json ledger"]
-    end
-
-    %% Inbound Connections to Home Page
-    LOGIN ===>|"Auth Token Granted"| HOME
-    CONN ===>|"Mobile Bridge Paired"| HOME
-
-    %% Outbound Fan-out from Home Page to Features
-    HOME ===> F1
-    HOME ===> F2
-    HOME ===> F3
-    HOME ===> F4
-    HOME ===> F5
-    HOME ===> F6
-    HOME ===> F7
-    HOME ===> F8
-    HOME ===> F9
-
-    %% Direct Execution Lines: Feature -> System Internals (Showing How It Works)
-    F1 ===>|"Line: User-Mode FS Dispatch"| SYS_VFS
-    F2 ===>|"Line: Direct Wi-Fi TCP Stream"| SYS_NET
-    F3 ===>|"Line: Sparse Chunk Allocation"| SYS_CACHE
-    F4 ===>|"Line: Cloud Relay & Staging"| SYS_OFF
-    F5 ===>|"Line: Win32 Working Set Flush"| SYS_RAM
-    F6 ===>|"Line: Process Sandbox & Prefetch"| SYS_GAME
-    F7 ===>|"Line: Permanent Sector Lock"| SYS_PIN
-    F8 ===>|"Line: Shell Resource Switcher"| SYS_UI
-    F9 ===>|"Line: Event Pub/Sub & Audit Log"| SYS_BELL
+    UI --> HOST
+    HOST -->|"config/create via rclone rc<br/>rclone runs Google's browser OAuth"| R1
+    HOST --> R2
+    R1 --> UNION
+    R2 --> UNION
+    R1 --> COMB
+    R2 --> COMB
+    HOST --> MOUNT
+    MOUNT --> UNION
+    MOUNT --> COMB
+    MOUNT --> CACHE
+    HOST --> BRIDGE
+    BRIDGE --> APP
+    HOST --> GAMES
+    GAMES --> MOUNT
 ```
 
-```
-┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                ARCHIFY SYSTEM DESIGN & VISUAL WORKFLOW MAP                                       │
-├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                                                  │
-│  [🔐 LOGIN SECTION]  ──┐                                                                                         │
-│  • Google OAuth2 PKCE  │                                                                                         │
-│  • 15GB-15TB Pooling   │                                                                                         │
-│  • Windows DPAPI Vault │                                                                                         │
-│                        ├──► ┌───────────────────────────────────────────────────────┐                            │
-│                             │             🏠 HOME PAGE DASHBOARD                    │                            │
-│  [📡 CONNECT SECTION] ──┤   │             (Central Command Hub)                     │                            │
-│  • Mobile Port 8090    │    └──────────────────────────┬────────────────────────────┘                            │
-│  • 6-Digit PIN Pairing │                               │                                                         │
-│  • Local LAN Bridge    │                               │ (Home Page par aane par saare features dikhte hain)     │
-│                        └──                             ▼                                                         │
-│     ┌────────────────────────────────────────────────────────────────────────────────────────┐                   │
-│     │                                  ALL ACTIVE FEATURES                                   │                   │
-│     ├──────────────────────────┬─────────────────────────────┬───────────────────────────────┤                   │
-│     │ 💽 1. Virtual SSD Mount │ ⚡ 2. LAN File Share        │ 🧠 3. Smart Chunk Cache       │                   │
-│     │ 🔄 4. PC is Off Mirror   │ 🚀 5. Memory Relief Engine  │ 🎮 6. Gaming HUD & Sandbox    │                   │
-│     │ 📌 7. Pin Offline Access │ 🎨 8. Dynamic Icon Picker   │ 🔔 9. Bell Alerts & Auditor   │                   │
-│     └─────────────┬────────────┴──────────────┬──────────────┴───────────────┬───────────────┘                   │
-│                   │                           │                              │                                   │
-│                   │ (Line jaati hai)          │ (Line jaati hai)             │ (Line jaati hai)                  │
-│                   ▼                           ▼                              ▼                                   │
-│     ┌──────────────────────────┬─────────────────────────────┬───────────────────────────────┐                   │
-│     │ ⚙️ WinFsp / rclone VFS   │ ⚙️ Port 8090 TCP Streamer   │ ⚙️ FSCTL_SET_SPARSE Cache     │                   │
-│     │ IRP_MJ_READ ──► Z:\ Y:\  │ Multipart Socket ──► SSD    │ 4MB HTTP 206 ──► C:\ SSD      │                   │
-│     └──────────────────────────┴─────────────────────────────┴───────────────────────────────┘                   │
-│                                                                                                                  │
-└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-```
+### Flow 1 — App khola, ek email login kiya
+
+**Ek line me:** Cloud-SSD khud OAuth nahi karta. Wo ek private `rclone rcd` daemon loopback par chalata hai, uske rc API se Google Drive remote banata hai, aur **rclone** browser me Google ka official consent page kholta hai. App ko password kabhi nahi milta.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                       MASTER SYSTEM DESIGN & WORKFLOW MATRIX                                     │
-├─────────────────────────┬──────────────────────────────┬─────────────────────────────────────────────────────────┤
-│ Operational Domain      │ Core Internal Engine         │ Key Protocol / Technologies                             │
-├─────────────────────────┼──────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ 1. Account Auth (Login) │ CloudSSD.Mount.GoogleAuth    │ OAuth 2.0 PKCE, Loopback Listener, Windows DPAPI         │
-│ 2. Device Pairing (Conn)│ CloudSSD.App.MobileBridge    │ Port 8090/8091 HTTP/WebSocket, 6-Digit PIN, Zero-Config  │
-│ 3. VFS Mount & Pooling  │ WinFsp + rclone VFS          │ User-Mode Filesystem, Multi-Account Merger, Drive Z:/Y: │
-│ 4. LAN File Sharing     │ Transfers & NotificationCtr  │ Multipart Streaming, Auto-Storage Router, Bell Alerts   │
-│ 5. Streaming & Cache    │ CloudSSD.Cache               │ HTTP 206 Range Slicing, Sparse NTFS Files, LRU Eviction │
-│ 6. When PC is Off       │ WhenOffStore + Offline Vault │ Cloud Mirror Markers, IndexedDB, Direct Mobile OAuth    │
-│ 7. Memory Relief        │ MemoryRelief + Telemetry     │ Win32 EmptyWorkingSet API, 10s Low-RAM Auto-Relief      │
-│ 8. Prediction & Gaming  │ CloudSSD.Streaming & Games   │ Markov Model, Startup Sequence Learning, Job Sandbox    │
-│ 9. Pin Offline Access   │ CloudSSD.Cache.PinStore      │ SQLite Pin Ledger, Full Chunk Hydration, 0ms Local Read │
-│ 10. Dynamic Icon/Theme  │ WPF Dynamic Resources        │ Win32 Shell_NotifyIconW, Runtime XAML MergedDictionaries│
-│ 11. Live Bell Alerts    │ EventAggregator & Toast      │ Pub/Sub Event System, Windows Toast, access-log.json    │
-│ 12. Security & Privacy  │ SecretStore & Redactor       │ Hardware-bound CryptProtectData, Zero Plaintext Keys    │
-└─────────────────────────┴──────────────────────────────┴─────────────────────────────────────────────────────────┘
+[Connect Cloud Account]  →  [rclone rcd --rc-addr 127.0.0.1:<random>]
+   src/CloudSSD.Desktop/ViewModels/CloudDrivesViewModel.cs:128-135
+   src/CloudSSD.Mount/RcloneConfigService.cs:314, 541-548
+        ↓
+[HTTP POST config/create {name:"gdrive", type:"drive", parameters:{scope:"drive"}}]
+   src/CloudSSD.Mount/RcloneConfigService.cs:332-338
+        ↓
+[AnswerQuestionsAsync → "config_is_local" = "true"]   ← rclone ko bolo: "tum browser flow khud karo"
+   src/CloudSSD.Mount/RcloneConfigService.cs:508-537
+        ↓
+[rclone browser kholta hai → Google consent → rclone ka apna redirect listener token leta hai]
+        ↓
+[operations/about → quota verify]   src/CloudSSD.Mount/RcloneConfigService.cs:347-350
 ```
+
+- **Remote ka naam email nahi hota** — plain counter: `gdrive`, `gdrive2`, `gdrive3` (`src/CloudSSD.Desktop/Views/ConnectDriveWindow.xaml.cs:34-39`).
+- **Token kahan gaya** — `%LOCALAPPDATA%\Cloud-SSD\rclone.conf` me, rclone ke apne encryption ke andar. App sirf `RCLONE_CONFIG` env var set karta hai.
+- **Email kaise mila** — sign-in ke baad app rclone ke config se access token uthata hai aur Google se khud puchta hai (`RcloneConfigService.cs:458-470`), phir `settings.json` me cache karta hai.
+- **Aadha account nahi chhoda jaata** — cancel/timeout par remote delete (`RcloneConfigService.cs:352-359`).
+- **PKCE nahi hai, `rclone config authorize` nahi hai** — poora OAuth flow rclone ka apna hai; app sirf uska driver hai.
+
+### Flow 2 — Doosra email login kiya
+
+Naya remote banta hai → dono generated drives dobara likhi jaati hain → **Z: aur Y: dono disconnect hokar wapas mount hote hain**, kyunki running mount ko nayi account list nahi milti (`src/CloudSSD.App/AppHost.cs:366-382`).
+
+Jo config likhi jaati hai:
+
+```
+[CloudSSD]                     ← Z: All Accounts
+type = union
+upstreams = gdrive: gdrive2:
+action_policy = epmfs          # edit/delete usi account me jata hai jahan file hai
+create_policy = mfs            # nayi file sabse khali account me
+search_policy = ff             # read me pehla mila wala
+
+[Accounts]                     ← Y: Each Account
+type = combine
+upstreams = user@gmail.com=gdrive: other@gmail.com=gdrive2:
+```
+
+- **Same Gmail dobara?** Naya remote delete ho jaata hai aur warning aata hai — asli doosra account add karne ke liye Google page par **"Use another account"** dabana padta hai (`src/CloudSSD.App/AppHost.cs:311-319`).
+- **Koi file move nahi hoti.** File wahi rehti hai jis account me thi. Sirf nayi writes sabse khali account me jaati hain.
+- **Ek account ho to** `CloudSSD` ek **alias** ban jata hai, union nahi — rclone ek-ka-upstream union accept nahi karta (`src/CloudSSD.App/AppHost.cs:388-396`).
+
+### Flow 3 — Drive letters aur asli rclone command
+
+| Mount id | Naam | Remote | Letter | Backend |
+|---|---|---|---|---|
+| `cloudssd` | All Accounts | `CloudSSD:` | **Z:** | union (ek account par alias) |
+| `accounts` | Each Account | `Accounts:` | **Y:** | combine |
+
+**Z/Y preference hai, guarantee nahi** — agar letter busy hai to auto-allocate hota hai, preference order `GXYZWV…` (`src/CloudSSD.Mount/MountPlanning.cs:24-34`).
+
+Poora command `src/CloudSSD.Mount/MountPlanning.cs:58-185` se banta hai. Sabse important flags:
+
+```
+rclone mount CloudSSD: Z:
+  --vfs-cache-mode full          --vfs-read-chunk-size 4Mi
+  --vfs-read-chunk-size-limit 4Mi   --vfs-cache-max-size 20Gi
+  --vfs-cache-min-free-space 8Gi     --vfs-cache-max-age 720h
+  --buffer-size 0               --vfs-read-ahead 0
+  --dir-cache-time 72h          --attr-timeout 24h
+  --vfs-write-back 5s           --vfs-refresh
+  --links                       --no-checksum
+  --file-perms 0777 --dir-perms 0777
+  --tpslimit 10                 --rc --rc-addr 127.0.0.1:<port>
+```
+
+- **`--vfs-disk-space-total-size` jaan-boojh kar nahi diya** — ek fixed "15T" se har drive Explorer me 15 TB dikhata tha. Bina iske rclone asli quota batata hai (`MountPlanning.cs:107-108`).
+- **`--buffer-size 0` aur `--vfs-read-ahead 0`** — speculative download se game ka cold launch ~3× slow ho jaata tha (`src/CloudSSD.Core/Settings.cs:85-90`).
+- **Secrets command line par nahi** — env me jaate hain: `RCLONE_CONFIG`, `RCLONE_CONFIG_PASS`, `RCLONE_RC_USER`, `RCLONE_RC_PASS` (`src/CloudSSD.Mount/MountService.cs:205-212`).
+- **App band karne par mount zinda rehta hai** — rclone detached spawn hota hai, NUL stdio, koi pipe nahi (`src/CloudSSD.Mount/DetachedProcess.cs`).
+
+### Flow 4 — File kaise padhi jaati hai (chunked read + cache)
+
+Do cache modes hain (`src/CloudSSD.Core/Settings.cs:69-76`), UI toggle **"Fast browsing"**:
+
+- **ON → `full`** = file local rakhna; dobara kholna instant.
+- **OFF → `writes`** = kuch nahi rakhna; har read seedha cloud se.
+
+`--vfs-read-chunk-size-limit` = chunk size (4 MiB) set kiya gaya hai, warna rclone har read par chunk double kar deta tha.
+
+**Measured A/B** (same quota, alag mount, naya cache):
+
+| Mount | 1 MB cold | 460 MB cold | 7 GB cold | WARM (dobara kholna) | Cache |
+|---|---|---|---|---|---|
+| `writes` | 22,387 ms | 4,706 ms | 4,036 ms | 3,279 / 5,307 / 5,027 ms | **0 MB** |
+| `full` + 256 MiB limit | 4,596 ms | **38,383 ms** | 3,544 ms | 16 / 23 / 14 ms | 0.7 MB |
+| **`full` + 4 MiB limit** | 13,038 ms | **4,328 ms** | 4,330 ms | **14 / 10 / 11 ms** | 0.8 MB |
+
+Nayi install par asli Z: par: Jarvis.zip 25,421 ms → **116 ms**; 460 MB zip list **19,958 ms** (17,979 entries) + 246 MB exe extract **180,515 ms** (bytes exact); **7 GB zip list 2,955 ms**, 25,183 entries.
+
+- **Archive warmer** (`.zip/.7z/.rar`): 8 MiB tak poora file, usse bada → aakhri 1 MiB (zip ka file list) + pehle 128 KiB, per directory max 40 (`src/CloudSSD.App/ArchiveWarmer.cs:63-66`). **Sirf `full` mode me kaam karta hai** — `writes` me rclone reads cache karta hi nahi.
+- **Predictive prefetch** — pehla-order Markov chain + sequential detector + startup predictor. **"ML" nahi** — code khud kehta hai *"Deterministic and fully explainable"* (`src/CloudSSD.Streaming/Predictions.cs:26-31`).
+- **Cache budget** 20 GiB default, 8 GiB reserve (`src/CloudSSD.Core/Settings.cs:64,67`); over-run margin 10% (`src/CloudSSD.Cache/DiskSafety.cs:28`). Eviction khud **rclone** karta hai — Cloud-SSD ka apna LRU evictor nahi hai.
+
+### Flow 5 — QR code kaise aata hai
+
+**Ek line me:** QR **PC** banata hai (khud ka pure-C# encoder, koi library nahi), usme hota hai `http://<pc-ip>:8090/?pair=<32-hex>`, aur woh secret **ek hi baar, 10 minute, sirf ghar ke LAN par** chalta hai. Phone ka **system camera** use karta hai — Cloud-SSD app me koi QR scanner nahi hai.
+
+```
+http://192.168.1.5:8090/?pair=9f3ac7b14e8d2065f1a4c8b93d7e0512
+```
+
+- Generator: `src/CloudSSD.Desktop/QrCodeGenerator.cs` — ISO/IEC 18004, versions 1–6, EC level L, mask 0, WPF `BitmapSource`. **Koi QR API call nahi.**
+- Banaya kahan: `src/CloudSSD.Desktop/ViewModels/MobileHubViewModel.cs:177-196`.
+- Secret ke rules: `src/CloudSSD.App/LocalMobileBridgeService.Security.cs:202-244` — **one-time, 10 min, LAN-only**, use hote hi rotate.
+- QR me kaunsa IP: `LocalMobileBridgeService.Security.cs:288-302` — Wi-Fi + 192.168.x sabse upar; **Tailscale (−100) aur link-local (−50) kabhi nahi**.
+- **6-digit code** bhi hai (`LocalMobileBridgeService.cs:56-67`) — single-use; 5 galat guess par 60-second lockout. Iska koi clock expiry nahi hai.
+- Phone QR kaise kholta hai: `src/CloudSSD.Desktop/wwwroot/mobile/app.js:4779-4795` → `applyPairLink` → `POST /api/pair?pair=…` → `app.js:1264-1279`.
+
+### Flow 6 — Phone se file transfer kiya
+
+| Raasta | Route | Details |
+|---|---|---|
+| Phone → cloud drive | `POST /api/fs/write` | `.part` me likhta hai, pura hone par rename — cloud ko kabhi half-written file nahi dikhti (`LocalMobileBridgeService.Files.cs:461-556`) |
+| Phone → PC | `POST /api/upload` | resumable staging (`%LOCALAPPDATA%\Cloud-SSD\incoming`), `offset`+`total` (`LocalMobileBridgeService.Upload.cs:11-16`) |
+| PC → phone | `/api/download`, `/api/stream` | range-based; signed link bina token, 1 h (download) / 12 h (stream) (`LocalMobileBridgeService.Security.cs:421-447`) |
+| PC → phone (offer) | `/api/share/*` | PC offer karta hai, phone accept/decline, phir resume download (`LocalMobileBridgeService.Share.cs`) |
+
+Space pehle check hota hai — free space se 10 GB reserve nikaal ke (`Files.cs:510-514`). Transfer progress dono taraf ek hi shape me dikhti hai (`src/CloudSSD.App/TransferTasks.cs:10-14`).
+
+### Flow 7 — Phone ↔ Laptop
+
+Seedha nahi — beech me wahi PC hota hai.
+
+- **Laptop → PC → Phone (relay)**: `/api/peer/fs/{roots,list,tree,read}?device=<phone>` — phone ko waise hi pucha jaata hai jaise PC puchta hai, aur phone utna hi jawab deta hai jitna allow karta hai (`src/CloudSSD.App/LocalMobileBridgeService.Peer.cs:173-176`).
+- **Bina port khole**: phone ek long request khuli rakhta hai (`/api/peer/inbox`, 25 s), PC usme sawal deta hai, phone `/api/peer/result` par jawab deta hai (`src/CloudSSD.App/PeerBroker.cs:26-36`).
+- **Laptop → doosra PC**: "Other PCs" page par 6-digit code se pair; har address par **proof** maanga jaata hai (`src/CloudSSD.App/Remote/RemotePcClient.cs:129-133`), download resume ke saath hota hai.
+- File access **shared roots** tak scoped hai — cloud drives + upload folders (+ on request PC ke apne disks). Refusal codes: **400** galat path, **404** drive connected nahi, **403 `not-shared`**.
+
+### Flow 8 — "PC off ho to bhi files"
+
+Har device-pair ke liye **dono taraf** se "haan" chahiye, warna ye off hi rehta hai (`src/CloudSSD.App/LocalMobileBridgeService.WhenOff.cs:14-20`). Mirror engine (`src/CloudSSD.App/Mirror/DeviceMirrorService.cs:18-24`) disk dekhta hai, naya/badla hua copy karta hai (chhote files pehle), delete kiye gaye files trash folder me, aur state likhta hai. Game chalne par, battery par, ya user ke pause karne par ruk jaata hai.
+
+Device ko sirf **Google key** milta hai — sign-in nahi — taaki koi account access ghar ke LAN par na chale (`WhenOff.cs:134-135`).
+
+### Flow 9 — Gaming: prepare aur launch
+
+"Optimize & Prepare" ke **8 steps**: folder scan → cache capacity → network measure → profile load → compatibility → essential files → prefetch → validate (`src/CloudSSD.Games/GamePreparer.cs:48-55`).
+
+- Network measurement mount **bypass** karti hai (`rclone cat --offset --count`), to cache pollute nahi hota.
+- Profile nahi hai to jhooth nahi bolta — *"No launch profile yet — startup data unknown."*
+- Validate PE header padhta hai aur rclone ke range index se coverage check karta hai; `ReadyToLaunch` tabhi jab coverage ≥ 0.95.
+- Launch Windows **Job Object** me chalta hai, kill-on-close **nahi** — Cloud-SSD band karne par game nahi marta (`src/CloudSSD.Games/GameLauncher.cs:11`).
+- **Hybrid mode**: ≤ 2 MiB ya essential extension (≤ 256 MiB) files copy, baaki symlink (`src/CloudSSD.Games/ExecutionModes.cs:29-42`). Iske liye **Windows Developer Mode ya admin** chahiye — nahi hai to mode apne aap Cloud Direct ho jaata hai (`src/CloudSSD.Diagnostics/Dependencies.cs:49-50`).
+- **Honest**: prepare launch ko gate nahi karta — sirf warn karta hai.
+
+### Flow 10 — Phone par game stream (video)
+
+`src/CloudSSD.GameStream/` asli H.264 video + audio + touch injection karta hai: DXGI capture → Media Foundation hardware H.264 → WASAPI loopback audio → HTTP `101 Switching Protocols` + binary framing. Sirf **home LAN**, aur paired device key chahiye (purana shared token refuse hota hai). Ye cloud game library nahi — **emulator ka game area** stream karta hai.
+
+### Flow 11 — Memory relief, Space, offloader
+
+- **Memory relief** — `kernel32.dll!K32EmptyWorkingSet` background processes ki working set trim karta hai. Kuch kill nahi hota. **"3-5 GB" koi claim nahi hai** — code me koi byte target nahi; freed amount har run me measure hokar dikhaya jaata hai (`src/CloudSSD.App/MemoryRelief.cs:91-95`, `src/CloudSSD.App/MemoryHealth.cs:200-224`).
+- **Space page** — har folder ka live size map, `FileSystemWatcher` se sirf badle folders dobara measure (`src/CloudSSD.App/SpaceIndex.cs`). Windows, Program Files, AppData aur saare cloud drives kabhi delete ke liye offer nahi hote.
+- **Smart offloader** — disk kam hone par phone se aayi files seedha cloud me chali jaati hain, drive letter ke through nahi (warna cache me khaali jagah nahi bachti) (`src/CloudSSD.App/SmartStorageOffloaderService.cs:201-208`). Game chalte time auto offload bilkul nahi hota; sirf ≥ 100 MiB aur ≥ 7 din purane Downloads files; adhoora download aur khuli hui file skip.
+
+### Flow 12 — Security aur storage: kahan kya pada hai
+
+| Cheez | File | Protection |
+|---|---|---|
+| Google refresh token + client secret | `%LOCALAPPDATA%\Cloud-SSD\rclone.conf` | rclone ka apna config encryption; password `rclone.conf.key` me |
+| `rclone.conf.key` | aahi file | **Windows DPAPI** (`SecretStore`) |
+| Phone pairing token + media signing key | `settings.json` | **Windows DPAPI** (`SecretProtector`) |
+| Mount ka RC password | `mounts.state.json` | DPAPI (`MountService.cs:541`) |
+| Apna Google OAuth client | `google-client.json` | **plaintext JSON** |
+
+- **DPAPI scope `CurrentUser`** — doosre Windows user par copy karke koi faayda nahi (`src/CloudSSD.Core/SecretProtector.cs`).
+- **`settings.json` me koi OAuth token nahi** — login sirf `rclone.conf` me hai.
+- **Phone bridge plain HTTP hai** — koi TLS nahi (`src/` me `SslStream`/`Tls12`/`Tls13` koi use nahi hota). Security token + LAN/Tailscale rules par tiki hai. **"mTLS 1.3" jaisa koi claim nahi hai.**
+- PC har phone ka **sirf SHA-256 hash** rakhta hai, token nahi (`LocalMobileBridgeService.Security.cs:43`); comparison constant-time.
+- Token **har request** me chahiye — same Wi-Fi par hona kaafi nahi.
+- **Permissions do layers me hain**: PC-wide switches (9) aur per-device grants (`browse, stream, upload, manage, hud, control, space, game, relay`).
+- **Audit log** — per device per day JSON lines, 30 din (`src/CloudSSD.App/AccessLog.cs:8-15`).
+- **Honest gap**: `/api/status` unauthenticated hai aur `pcName`, `version`, `port`, `pcId`, `features` bata deta hai. Drives/games/storage nahi dikhata — deliberately.
 
 ---
-
-### 🔬 Deep Dive: System Architecture & Complete End-to-End Workflows
-
-Neeche diye gaye interactive sections mein har ek system component aur uske chalne ka exact step-by-step flow detail mein samjhaya gaya hai:
-
-* [Flow 1: Google Account Login & OAuth Lifecycle (लॉगिन प्रक्रिया)](#flow-login)
-* [Flow 2: Virtual Drive Mounting & 5TB-15TB Pooling (ड्राइव माउंट और पूलिंग)](#flow-mount)
-* [Flow 3: Chunked File Reading & Sparse SSD Cache (फाइल रीडिंग और स्मार्ट कैश)](#flow-read)
-* [Flow 4: Phone Pairing & 6-Digit PIN Handshake (फोन कनेक्ट कैसे होता है)](#flow-pair)
-* [Flow 5: Phone File Sharing to PC & Cloud (फोन से फाइल शेयर करने पर सिस्टम कैसे काम करता है)](#flow-share)
-* [Flow 6: 'When PC is Off' — Cloud Mirror & Offline Vault (जब पीसी बंद हो तब)](#flow-whenoff)
-* [Flow 7: Memory Relief Engine & RAM Auto-Mode (3-5 GB रैम तुरंत खाली करने की प्रक्रिया)](#flow-memory)
-* [Flow 8: Predictive Prefetch & Zero-Stutter Gaming (गेमिंग प्रेडिक्शन और प्रिफेच)](#flow-gaming)
-* [Flow 9: Pin Offline Access & 100% Zero-Latency Local Locking (पिन ऑफलाइन कैसे काम करता है)](#flow-pin)
-* [Flow 10: Dynamic App Icon Picker & Shell Theme Switching (ऐप आइकन और थीम इंजन)](#flow-icons)
-* [Flow 11: Live Bell Alerts, Access Control & Audit Ledger (नोटिफिकेशन बेल और सिक्योरिटी ऑडिटर)](#flow-notifications)
-* [Flow 12: Security, Privacy & DPAPI Storage Architecture (सुरक्षा और डेटा प्राइवेसी)](#flow-security)
-
----
-
-<a id="flow-login"></a>
-#### 🔐 Flow 1: Google Account Login & OAuth Token Lifecycle (लॉगिन प्रक्रिया)
-
-Jab user naya account add karta hai ya first-run wizard chalata hai, tab login bina kisi third-party server ke poori tarah aapke local PC par execute hota hai:
-
-```
-[User Clicks "Add Account"]
-           │
-           ▼
-[Step 1] CloudSSD.Mount starts temporary loopback HTTP listener on 127.0.0.1:<random_port>
-           │
-           ▼
-[Step 2] Opens default browser with Google OAuth 2.0 PKCE consent screen (Cloud Drive Scope)
-           │
-           ▼
-[Step 3] User grants permission in browser ──► Google redirects to http://127.0.0.1:<port>/?code=...
-           │
-           ▼
-[Step 4] CloudSSD exchanges auth code for Access Token & long-lived Refresh Token
-           │
-           ▼
-[Step 5] Tokens encrypted with Windows DPAPI (CryptProtectData) and saved to SecretStore
-           │
-           ▼
-[Step 6] rclone backend dynamically configured via environment variables (Zero plaintext on disk)
-```
-
-1. **Local Loopback Initialization:** App ek temporary loopback web server (`http://127.0.0.1:<port>`) start karta hai aur unique cryptographic PKCE `code_verifier` generate karta hai.
-2. **Browser Authentication:** Default web browser mein official Google OAuth 2.0 login khulta hai. User apne Google credentials seedhe Google ke official server par enter karta hai.
-3. **Loopback Callback:** Successful sign-in ke baad Google browser ko local loopback URL par authorization code ke saath redirect karta hai.
-4. **Token Exchange:** Local listener auth code ko receive karke Google OAuth token endpoint se exchange karta hai aur `access_token` tatha `refresh_token` praapt karta hai.
-5. **DPAPI Hardware Encryption:** Tokens ko kabhi bhi plain text mein save nahi kiya jata. Windows Data Protection API (`CryptProtectData`) dwara user ke Windows user account aur hardware ke saath cryptographic encryption kiya jata hai (`SecretStore.cs`).
-6. **In-Memory rclone Injection:** rclone ko configuration file ke bajaye memory aur private environment variables ke zariye credentials pass kiye jaate hain, jisse disk par koi bhi password ya token leak hone ka khatra 0% ho jata hai.
-
----
-
-<a id="flow-mount"></a>
-#### 🚀 Flow 2: Virtual Drive Mounting & 5TB-15TB Pooling (ड्राइव माउंट और पूलिंग)
-
-Malti-account Google Drive ko Windows ke andar real physical drive ki tarah mount karne ki internal process:
-
-```
-[DiskSafetyGuard Checks C: Free Space] ──► Calculates safe cache budget & 10GB reserve
-           │
-           ▼
-[WinFsp User-Mode Driver Initialization] ──► Hooks kernel I/O without unsafe kernel drivers
-           │
-           ▼
-[rclone Mount Execution] ──► Runs with `--vfs-cache-mode full` & `--buffer-size 0`
-           │
-           ▼
-[Virtual Aggregator / Merger Layer]
-           ├─────────────────────────────┬─────────────────────────────┐
-           ▼                             ▼                             ▼
-    [Account 1 (15GB)]            [Account 2 (2TB)]             [Account N (5TB)]
-           └─────────────────────────────┴─────────────────────────────┘
-                                         │
-                                         ▼
-           [Drive Z: "All Accounts" (Combined 5TB-15TB Pooled Storage)]
-           [Drive Y: "Each Account" (Separate folders per Gmail account)]
-```
-
-1. **Disk Safety Pre-check:** Mount karne se pehle `DiskSafetyGuard` C: drive ki free space check karta hai. Agar C: drive par 15GB bachi hai, to system automatically 10GB reserve chhodkar safe cache size calculate karta hai taaki Windows kabhi low disk space me na fase.
-2. **WinFsp User-Mode Filesystem:** System Windows File System Proxy (WinFsp) ko initialize karta hai. Isme koi risky kernel-mode driver nahi hota, isliye BSOD ya system crash ka risk bilkul nahi rehta.
-3. **Mount Flag Builder:** rclone ko background child process ke roop me execute kiya jata hai. Isme `--vfs-cache-mode full`, `--buffer-size 0` (zero RAM buffer waste), aur local loopback remote control port bind hota hai.
-4. **Multi-Drive Aggregation:**
-   * **`Z:` Drive (All Accounts):** Saare Google accounts ko ek saath merge karke ek single 5TB se 15TB tak ki virtual drive banata hai.
-   * **`Y:` Drive (Each Account):** Har Google account ko uske Gmail address ke naam wale alag folder mein dikhata hai.
-5. **Windows Explorer Integration:** Windows OS, CMD, PowerShell, Steam, aur Games ise ek normal physical NTFS/WinFsp storage drive samajhkar full speed par access karte hain.
-
----
-
-<a id="flow-read"></a>
-#### ⚡ Flow 3: Chunked File Reading & Sparse SSD Cache (फाइल रीडिंग और स्मार्ट कैश)
-
-Jab game ya koi software 100GB ki file me se kuch data mangta hai:
-
-```
-[Game/App requests 4KB to 64MB data from Z:\BigGame\data.pak]
-                        │
-                        ▼
-       [WinFsp catches Windows IRP_MJ_READ request]
-                        │
-                        ▼
-       [Cache Check: Is requested chunk in local SSD cache?]
-             ├───► [YES: Cache HIT] ──► Read instantly from NVMe SSD at 2,500+ MB/s
-             │
-             └───► [NO: Cache MISS]
-                        │
-                        ▼
-       [rclone sends HTTP 206 Partial Content range request to Google API]
-                        │
-                        ▼
-       [Downloads ONLY the requested 4MB slice (Never the whole 100GB)]
-                        │
-                        ▼
-       [Chunk saved to Sparse File on NTFS SSD (Only touched sectors take space)]
-                        │
-                        ▼
-       [Data returned to Game instantly without any loading freeze]
-```
-
-1. **I/O Interception:** Jab koi app `Z:\Game\data.pak` par `ReadFile` call karta hai, WinFsp request ko catch karta hai.
-2. **Range Index Inspection:** `CacheInspector` rclone ki `vfsMeta` binary index file read karta hai ki kya maanga gaya byte offset pehle se local SSD par maujood hai.
-3. **Instant Cache Hit:** Agar data pehle access ho chuka hai, to yeh bina internet use kiye seedhe aapke NVMe/SATA SSD se 2,000+ MB/s ki speed par read hota hai.
-4. **Targeted Byte-Range Request:** Agar data local nahi hai, to rclone Google Drive API ko HTTP 206 Partial Content range request bhejta hai (jaise `bytes=10485760-14680064`). Poori 100GB file download karne ke bajaye sirf maanga gaya 4MB slice download hota hai.
-5. **NTFS Sparse Allocation:** Windows NTFS sparse file support ke karan disk par kewal download hua hissa space leta hai, baaki file zero physical bytes leti hai.
-6. **LRU Cache Eviction:** Jab cache user dwara set kiye gaye budget ko chhoota hai, to sabse purane unused blocks automatically delete ho jaate hain, jabki frequently accessed files safe rehti hain.
-
----
-
-<a id="flow-pair"></a>
-#### 📲 Flow 4: Phone Pairing & 6-Digit PIN Handshake (फोन कनेक्ट कैसे होता है)
-
-Phone ko PC se connect karne ka zero-configuration local handshake:
-
-```
-[PC Desktop App: Mobile Hub]               [Phone Companion App]
-             │                                       │
-[Generates 6-Digit PIN & QR Code]                     │
-             │                                       │
-             │ ◄─────── User scans QR / enters PIN ──┤
-             │                                       │
-[Validates PIN against Port 8090]                     │
-             │                                       │
-[Creates SHA-256 Auth Token] ───────────────────────►│ [Token stored in Phone secure storage]
-             │                                       │
-[Device registered in paired-devices.json]           │
-[AccessControl sets Permissions: Browse/Stream/Upload]
-```
-
-1. **Visual QR & Random PIN Generation:** PC par Mobile Hub ek pure C# ISO/IEC 18004 QR code aur ek temporary 6-digit cryptographic PIN generate karta hai.
-2. **Local Wi-Fi Discovery:** Phone app local network (Wi-Fi) par PC ke IP address aur port 8090/8091 ko ping karta hai. Koi internet server ya external cloud beech me nahi hota.
-3. **Handshake & Mutual Authentication:** Phone PIN bhejta hai. PC bridge PIN verify karke device-specific SHA-256 session token create karta hai.
-4. **Device Registry Entry:** PC device ka hardware name (jaise Redmi 12, Pixel 7), IP address, pairing timestamp aur connection mode (`paired-devices.json`) me note kar leta hai.
-5. **Granular Access Control:** User PC se har phone ke liye alag permissions toggle kar sakta hai:
-   * **Browse:** Files dekhne ki permission.
-   * **Stream:** 4K video aur audio range streaming.
-   * **Upload:** Phone se PC ya Cloud me files bhejne ki permission.
-   * **Control:** Remote game launch ya stats dekhne ki permission.
-
----
-
-<a id="flow-share"></a>
-#### 📤 Flow 5: Phone File Sharing to PC & Cloud (फोन से फाइल शेयर करने पर सिस्टम कैसे काम करता है)
-
-Jab aap apne phone se koi photo, video, document ya folder share karte hain:
-
-```
-[Phone User selects files / photos / folders & taps "Send to PC"]
-                              │
-                              ▼
-[Phone streams multipart HTTP payload over Wi-Fi bridge to PC (Port 8090)]
-                              │
-                              ▼
-[PC Bridge catches stream ──► Verifies Device Auth Token & Grants]
-                              │
-                              ▼
-[Incoming files placed in temporary quarantine spooler (%TEMP%\cssd_inbox)]
-                              │
-                              ▼
-[Desktop Notification Center: Live Bell rings + Audio alert + Popup Toast]
-                              │
-                              ▼
-             [Storage Auto-Routing Decision Engine]
-             ├────────────────────────────────────────────────────────┐
-             ▼                                                        ▼
-   [PC Disk Space is Normal (>10GB)]                 [PC Disk Space is Low (<10GB)]
-             │                                                        │
-             ▼                                                        ▼
-   [Saved to PC Local Inbox folder]                   [Streamed directly to Cloud Drive (Z:\)]
-   [Explorer opens with file highlighted]              [Saves local SSD space automatically]
-                              │
-                              ▼
-[Audit record logged to access-log.json ──► Sync confirmation sent to Phone]
-```
-
-1. **Phone Selection & Packaging:** Phone app me user koi bhi file ya poora folder select karke "Send to PC" dabata hai. App transfer manifest create karta hai (filenames, sizes, hashes).
-2. **Direct LAN Streaming:** Files local Wi-Fi ke zariye HTTP streaming protocol se bina kisi third-party cloud server ke direct PC ke IP par transfer hoti hain (full Wi-Fi speed, up to 50-80 MB/s).
-3. **Security Inspection & Spooling:** PC Bridge phone ka authorization token check karta hai aur verify karta hai ki kya us device ke paas `Upload` permission hai. Valid hone par data safe temporary quarantine spooler me write hota hai.
-4. **Desktop Live Bell Alert:** PC ke top-right corner par Bell Notification counter update hota hai, popup toast notification aati hai aur sound play hota hai ("Redmi 12 sent 3 files").
-5. **Storage Auto-Routing:**
-   * Agar aapke PC ki C: drive par kaafi space hai, to files seedhe `Downloads\CloudSSD-Inbox` me save hoti hain aur File Explorer window open ho jati hai.
-   * Agar PC ki disk full ho rahi hai (<10GB free), to auto-mode files ko bina PC disk bhare seedhe aapki mounted Google Drive (`Z:\Cloud-SSD Uploads\`) me route kar deta hai.
-6. **Audit Trail & Confirmation:** Transfer complete hote hi `access-log.json` me entry hoti hai aur phone screen par "Delivered to PC" ka green checkmark aa jata hai.
-
----
-
-<a id="flow-whenoff"></a>
-#### 💤 Flow 6: "When PC is Off" — Cloud Mirror & IndexedDB Vault (जब पीसी बंद हो तब)
-
-Laptop ya desktop PC band hone par phone se access kaise chalu rehta hai:
-
-```
-[PC is Running] ──► Background mirror syncs documents & game saves to Google Drive mirror folder
-           │
-           ▼
-[User Shuts Down Laptop / PC]
-           │
-           ▼
-[Phone App detects Wi-Fi PC Bridge is unreachable]
-           │
-           ▼
-[Automatic Fallback: Phone switches to "Direct Google Drive Cloud Mode"]
-           │
-           ▼
-[Phone directly queries Google Drive API using its own secure OAuth token]
-           │
-           ▼
-[Phone can browse, download, and view mirrored PC files without PC being ON]
-           │
-           ▼
-[100% Offline? ──► Phone's IndexedDB Offline Vault opens pinned files with ZERO internet]
-```
-
-1. **Background Cloud Mirroring:** Jab PC chalu rehta hai, Cloud-SSD ka lightweight mirror service aapke chuninda folders (jaise Documents, Game Saves, Photos) ko Google Drive ke ek protected folder me sync rakhta hai.
-2. **State Detection:** Jab aap PC band kar dete hain ya travel karte hain, to phone app detect karta hai ki PC bridge offline hai.
-3. **Direct Cloud Mode Fallback:** Phone app bina kisi error ke instantly "Direct Google Drive Mode" me switch ho jata hai. Phone apne khud ke saved OAuth credentials se Google Drive API se judta hai.
-4. **Mirrored PC Folders Access:** Phone ke Cloud SSD tab me aapko `"<PC Name> (cloud copy)"` folder dikhta hai, jise open karke aap PC ki saari important files dekh aur share kar sakte hain chahe PC poori tarah band ho.
-5. **IndexedDB 100% Offline Vault:** Agar aap aisi jagah hain jahan internet bhi nahi hai (flight, basement), to phone ka built-in IndexedDB Vault pehle se "Pin Offline" kiye gaye documents, game saves aur audio files ko turant bina kisi network ke open kar deta hai.
-
----
-
-<a id="flow-memory"></a>
-#### 🧹 Flow 7: Memory Relief Engine & RAM Auto-Mode (3-5 GB रैम तुरंत खाली करने की प्रक्रिया)
-
-Jab aapke PC par heavy game ya software chalne wala ho aur RAM kam pad rahi ho:
-
-```
-[SystemTelemetry monitors RAM every 10 seconds]
-           │
-           ▼
-[Free RAM drops below 30% OR user launches a heavy Game]
-           │
-           ▼
-[MemoryRelief Engine activates: Scans all running processes]
-           │
-           ▼
-[Identifies background idle apps (Chrome tabs, Edge, Discord, Updaters, Spotify)]
-           │
-           ▼
-[Calls Win32 API: EmptyWorkingSet(hProcess) for idle processes]
-           │
-           ▼
-[Windows gracefully pages out inactive background memory to pagefile]
-           │
-           ▼
-[3 to 5 GB Physical RAM instantly freed for active Game/App]
-[Zero stutter, 0 crashes, and background apps resume instantly when clicked]
-```
-
-1. **10-Second Continuous Telemetry:** `SystemTelemetry.cs` system ki physical RAM, committed pagefile, CPU load aur disk queue length ko continuous monitor karta hai.
-2. **Low-Memory Trigger:** Jab physical free RAM 30% se kam ho jaati hai ya game launch hota hai, to `MemoryRelief` trigger hota hai.
-3. **Process Whitelist Protection:** Active game, foreground window aur critical Windows system processes (csrss, dwm, explorer) ko whitelist kiya jata hai taaki unhe koi chhoo na sake.
-4. **Win32 Working-Set Trimming:** Background me idle pade apps (jaise 30 tabs khule hue Chrome/Edge, Discord, background launchers) ke process handles par Windows native API `EmptyWorkingSet` call kiya jata hai.
-5. **Instant RAM Reclamation:** Inactive apps ki memory gracefully disk cache me shift ho jaati hai, jisse 3 se 5 GB physical RAM turant free ho jaati hai. Games ko poori RAM milne se micro-stutters aur Out-Of-Memory (OOM) crashes 100% band ho jaate hain.
-
----
-
-<a id="flow-gaming"></a>
-#### 🧠 Flow 8: Predictive Prefetch & Zero-Stutter Gaming (गेमिंग प्रेडिक्शन और प्रिफेच)
-
-Cloud drive se 100GB ka game chalane par game atakta kyon nahi hai:
-
-```
-[First Launch: Training Session]
-rclone logs microsecond file reads ──► LogTailer parses offset sequences into ProfileStore (SQLite)
-           │
-           ▼
-[Machine Learning Predictors Analyze Access Patterns]
-• StartupPredictor: Learns first 200 MB files read during game boot (EXEs, DLLs, Shaders)
-• MarkovPredictor: Learns block-to-block transitions (When block A is read, block B follows)
-• SequentialPredictor: Detects streaming file reads (Audio, texture bundles)
-           │
-           ▼
-[Next Launch: "Optimize & Prepare" 1-Tap Mode]
-PrefetchScheduler preloads predicted offset blocks into SSD Cache BEFORE you press "Play"
-           │
-           ▼
-[User Launches Game ──► All startup data is already in NVMe SSD Cache!]
-[Game boots at SSD speed, zero network wait, zero in-game freeze]
-```
-
-1. **Live Access Telemetry:** Jab aap game khelte hain, rclone ka high-precision telemetry logger microsecond accuracy ke saath record karta hai ki game ne kaunse file offset par kab read kiya (`_readAt: offset, size`).
-2. **Predictor Algorithms:**
-   * **StartupPredictor:** Game boot hone par jo files 90%+ cases me pehle 60 seconds me padhi jaati hain (engine DLLs, startup audio, shader caches), unka map banata hai.
-   * **MarkovPredictor:** Probabilistic state transitions calculate karta hai: agar game ne file ka block 42 padha hai, to 95% probability hai ki agla block 43 ya 88 hoga.
-3. **Prefetch Queue & Scheduling:** Next launch par "Optimize & Prepare" feature user ke "Play" dabane se pehle hi in predicted blocks ko high-speed background streams se SSD cache me laakar rakh deta hai.
-4. **Three Execution Modes:**
-   * **Cloud Direct:** Poora game cloud disk se chalta hai; sirf padha gaya data cache hota hai.
-   * **Hybrid Mode:** EXEs aur DLLs local PC par rehti hain, jabki 90GB ka heavy assets data cloud drive se stream hota hai.
-   * **Full Local:** Pinned games jo offline khelne ke liye poori tarah copy kar liye gaye hon.
-
----
-
-<a id="flow-pin"></a>
-#### 📌 Flow 9: Pin Offline Access & 100% Zero-Latency Local Locking (पिन ऑफलाइन कैसे काम करता है)
-
-Jab user kisi critical project file, video ya game folder par right-click karke **"Pin for Offline Access"** select karta hai ya UI se toggle karta hai, tab system internet par depend rehne ke bajaye use 100% local NVMe/SSD par bind kar deta hai:
-
-```
-[User Selects "Pin Offline" on File / Folder]
-           │
-           ▼
-[Step 1] Metadata Manager SQLite ledger mein `is_pinned = 1` flag mark karta hai
-           │
-           ▼
-[Step 2] Background Hydrator missing 4MB chunks ko parallel HTTP 206 streams se download karta hai
-           │
-           ▼
-[Step 3] Chunks C:\ Sparse Cache file mein write hokar 'Permanent / Locked' status mein set hote hain
-           │
-           ▼
-[Step 4] LRU/LFU Cache Eviction Engine pinned sectors ko eviction scan se exempt/immune kar deta hai
-           │
-           ▼
-[Offline Test] Internet disconnected hone par bhi read requests 3,500+ MB/s local SSD speed se execute hoti hain!
-```
-
-1. **Pin Flag Attachment:** File metadata SQLite local database (`pin-store.db`) mein persist hoti hai. Isme file hash, size, chunk count aur pinning timestamp register hota hai.
-2. **Background Chunk Hydration:** Agar file ka koi part abhi cache mein nahi hai, toh ek low-priority background worker thread pool Google Drive se bache hue sabhi 4MB chunks parallel mein download karke complete sparse file hydrate karta hai.
-3. **Eviction Immunity Lock:** Jab C: drive par cache limit reach hoti hai ya disk clean-up trigger hota hai, toh cache eviction worker pinned chunks ko touch nahi karta. Wo 100% protected rehte hain.
-4. **Fast-Path Kernel Read:** WinFsp driver file request aane par network probe nahi karta; directly local cache file ka handle open karke zero-latency I/O serve karta hai.
-
----
-
-<a id="flow-icons"></a>
-#### 🎨 Flow 10: Dynamic App Icon Picker & Shell Theme Switching (ऐप आइकन और थीम इंजन)
-
-User jab interface customize karta hai ya gaming/night mode select karta hai, tab poora WPF visual tree aur Windows taskbar dynamically modify hota hai bina app restart kiye:
-
-```
-[User Selects New Theme / App Icon]
-           │
-           ▼
-[Step 1] ThemeEngine loads corresponding XAML ResourceDictionary (Colors, Brushes, Accents)
-           │
-           ▼
-[Step 2] Application.Current.Resources.MergedDictionaries replaces old palette in memory (Zero Flicker)
-           │
-           ▼
-[Step 3] Win32 Shell API (Shell_NotifyIconW) calls update taskbar tray icon with 32-bit alpha ICO
-           │
-           ▼
-[Step 4] Active window chrome & title bar redraws with Windows 11 DWM (DwmSetWindowAttribute)
-           │
-           ▼
-[Step 5] Preferences persisted to AppSettings.json for persistent launch configuration
-```
-
-1. **Non-Restart Dynamic Theme Switch:** WPF ke `MergedDictionaries` ko runtime par swap kiya jata hai jisse sabhi open dialogs, menus aur graphs bina restart ya UI freeze hue new theme (Dark, Light, Cyberpunk Neon, ya High-Contrast) reflect karte hain.
-2. **Shell Tray Integration:** Windows taskbar notification tray icon ko update karne ke liye native `shell32.dll` ka `Shell_NotifyIconW(NIM_MODIFY, ...)` API use hota hai.
-3. **Hardware DWM Accent:** Windows 11 Desktop Window Manager (`dwmapi.dll`) ke through titlebar color (`DWMWA_CAPTION_COLOR`) aur dark mode flags dynamically set kiye jaate hain.
-
----
-
-<a id="flow-notifications"></a>
-#### 🔔 Flow 11: Live Bell Alerts, Access Control & Audit Ledger (नोटिफिकेशन बेल और सिक्योरिटी ऑडिटर)
-
-Jab bhi koi mobile device connect hota hai, file receive hoti hai ya koi unauthorized request aati hai, tab security system real-time alerts generate karta hai:
-
-```
-[Inbound System Event: Phone Upload / Device Connect / Access Request]
-           │
-           ▼
-[Step 1] Event published to Central Reactive EventAggregator
-           │
-           ▼
-[Step 2] Notification Bell icon badge increments (+1) in desktop top header
-           │
-           ▼
-[Step 3] Interactive Windows Toast Notification appears (Allows 1-Click Approve / Deny)
-           │
-           ▼
-[Step 4] Request evaluated against device permission rules in `device-grants.json`
-           │
-           ▼
-[Step 5] Event audit entry appended to `access-log.json` with cryptographic SHA-256 fingerprint
-```
-
-1. **Decoupled Pub/Sub:** Koi bhi subsystem (MobileBridge, MountEngine, CacheManager) synchronous lock lagaye bina event broadcast kar sakta hai.
-2. **Interactive Actionable Toasts:** Agar kisi naye phone ne file transfer ya cloud access request ki hai, toh desktop toast notification par "Approve" ya "Deny" buttons aate hain.
-3. **Audit Ledger Logging:** Har action local `access-log.json` mein audit timestamp, client device ID, IP address aur status ke sath append hota hai. Koi private token ya personal credentials log mein include nahi kiye jaate.
-
----
-
-<a id="flow-security"></a>
-#### 🛡️ Flow 12: Security, Privacy & DPAPI Storage Architecture (सुरक्षा और डेटा प्राइवेसी)
-
-User ke personal data, Google keys aur tokens ki complete security:
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 ZERO-LEAK SECURITY CORE                                │
-├───────────────────────────────────┬────────────────────────────────────────────────────┤
-│ Security Layer                    │ Implementation & Guarantee                         │
-├───────────────────────────────────┼────────────────────────────────────────────────────┤
-│ 1. Token Encryption at Rest       │ Windows DPAPI (CryptProtectData) hardware key      │
-│ 2. In-Memory Process Isolation    │ rclone auth passed exclusively via env vars        │
-│ 3. Zero Cloud Intermediary        │ Phone-to-PC direct LAN communication (Zero SaaS)   │
-│ 4. Granular Device Grants         │ Per-device Access Control lists & revocations      │
-│ 5. Audit Logging                  │ Every file access logged in local access-log.json  │
-│ 6. Sanitized Diagnostics          │ Automatic redactor strips emails, IPs, usernames   │
-└───────────────────────────────────┴────────────────────────────────────────────────────┘
-```
-
-1. **Hardware-bound DPAPI:** Tokens ko hard drive par plaintext format me kabhi save nahi kiya jata. Windows Master Key ke bina koi doosra user ya program in tokens ko decrypt nahi kar sakta.
-2. **Zero Plaintext Secrets in Configs:** rclone ki config file me koi bhi password ya client secret plain text me nahi rehta.
-3. **No Third-Party Relay:** Phone aur PC ke beech hone wala saara data aapke ghar ke Wi-Fi router ke andar hi rehta hai. Kisi bhi bahari cloud server par aapki files ya photos nahi jaate.
-4. **Automatic Redaction:** Diagnostics export karte waqt `Redactor.cs` sabhi IP addresses, usernames, tokens aur computer names ko `[REDACTED]` se replace kar deta hai taaki GitHub ya logs me koi niji jaankari na jaye.
-
----
-
----
-
 <a id="features"></a>
 
 ## ✨ Features
@@ -661,21 +294,23 @@ User ke personal data, Google keys aur tokens ki complete security:
 |---|---|
 | **Two cloud drives** | **Each Account** (`Y:`) — one folder per Google account. **All Accounts** (`Z:`) — all accounts joined into one big drive |
 | **Many accounts** | Connect as many Google accounts as you like; each one is listed with its Gmail address and free space |
-| **Smart Cache** | A cache size limit, protected free space on C:, and only the parts that were read take up disk space (sparse files) |
+| **Smart Cache** | A cache size limit, protected free space on the cache disk, and only the parts that were really read take up disk space (rclone's sparse cache files) |
 | **Game Library** | 3 modes: **Cloud Direct** (run from the drive), **Hybrid** (exe/dll on the PC, big data from the cloud), **Full Local** (copy everything) |
 | **Optimize & Prepare** | Downloads a game's startup data before you press Play |
-| **PC Memory (RAM)** | Shows memory health; when less than 30% RAM is free it trims the memory of idle background apps on its own |
+| **PC Memory (RAM)** | Shows memory health; when less than 30% RAM is free it trims the working set of idle background apps on its own (how much was freed is measured and shown after each run) |
 | **Storage auto mode** | When the PC runs low on space, files uploaded from the phone are moved to the cloud drive |
-| **Mobile Hub** | Pairing code / QR for the phone, the list of connected phones, and switches for what a phone may do |
+| **Mobile Hub** | A 6-digit pairing code and a one-time QR link for the phone, the list of connected phones, and switches for what a phone may do |
 | **Diagnostics** | Status of everything the app needs, logs, and a "sanitized report" that contains no logins or tokens |
 | **Languages** | English, Hindi, Hinglish |
 | **`cpx` command** | Checks and mounting without a window: `cpx deps`, `cpx remotes`, `cpx mounts` |
 
 ### 🔒 Security
 
-- Your Google password is never typed into the app — sign-in happens on Google's own page.
-- The saved login is stored encrypted on the PC (Windows DPAPI).
-- The phone bridge listens on the local Wi-Fi only, and every request must carry the pairing token.
+- Your Google password is never typed into the app — the sign-in happens on Google's own page, driven by rclone.
+- The saved login is stored encrypted on the PC: rclone's own config encryption, and its password protected by **Windows DPAPI**.
+- The phone bridge binds to all interfaces but **refuses** anything that is neither the home network nor Tailscale, and every request must carry the device token.
+- The PC keeps only the **SHA-256 hash** of each phone's token, never the token itself.
+- The phone bridge is **plain HTTP** — there is no TLS. Confidentiality rests on the 128-bit token plus who can reach the port.
 - The app runs without administrator rights and does not change Windows security settings.
 
 ---
@@ -715,15 +350,22 @@ sequenceDiagram
     participant P as Phone app / Web
     participant B as PC app (bridge 8090)
     participant D as Cloud drive (Y: / Z:)
-    P->>B: Find the PC (same Wi-Fi)
-    B-->>P: PC name
-    P->>B: 6-digit code (shown on the PC)
-    B-->>P: token
-    P->>B: files / upload / live numbers (with token)
+    P->>B: Find the PC (same Wi-Fi, /24 sweep)
+    B-->>P: PC name + public pcId
+    P->>B: POST /api/pair (6-digit code, or the QR one-time secret)
+    B-->>P: this phone's own token (PC keeps only its SHA-256 hash)
+    P->>B: every later request carries the token
     B->>D: read / write
     D-->>B: data
     B-->>P: file, video, numbers
 ```
+
+Two ways in, and both only work on the home network:
+
+- **6-digit code** - typed in the phone app. Single use; 5 wrong guesses lock code pairing for 60 s.
+- **QR code** - the PC shows `http://<pc-ip>:8090/?pair=<32-hex>`. The **phone's system camera** opens it (Cloud-SSD has no QR scanner of its own). The secret works **once**, for **10 minutes**, home network only.
+
+After pairing, the phone has its own 128-bit token; the PC stores only the token's SHA-256 hash.
 
 > **Please note:** today the phone works **through the PC**. The PC app must be running and the phone must be on the same Wi-Fi. Reaching the cloud straight from the phone, without the PC, is the next piece of work and is not built yet.
 
@@ -810,10 +452,10 @@ The Android companion connects securely to your PC over Wi-Fi, allowing you to b
 
 <br/>
 
-| 7. Gaming Performance & Remote HUD | 8. 100% Offline Save Vault | 9. App Settings & Languages |
+| 7. Gaming Performance & Remote HUD | 8. Offline copies on the phone | 9. App Settings & Languages |
 |:---:|:---:|:---:|
-| <img src="../../../screenshots/phone-gaming-hud.png" width="220" alt="Phone Gaming HUD" /> | <img src="../../../screenshots/phone-offline-vault.png" width="220" alt="IndexedDB Offline Vault" /> | <img src="../../../screenshots/phone-settings-lang.png" width="220" alt="Settings & Languages" /> |
-| Real-time PC stats: FPS, GPU/CPU temps, remote game launch | Secure IndexedDB offline storage for game saves and docs | English, Hindi & Hinglish localization + paired PC list |
+| <img src="../../../screenshots/phone-gaming-hud.png" width="220" alt="Phone Gaming HUD" /> | <img src="../../../screenshots/phone-offline-vault.png" width="220" alt="Offline copies kept on the phone" /> | <img src="../../../screenshots/phone-settings-lang.png" width="220" alt="Settings & Languages" /> |
+| Real-time PC stats: FPS, GPU/CPU temps, remote game launch | "Keep offline" copies on the phone: the chosen PC files live in the app's own storage, so they open while the PC is away | English, Hindi & Hinglish localization + paired PC list |
 
 <br/>
 
@@ -907,7 +549,7 @@ Whenever changes or updates are committed to this repository, the following four
 
 | For | File | Size | |
 |---|---|---|---|
-| 💻 **Windows PC** | `Cloud-SSD-0.9.0-win-x64.zip` | 69 MB | [**⬇ Download .exe**](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-0.9.0-win-x64.zip) |
+| 💻 **Windows PC** | `Cloud-SSD-0.9.0-win-x64.zip` | 94 MB | [**⬇ Download .exe**](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-0.9.0-win-x64.zip) |
 | 📱 **Android phone** | `Cloud-SSD-Mobile-0.12.0.apk` | 1.4 MB | [**⬇ Download .apk**](https://github.com/allproject121/Cloud-Drive/raw/main/Cloud-SSD/Cloud-SSD/Cloud-SSD/releases/Cloud-SSD-Mobile-0.12.0.apk) |
 | 🔒 Checksum for the .exe | `Cloud-SSD-0.9.0-win-x64.zip.sha256` | — | [View](./releases/Cloud-SSD-0.9.0-win-x64.zip.sha256) |
 
@@ -978,88 +620,70 @@ You need: .NET SDK 10, WinFsp, Inno Setup 6 (for the setup.exe), and the Android
 
 <a id="architecture"></a>
 
-## 🏗️ Architecture (Master Archify System Design)
+## 🏗️ Architecture (as the code is actually built)
 
 The app is written in **.NET 10 (C#)** with a **WPF + MVVM** user interface. It stands on two proven tools — **rclone** (cloud + cache) and **WinFsp** (Windows drive) — and adds its own logic on top: managing mounts, protecting the disk, prediction, games and the phone bridge.
 
-<div align="center">
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../../../screenshots/archify-system-design-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="../../../screenshots/archify-system-design-light.png">
-  <img alt="Cloud Drive — Archify Master Architecture" src="../../../screenshots/archify-system-design-dark.png" width="100%">
-</picture>
-
-</div>
-
 ```mermaid
 flowchart LR
-    %% Column 1: Gateways (Login & Connection on Left Side)
-    subgraph GATEWAYS[" 1️⃣ INBOUND GATEWAYS (Side Gateways) "]
+    subgraph UI["CloudSSD.Desktop — WPF + MVVM"]
         direction TB
-        LOGIN["🔐 Login & Auth Section<br/>• Google OAuth2 PKCE<br/>• 15GB - 15TB Multi-Account Pool<br/>• Windows DPAPI Vault"]
-        CONN["📡 Connection & Device Section<br/>• Mobile Phone Bridge (Port 8090)<br/>• 6-Digit PIN & QR Pair<br/>• Local LAN mTLS 1.3"]
+        PAGES["Pages + ViewModels<br/>Cloud Drives · Mobile Hub · Devices · Game Library · Space · Settings"]
+        WEB["wwwroot/mobile<br/>the phone's web page (PWA)"]
     end
-
-    %% Column 2: Home Page Dashboard (Central Hub)
-    subgraph HUB[" 2️⃣ COMMAND CENTER "]
-        HOME["🏠 Home Page Dashboard<br/>(Central Orchestrator & Dispatcher)<br/><b>Click to View All Features</b>"]
-    end
-
-    %% Column 3: Features Matrix (All Features Displayed from Home Page)
-    subgraph FEATURES[" 3️⃣ CORE ACTIVE FEATURES (Click Any Feature) "]
+    subgraph APP["CloudSSD.App — AppHost (orchestrator)"]
         direction TB
-        F1["💽 Feature 1: Virtual Cloud SSD Mount<br/>• Z: Unified (5-15TB) & Y: Per-Account<br/>• Non-blocking Windows Explorer"]
-        F2["⚡ Feature 2: High-Speed LAN Share<br/>• Phone ⇄ PC Wire-speed (70 MB/s)<br/>• Zero Cloud Bandwidth Cost"]
-        F3["🧠 Feature 3: Smart Chunked Cache<br/>• 4MB Range HTTP 206 Slices<br/>• Sparse VHDX on C:\ (Zero Waste)"]
-        F4["🔄 Feature 4: 'When PC is Off' Mirror<br/>• Background Cloud Staging<br/>• Android Encrypted Vault"]
-        F5["🚀 Feature 5: Memory Relief Engine<br/>• Win32 EmptyWorkingSet API<br/>• 3-5 GB Instant RAM Drop"]
-        F6["🎮 Feature 6: Gaming HUD & Low Latency<br/>• Windows Job Object Sandbox<br/>• Markov ML Access Predictor"]
-        F7["📌 Feature 7: Pin Offline Access<br/>• 100% Local Fast-path Locking<br/>• Zero-Latency Access"]
-        F8["🎨 Feature 8: Dynamic Icon & Theme Picker<br/>• WPF Dynamic ResourceDictionary<br/>• Win32 Shell Notification Icon"]
-        F9["🔔 Feature 9: Live Bell Alerts & Auditor<br/>• Reactive EventAggregator<br/>• Windows Toast & access-log.json"]
+        HOST["AppHost<br/>accounts · drives · settings · state"]
+        BRIDGE["LocalMobileBridgeService<br/>plain HTTP :8090 (TcpListener)"]
+        MIRROR["Mirror / DeviceMirrorService<br/>'files when it is off'"]
+        OFFLOAD["SmartStorageOffloaderService"]
+        RAM["MemoryRelief + GameMode"]
     end
-
-    %% Column 4: System Execution Pipelines (Where the Line Goes into the System)
-    subgraph PIPELINES[" 4️⃣ INTERNAL SUBSYSTEMS & ENGINES (HOW IT WORKS IN SYSTEM) "]
+    subgraph MOUNT["CloudSSD.Mount"]
         direction TB
-        SYS_VFS["⚙️ [WinFsp & rclone VFS Engine]<br/>• IRP_MJ_READ driver interceptor<br/>• Pooled drive letters Z:\ & Y:\<br/>• Virtual filesystem mount"]
-        SYS_NET["⚙️ [Port 8090 LAN Socket Streamer]<br/>• Pure C# ISO/IEC 18004 QR engine<br/>• Multipart async socket listener<br/>• Auto-router to local SSD / Drive Z:"]
-        SYS_CACHE["⚙️ [Sparse NTFS Block Cache Manager]<br/>• HTTP 206 Partial Range request<br/>• FSCTL_SET_SPARSE sector allocation<br/>• 10GB reserve guard & LRU eviction"]
-        SYS_OFF["⚙️ [Cloud Staging & Mobile DB Engine]<br/>• Direct Google Drive V3 REST API<br/>• Android encrypted IndexedDB vault<br/>• Auto-sync on PC power-on boot"]
-        SYS_RAM["⚙️ [Win32 Memory Relief Core Engine]<br/>• psapi.dll!EmptyWorkingSet invocation<br/>• ArrayPool byte buffer recycling<br/>• Gen2 Garbage Collection suppression"]
-        SYS_GAME["⚙️ [Job Object Sandbox & Markov ML]<br/>• Windows Job Object process isolation<br/>• Markov-chain block pattern predictor<br/>• Background asset hydration queue"]
-        SYS_PIN["⚙️ [Offline Pin Index & Lock Engine]<br/>• SQLite metadata pin flag attachment<br/>• Full chunk hydration to C:\ cache<br/>• Cache-eviction immunity lock"]
-        SYS_UI["⚙️ [WPF Theme & Shell Icon Engine]<br/>• Dynamic ResourceDictionary switcher<br/>• shell32.dll!Shell_NotifyIconW call<br/>• Real-time desktop taskbar update"]
-        SYS_BELL["⚙️ [Event Pub/Sub & Audit Ledger]<br/>• Reactive EventAggregator dispatcher<br/>• Windows Toast notification manager<br/>• Sanitized access-log.json ledger"]
+        CFG["RcloneConfigService<br/>Google sign-in via rclone rc"]
+        PLAN["MountFlagBuilder<br/>the rclone flag set"]
+        SVC["RcloneMountService<br/>detached mount process"]
+        DET["DetachedProcess<br/>mount survives app close"]
+    end
+    subgraph ENGINES["Engines"]
+        direction TB
+        CACHE["CloudSSD.Cache<br/>budget · pressure · inspection"]
+        STREAM["CloudSSD.Streaming<br/>predictors · prefetch · governor"]
+        GAME["CloudSSD.Games<br/>scan · prepare · hybrid · launch"]
+        DIAG["CloudSSD.Diagnostics<br/>logs · redaction · DPAPI store"]
+    end
+    subgraph EXT["Outside the app"]
+        RCLONE["rclone v1.75.2<br/>the only thing that talks to the cloud"]
+        WINFSP["WinFsp 2.1<br/>user-mode filesystem"]
+        PHONE["Phone / laptop<br/>HTTP client on the LAN"]
     end
 
-    %% Inbound Connections to Home Page
-    LOGIN ===>|"Auth Token Granted"| HOME
-    CONN ===>|"Mobile Bridge Paired"| HOME
-
-    %% Outbound Fan-out from Home Page to Features
-    HOME ===> F1
-    HOME ===> F2
-    HOME ===> F3
-    HOME ===> F4
-    HOME ===> F5
-    HOME ===> F6
-    HOME ===> F7
-    HOME ===> F8
-    HOME ===> F9
-
-    %% Direct Execution Lines: Feature -> System Internals (Showing How It Works)
-    F1 ===>|"Line: User-Mode FS Dispatch"| SYS_VFS
-    F2 ===>|"Line: Direct Wi-Fi TCP Stream"| SYS_NET
-    F3 ===>|"Line: Sparse Chunk Allocation"| SYS_CACHE
-    F4 ===>|"Line: Cloud Relay & Staging"| SYS_OFF
-    F5 ===>|"Line: Win32 Working Set Flush"| SYS_RAM
-    F6 ===>|"Line: Process Sandbox & Prefetch"| SYS_GAME
-    F7 ===>|"Line: Permanent Sector Lock"| SYS_PIN
-    F8 ===>|"Line: Shell Resource Switcher"| SYS_UI
-    F9 ===>|"Line: Event Pub/Sub & Audit Log"| SYS_BELL
+    UI --> HOST
+    HOST --> CFG
+    HOST --> PLAN
+    PLAN --> SVC
+    SVC --> DET
+    CFG --> RCLONE
+    SVC --> RCLONE
+    RCLONE --> WINFSP
+    HOST --> BRIDGE
+    HOST --> MIRROR
+    HOST --> OFFLOAD
+    HOST --> RAM
+    HOST --> CACHE
+    HOST --> STREAM
+    HOST --> GAME
+    GAME --> STREAM
+    STREAM --> CACHE
+    BRIDGE --> PHONE
+    WEB --> PHONE
+    HOST -.-> DIAG
 ```
+
+**Important:** rclone does all the actual cloud work. Cloud-SSD decides *which* remote to use, *which* flags to pass, *how much* disk the cache may use, and *when* to prefetch — it does not implement its own filesystem or its own cloud protocol.
+
+Step-by-step flows with code anchors: [`docs/HOW-IT-WORKS.md`](./docs/HOW-IT-WORKS.md).
 
 | Project | Responsibility |
 |---|---|
@@ -1146,6 +770,7 @@ Cloud-Drive                                  <- workspace root (this README)
 
 | Document | About |
 |---|---|
+| [`HOW-IT-WORKS.md`](./docs/HOW-IT-WORKS.md) | **How the app really works** - 12 flows with exact `file:line` anchors, real HTTP routes, real rclone commands and measured numbers |
 | [`SETUP.md`](./docs/archive/SETUP.md) | **The whole setup, step by step** (for an AI agent or by hand; in Hinglish) |
 | [`README.md` (project)](./README.md) | The project's own introduction |
 | [`ARCHITECTURE.md`](./docs/archive/ARCHITECTURE.md) | Internal design and data flows |
