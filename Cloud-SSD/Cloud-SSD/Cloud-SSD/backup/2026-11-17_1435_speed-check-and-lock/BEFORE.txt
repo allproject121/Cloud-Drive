@@ -1,0 +1,9 @@
+﻿Work: speed-check-and-lock
+Agent: Antigravity
+TaskId: 
+Source as it was before the work started: 651 files, 13.3 MB.
+Taken: 2026-11-17 14:35
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-17_1435_speed-check-and-lock"
+and write complete\README.md.

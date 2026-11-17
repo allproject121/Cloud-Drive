@@ -1,0 +1,21 @@
+﻿{
+    "active":  true,
+    "taskId":  "TASK-CLAUDE-K",
+    "taskTitle":  "band-pc-ki-files-phone-se (bina Google key: K1-K7)",
+    "agent":  "Claude Code",
+    "startTime":  "2026-11-17T01:15:00+05:30",
+    "backupFolder":  "2026-11-14_1544_band-pc-ki-files-phone-se",
+    "targetFiles":  [
+                        "mobile-android/src/main/assets/app.js",
+                        "mobile-android/src/main/assets/data.js",
+                        "mobile-android/src/main/assets/fs.js",
+                        "mobile-android/src/main/assets/i18n-words.js",
+                        "src/CloudSSD.Desktop/wwwroot/mobile/app.js",
+                        "src/CloudSSD.Desktop/wwwroot/mobile/data.js",
+                        "src/CloudSSD.Desktop/wwwroot/mobile/fs.js",
+                        "src/CloudSSD.Desktop/wwwroot/mobile/i18n-words.js",
+                        "tests/mobile-js/data.test.js",
+                        "docs/CHALU_KAAM.md"
+                    ],
+    "status":  "IN_PROGRESS"
+}

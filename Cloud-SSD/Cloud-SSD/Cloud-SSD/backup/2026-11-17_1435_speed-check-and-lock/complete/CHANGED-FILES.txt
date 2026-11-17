@@ -1,0 +1,18 @@
+﻿Work finished: 2026-11-17 14:44
+
+NEW files (2):
+  src\CloudSSD.App\SpeedGuard.cs
+  tests\CloudSSD.Tests\SpeedGuardTests.cs
+
+CHANGED files (6):
+  RULE.md
+  src\CloudSSD.App\AppHost.cs
+  src\CloudSSD.App\ArchiveWarmer.cs
+  src\CloudSSD.App\Hybrid\HybridLayout.cs
+  src\CloudSSD.Desktop\ViewModels\CloudDrivesViewModel.cs
+  src\CloudSSD.Desktop\Views\CloudDrivesView.xaml
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

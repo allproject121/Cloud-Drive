@@ -1,0 +1,9 @@
+﻿{
+    "name":  "cli-key-problem-live-files",
+    "agent":  "Claude Code",
+    "taskId":  "TASK-CLAUDE-CLI-TUI-3",
+    "prompt":  "or kya kar skte hai isme -\u003e user ne chuna: /key, /problem, drive chalu/band + /live, files /ls /find /copy /send",
+    "startTime":  "2026-11-17T02:57:16.0801274+05:30",
+    "backupDir":  "2026-11-17_0257_cli-key-problem-live-files",
+    "fileCount":  638
+}

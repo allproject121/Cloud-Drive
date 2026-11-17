@@ -282,11 +282,25 @@ public class MountPlanningTests
         // A small chunk keeps a small read small: Windows reads an archive's file list from the END of the file, and
         // with a 32 MiB chunk that single probe pulled 32 MiB (measured: 21.5 s instead of 5.3 s).
         Assert.Contains("--vfs-read-chunk-size 4Mi", a);
-        // The chunk size limit must equal the chunk size: rclone doubles the chunk on every read, and a growing
-        // chunk turns one small probe into a huge one. Measured on the real drive, reading the END of a 460 MB
-        // archive (all Windows needs to list it): limit 256 MiB -> 38.4 s, limit 4 MiB -> 4.3 s, same ~0.8 MB of
-        // data coming down either way.
-        Assert.Contains("--vfs-read-chunk-size-limit 4Mi", a);
+        // The chunk grows while one stream is read on (no upper limit), so a big file needs a handful of requests
+        // instead of one per 4 MiB: each request can be refused by Google's quota, and each refusal makes rclone
+        // sleep. Measured on the real drive with the limit at 4 MiB: a 54 MB file took 259 s on a 9.25 MB/s line.
+        Assert.Contains("--vfs-read-chunk-size-limit off", a);
+        Assert.DoesNotContain("--vfs-read-chunk-size-limit 4Mi", a);
+    }
+
+    [Theory]
+    [InlineData(0, 2)]
+    [InlineData(1, 4)]
+    [InlineData(4, 32)]
+    [InlineData(5, 120)]   // the quick tries are used up: slowly from here on
+    [InlineData(500, 120)] // and it never stops trying
+    public void A_drive_that_went_away_is_tried_again_for_ever_first_quickly_then_slowly(int recentRestarts, int expectedSeconds)
+    {
+        // "Connect once, it stays": before, the fifth failure in ten minutes ended the retries for good, so a PC
+        // that started without internet had no drive until someone connected it by hand.
+        var delay = RcloneMountService.NextRestartDelay(recentRestarts, maxRestarts: 5, slowDelay: TimeSpan.FromMinutes(2));
+        Assert.Equal(TimeSpan.FromSeconds(expectedSeconds), delay);
     }
 
     [Fact]

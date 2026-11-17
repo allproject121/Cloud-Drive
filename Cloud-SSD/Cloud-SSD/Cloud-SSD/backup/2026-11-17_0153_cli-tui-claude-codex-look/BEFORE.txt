@@ -1,0 +1,9 @@
+﻿Work: cli-tui-claude-codex-look
+Agent: Claude Code
+TaskId: TASK-CLAUDE-CLI-TUI
+Source as it was before the work started: 631 files, 12.9 MB.
+Taken: 2026-11-17 01:53
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-17_0153_cli-tui-claude-codex-look"
+and write complete\README.md.

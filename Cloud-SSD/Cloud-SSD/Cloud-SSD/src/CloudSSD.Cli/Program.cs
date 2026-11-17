@@ -1,234 +1,186 @@
-using System.Diagnostics;
 using System.Text;
 using CloudSSD.App;
 using CloudSSD.Core;
 using CloudSSD.Diagnostics;
-using CloudSSD.Games;
-using CloudSSD.Mount;
 using CloudSSD.SimCloud;
 
 namespace CloudSSD.Cli;
 
+/// <summary>
+/// cloudssd / cpx. With no command it opens the interactive shell (<see cref="Shell"/>, laid out like Claude Code and
+/// Codex); with a command it runs that one command and returns, for scripts and for the app itself.
+/// </summary>
 public static class Program
 {
-    private const string Banner = """
-        +==============================================================================+
-        |   CLOUD-SSD  v0.9.0  -  Virtual Cloud Disk & Storage Engine                  |
-        |              Terminal Shell (Interactive Claude & Codex Style)               |
-        +==============================================================================+
-        """;
-
-    private const string Usage = """
-        cloudssd (or cpx) - Cloud-SSD command line & interactive terminal
-
-        USAGE:
-          cloudssd                     Start interactive terminal shell (Claude & Codex style)
-          cloudssd status              Show live virtual drives (Z:, Y:), storage & system health
-          cloudssd open [letter]       Open virtual drive in File Explorer (default: Z:)
-          cloudssd remotes             List configured Google Drive & cloud accounts
-          cloudssd mounts              List configured virtual drives and drive letters
-          cloudssd phone               Show connected & paired mobile devices (Android)
-          cloudssd cache               Show local SSD cache usage and disk safety status
-          cloudssd clean               Clean temporary files and stale cache safely
-          cloudssd mirror              Show cloud backup / mirror status
-          cloudssd start               Start Cloud-SSD desktop app in background
-          cloudssd stop                Gracefully stop running Cloud-SSD processes
-          cloudssd deps                Check WinFsp, rclone, and system prerequisites
-          cloudssd mount <id> [--letter X]
-                                       Mount a configured drive in the foreground (Ctrl+C to unmount)
-          cloudssd scan <folder> [--mbps 70]
-                                       Scan a game folder and print the compatibility report
-          cloudssd pe <file.exe>       Show PE architecture and imported DLLs
-          cloudssd profile <game-id>   Show learned access profile of a game
-          cloudssd simcloud --root <dir> [--port 8080] [--mbps 70] [--latency-ms 150]
-                                       Serve a folder as a throttled local test cloud
-          cloudssd secret emit-config-pass [--home dir]
-                                       Emit DPAPI-protected encryption key for rclone
-
-        Options:
-          --home <dir>                 Overrides the data folder (default: %LOCALAPPDATA%\Cloud-SSD).
-        """;
+    public static string Version
+    {
+        get
+        {
+            var v = typeof(Program).Assembly.GetName().Version;
+            return v is null ? "?" : $"{v.Major}.{v.Minor}.{v.Build}";
+        }
+    }
 
     public static async Task<int> Main(string[] args)
     {
         var home = Opt(args, "--home");
+        args = WithoutOption(args, "--home");
         var paths = new AppPaths(home);
+
+        // rclone runs "cpx secret emit-config-pass" to unlock the saved Google login and reads exactly what is
+        // printed: no colours, no encoding change, nothing else on the way.
+        if (args.Length > 0 && args[0] == "secret")
+            return await DispatchAsync(args, paths, Console.Out, Console.Error);
+
+        var vt = Ansi.TryEnableVirtualTerminal();
+        Ansi.Enabled = vt && !Ansi.NoColorRequested;
+        Ansi.Unicode = vt;
+        if (vt) Console.OutputEncoding = new UTF8Encoding(false);
 
         if (args.Length == 0)
         {
-            return await RunInteractiveShellAsync(paths);
+            if (vt && !Console.IsInputRedirected) return await new Shell(paths).RunAsync();
+            return await Shell.RunPlainAsync(paths);
         }
 
-        if (args[0] is "-h" or "--help" or "help")
+        if (args[0] is "-h" or "--help" or "help" or "/help" or "/?" or "?")
         {
-            Console.WriteLine(Usage);
+            Views.Help(Console.Out, shell: false);
             return 0;
         }
 
-        return await DispatchCommandAsync(args, paths);
-    }
-
-    private static async Task<int> RunInteractiveShellAsync(AppPaths paths)
-    {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine(Banner);
-        Console.ResetColor();
-
-        // Show brief startup summary
-        PrintQuickSummary(paths);
-
-        Console.WriteLine("Type 'help' for command list, or 'exit' to quit.\n");
-
-        while (true)
+        // "cloudssd drive kholo" works like "cloudssd open". Never for something that closes or deletes: a script line
+        // has nobody to answer "Yes / No".
+        if (CommandCatalog.Find(args[0]) is null &&
+            CommandCatalog.Understand(string.Join(" ", args)) is { } understood &&
+            CommandCatalog.Find(understood.Words[0]) is { Hidden: false } meant &&
+            meant.Name is not ("exit" or "clear"))
         {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("cloudssd");
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write(" > ");
-            Console.ResetColor();
-
-            var line = Console.ReadLine();
-            if (line == null) break;
-
-            line = line.Trim();
-            if (string.IsNullOrEmpty(line)) continue;
-
-            var tokens = SplitCommandLine(line);
-            if (tokens.Length == 0) continue;
-
-            var cmd = tokens[0].ToLowerInvariant();
-            if (cmd is "exit" or "quit" or "q")
+            if (meant.Confirm)
             {
-                Console.WriteLine("Bye!");
-                break;
+                Console.Error.WriteLine($"\"{string.Join(" ", args)}\" means {understood.Shown}. It closes or deletes something, so from the " +
+                                        $"command line it runs only when typed exactly: cloudssd {meant.Name}");
+                return 64;
             }
-
-            if (cmd is "cls" or "clear")
-            {
-                Console.Clear();
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine(Banner);
-                Console.ResetColor();
-                PrintQuickSummary(paths);
-                continue;
-            }
-
-            if (cmd is "help" or "?")
-            {
-                PrintInteractiveHelp();
-                continue;
-            }
-
-            try
-            {
-                await DispatchCommandAsync(tokens, paths);
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error: " + Redactor.Redact(ex.Message));
-                Console.ResetColor();
-            }
-            Console.WriteLine();
+            Console.Error.WriteLine($"({Ansi.Arrow} {understood.Shown})");
+            args = understood.Words;
         }
 
-        return 0;
-    }
-
-    private static void PrintQuickSummary(AppPaths paths)
-    {
         try
         {
-            var proc = Process.GetProcessesByName("Cloud-SSD").FirstOrDefault()
-                       ?? Process.GetProcessesByName("CloudPlayX").FirstOrDefault();
-            var statusStr = proc != null ? $"Online (PID: {proc.Id})" : "Stopped";
-            var statusColor = proc != null ? ConsoleColor.Green : ConsoleColor.Yellow;
-
-            Console.Write("  Status: ");
-            Console.ForegroundColor = statusColor;
-            Console.Write(statusStr);
-            Console.ResetColor();
-
-            var mountedLetters = DriveInfo.GetDrives()
-                .Where(d => d.IsReady && (d.DriveFormat.Contains("rclone", StringComparison.OrdinalIgnoreCase) ||
-                                          d.Name.StartsWith("Z", StringComparison.OrdinalIgnoreCase) ||
-                                          d.Name.StartsWith("Y", StringComparison.OrdinalIgnoreCase)))
-                .Select(d => $"{d.Name.TrimEnd('\\')} ({ByteSize.Format(d.TotalFreeSpace)} free)")
-                .ToList();
-
-            if (mountedLetters.Count > 0)
-            {
-                Console.Write("  |  Drives: ");
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.Write(string.Join(", ", mountedLetters));
-                Console.ResetColor();
-            }
-
-            Console.WriteLine();
-            Console.WriteLine("  Data Root: " + paths.DataRoot);
-            Console.WriteLine(new string('-', 78));
+            return await DispatchAsync(args, paths, Console.Out, Console.Error);
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback gracefully
+            Console.Error.WriteLine("Error: " + Redactor.Redact(ex.Message));
+            return 1;
         }
     }
 
-    private static void PrintInteractiveHelp()
+    /// <summary>
+    /// Runs one command. <paramref name="o"/> gets the answer, <paramref name="err"/> the "cannot do it" lines.
+    /// <paramref name="ct"/> is cancelled when the person stops waiting (Esc in the shell); <paramref name="progress"/>
+    /// receives "how far" lines for the spinner (/find, /copy).
+    /// </summary>
+    public static async Task<int> DispatchAsync(string[] args, AppPaths paths, TextWriter o, TextWriter err,
+        CancellationToken ct = default, IProgress<string>? progress = null)
     {
-        Console.WriteLine("""
-
-        AVAILABLE COMMANDS:
-          status (s)         Show live virtual drives (Z:, Y:), storage & system health
-          open [letter]      Open virtual drive in File Explorer (e.g. 'open Z:' or just 'open')
-          mounts (drives)    List configured virtual drives and drive letters
-          remotes (accounts) List configured Google Drive & cloud accounts
-          phone (devices)    Show connected & paired mobile devices (Android)
-          cache              Show local SSD cache usage and disk safety status
-          clean              Clean temporary files and stale cache safely
-          mirror (sync)      Show cloud backup / mirror status
-          start              Start Cloud-SSD desktop app in background
-          stop               Gracefully stop running Cloud-SSD processes
-          deps               Check WinFsp, rclone, and system prerequisites
-          scan <folder>      Scan a game folder and print compatibility analysis
-          pe <file.exe>      Inspect PE dependencies of an executable
-          clear (cls)        Clear terminal screen
-          exit (quit, q)     Exit terminal shell
-
-        """);
-    }
-
-    private static async Task<int> DispatchCommandAsync(string[] args, AppPaths paths)
-    {
-        var cmd = args[0].ToLowerInvariant();
-        switch (cmd)
+        var word = CommandCatalog.Clean(args[0]);
+        var name = CommandCatalog.Find(word)?.Name ?? word.ToLowerInvariant();
+        switch (name)
         {
-            case "status" or "s":
-                PrintStatus(paths);
+            case "status":
+                Views.Status(o, paths);
                 return 0;
 
+            case "live":
+                return await Live.PrintOnceAsync(o, paths, ct);
+
+            case "problem":
+                return await Problems.ShowAsync(o, paths, ct);
+
+            case "key":
+                Key.Write(o, await Key.ReadAsync(paths, ct));
+                return 0;
+
+            case "faststart":
+                try
+                {
+                    return await Views.FastStart(o, paths, ct);
+                }
+                catch (MissingMethodException)
+                {
+                    // This cpx next to an older installed app: its CloudSSD.Mount.dll does not have the new code yet.
+                    err.WriteLine(Ansi.Yellow("The installed PC app is an older version without this. Update the app once, then run it again."));
+                    return 1;
+                }
+
+            case "ls":
+                return Views.Wrap(() => Files.List(o, args.Length > 1 ? string.Join(" ", args[1..]) : ".", ct));
+
+            case "find":
+            {
+                var (query, where) = Files.ParseFind(args);
+                if (query.Length == 0) return NeedsArgument(err, "find", "<name>", "Give a name, e.g. /find photo  or  /find *.zip in Z:");
+                return Files.Find(o, paths, query, where, ct, progress);
+            }
+
+            case "copy":
+                if (args.Length < 3) return NeedsArgument(err, "copy", "<from> <to>", "e.g. /copy \"Z:\\Games\\game.zip\" downloads");
+                return await Files.CopyAsync(o, args[1], args[2], ct, progress);
+
+            case "connect":
+                if (args.Length < 2) return NeedsArgument(err, "connect", "<letter>", "e.g. /connect Z  (see /drives)");
+                return await AppLink.ConnectAsync(o, paths, args[1], ct);
+
+            case "disconnect":
+                if (args.Length < 2) return NeedsArgument(err, "disconnect", "<letter>", "e.g. /disconnect Z  (see /drives)");
+                return await AppLink.DisconnectAsync(o, paths, args[1], ct);
+
+            case "send":
+            {
+                var (what, device) = Files.SplitAt(args, "to");
+                if (what.Length == 0) return NeedsArgument(err, "send", "<file>", "e.g. /send \"D:\\Photos\\trip.jpg\"  or  /send downloads\\a.pdf to vivo");
+                return await AppLink.SendAsync(o, paths, what, device, ct);
+            }
+
             case "open":
-                return OpenDrive(args.Length > 1 ? args[1] : "Z:");
+                return Views.Open(o, args.Length > 1 ? args[1] : null);
 
-            case "start":
-                return StartApp();
+            case "drives":
+                Views.Drives(o, paths);
+                return 0;
 
-            case "stop":
-                return StopApp();
+            case "accounts":
+                await Views.Accounts(o, paths, ct);
+                return 0;
 
-            case "phone" or "devices":
-                PrintDevices(paths);
+            case "phone":
+                Views.Phones(o, paths);
                 return 0;
 
             case "cache":
-                PrintCache(paths);
+                Views.Cache(o, paths);
                 return 0;
 
             case "clean":
-                return CleanTempAndCache(paths);
+                return Views.Clean(o);
 
-            case "mirror" or "sync":
-                PrintMirror(paths);
+            case "mirror":
+                Views.Mirror(o, paths);
+                return 0;
+
+            case "start":
+                return Views.Start(o);
+
+            case "stop":
+                return Views.Stop(o);
+
+            case "deps":
+                return await Views.Deps(o, paths);
+
+            case "help":
+                Views.Help(o, shell: false);
                 return 0;
 
             case "secret" when args.Length > 1 && args[1] == "emit-config-pass":
@@ -236,404 +188,112 @@ public static class Program
                 var pass = SecretStore.Load(paths.ConfigPasswordFile);
                 if (pass is null)
                 {
-                    Console.Error.WriteLine("No configuration key found for this Windows user.");
+                    err.WriteLine("No configuration key found for this Windows user.");
                     return 1;
                 }
-                Console.Out.Write(pass);
+                o.Write(pass);
                 return 0;
             }
 
-            case "deps":
-            {
-                var rclone = await RcloneLocator.LocateAsync(null, paths.DataRoot);
-                var settings = new JsonSettingsStore(paths.SettingsFile).Load();
-                foreach (var d in DependencyChecker.CheckAll(rclone?.Path, rclone?.Version, paths.CacheRootFor(settings), settings.Cache.MinFreeSpaceBytes))
-                    Console.WriteLine($"[{d.State,-7}] {d.Name}: {d.Detail}{(d.Remedy != null ? $"\n           → {d.Remedy}" : "")}");
-                return 0;
-            }
+            case "scan":
+                if (args.Length < 2) return NeedsArgument(err, "scan", "<folder>", "Give the game folder, e.g. /scan \"D:\\Games\\My Game\"");
+                return Views.Scan(o, args[1], double.TryParse(Opt(args, "--mbps"), out var mbps) ? mbps : 70);
 
-            case "remotes" or "accounts":
-            {
-                await using var host = AppHost.Create(paths);
-                await host.InitializeAsync(restoreMounts: false);
-                foreach (var r in host.Remotes) Console.WriteLine($"{r.Name,-20} {r.Type}");
-                if (host.Remotes.Count == 0) Console.WriteLine("No cloud accounts configured. Connect cloud accounts in the Cloud-SSD app.");
-                return 0;
-            }
+            case "pe":
+                if (args.Length < 2) return NeedsArgument(err, "pe", "<file.exe>", "Give the program file, e.g. /pe \"D:\\Games\\game.exe\"");
+                return Views.Pe(o, args[1]);
 
-            case "mounts" or "drives":
-            {
-                var s = new JsonSettingsStore(paths.SettingsFile).Load();
-                foreach (var m in s.Mounts) Console.WriteLine($"{m.Id}  {m.DisplayName,-20} {m.RemoteSpec,-30} letter={m.DriveLetter ?? "auto"} auto={m.AutoMount}");
-                return 0;
-            }
+            case "profile":
+                if (args.Length < 2) return NeedsArgument(err, "profile", "<game-id>", "Give the game id from the PC app's Games page.");
+                return Views.Profile(o, paths, args[1]);
 
-            case "mount" when args.Length > 1:
-            {
-                await using var host = AppHost.Create(paths);
-                if (!host.TryAcquireInstanceLock())
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("Cloud-SSD is already running in background. Drives are mounted.");
-                    Console.WriteLine("Use 'cloudssd status' to view active drives, or 'cloudssd open' to explore.");
-                    Console.ResetColor();
-                    return 0;
-                }
-                await host.InitializeAsync(restoreMounts: false);
-                var def = host.Settings.Mounts.FirstOrDefault(m => m.Id == args[1] || m.DisplayName == args[1])
-                          ?? throw new ArgumentException($"No configured drive '{args[1]}'. See 'cloudssd mounts'.");
-                if (Opt(args, "--letter") is { } l) def.DriveLetter = l;
-                var s = await host.MountAsync(def);
-                Console.WriteLine($"Mounted {def.RemoteSpec} at {s.DriveLetter}:. Press Ctrl+C to unmount.");
-                var done = new TaskCompletionSource();
-                Console.CancelKeyPress += (_, e) => { e.Cancel = true; done.TrySetResult(); };
-                await done.Task;
-                await host.ShutdownAsync(keepMounts: false);
-                return 0;
-            }
-
-            case "scan" when args.Length > 1:
-            {
-                var scan = GameScanner.Scan(args[1]);
-                var mbps = double.TryParse(Opt(args, "--mbps"), out var v) ? v : 70;
-                var r = CompatibilityAnalyzer.Analyze(scan, null, mbps, null, 0);
-                if (r.Executable != null && PeInspector.TryRead(Path.Combine(args[1], r.Executable)) is { } pe)
-                    CompatibilityAnalyzer.AddDependencyIssues(r, DependencyResolver.Check(pe, Path.GetDirectoryName(Path.Combine(args[1], r.Executable))!, args[1]));
-                Console.WriteLine($"{scan.FileCount:N0} files, {ByteSize.Format(scan.TotalBytes)}, engine: {scan.Engine ?? "unknown"}, scanned in {scan.Elapsed.TotalSeconds:0.00} s");
-                Console.WriteLine("Executables:");
-                foreach (var e in scan.Executables) Console.WriteLine($"  [{e.Score,3}] {e.RelativePath} ({e.Reason})");
-                Console.WriteLine($"Markers: {string.Join(", ", scan.Markers)}");
-                Console.WriteLine($"Compatibility: {r.Summary}; recommended mode: {r.RecommendedMode}");
-                foreach (var i in r.Issues) Console.WriteLine($"  {i.Severity,-7} {i.Message}{(i.Suggestion != null ? $"\n          → {i.Suggestion}" : "")}");
-                return 0;
-            }
-
-            case "pe" when args.Length > 1:
-            {
-                var pe = PeInspector.TryRead(args[1]);
-                if (pe is null) { Console.Error.WriteLine("Not a readable PE file."); return 1; }
-                Console.WriteLine($"{pe.Machine} {pe.Subsystem} .NET={pe.IsDotNet}");
-                foreach (var i in pe.AllImports) Console.WriteLine("  " + i);
-                foreach (var d in DependencyResolver.Check(pe, Path.GetDirectoryName(Path.GetFullPath(args[1]))!, Path.GetDirectoryName(Path.GetFullPath(args[1]))!))
-                    Console.WriteLine($"  MISSING {d.Dll}: {d.Problem}{(d.Remedy != null ? " → " + d.Remedy : "")}");
-                return 0;
-            }
-
-            case "profile" when args.Length > 1:
-            {
-                var store = new CloudSSD.Streaming.ProfileStore(paths.DatabaseFile);
-                var s = store.Summary(args[1], TimeSpan.FromMinutes(2));
-                Console.WriteLine($"Sessions: {s.Sessions}, distinct blocks: {s.DistinctBlocks}, startup estimate: {ByteSize.Format(s.StartupBytesEstimate)}, last: {s.LastSession}");
-                foreach (var p in store.LoadPredictorStats(args[1]))
-                    Console.WriteLine($"  {p.Predictor,-12} issued {p.Issued} useful {p.Useful} wasted {p.Wasted} accuracy {(p.Accuracy is { } a ? a.ToString("P0") : "n/a")}{(p.Disabled ? " DISABLED" : "")}");
-                return 0;
-            }
+            case "mount":
+                if (args.Length < 2) return NeedsArgument(err, "mount", "<id> [--letter X]", "Give a drive id from /drives.");
+                return await MountAsync(args, paths, o);
 
             case "simcloud":
-            {
-                var root = Opt(args, "--root") ?? throw new ArgumentException("--root is required");
-                var port = int.TryParse(Opt(args, "--port"), out var p) ? p : 8080;
-                await using var server = new SimCloudServer(root, port)
-                {
-                    BandwidthMbps = double.TryParse(Opt(args, "--mbps"), out var mb) ? mb : 0,
-                    Latency = TimeSpan.FromMilliseconds(double.TryParse(Opt(args, "--latency-ms"), out var lat) ? lat : 0)
-                };
-                Console.WriteLine($"Serving {server.Root} at {server.Url} ({server.BandwidthMbps:0} Mbps, {server.Latency.TotalMilliseconds:0} ms). Ctrl+C to stop.");
-                var done = new TaskCompletionSource();
-                Console.CancelKeyPress += (_, e) => { e.Cancel = true; done.TrySetResult(); };
-                await done.Task;
-                Console.WriteLine($"Requests {server.Requests}, bytes sent {ByteSize.Format(server.BytesSent)}");
-                return 0;
-            }
+                return await SimCloudAsync(args, o);
 
             default:
-                Console.Error.WriteLine("Unknown command: " + cmd + "\nType 'cloudssd help' for usage.");
+                var guess = CommandCatalog.Closest(word);
+                err.WriteLine($"Unknown command: {word}{(guess != null ? $" (did you mean \"{guess}\"?)" : "")}");
+                err.WriteLine("Type 'cloudssd help' for the list.");
                 return 64;
         }
     }
 
-    private static void PrintStatus(AppPaths paths)
+    private static int NeedsArgument(TextWriter err, string name, string args, string hint)
     {
-        Console.WriteLine("\n" + new string('=', 78));
-        Console.WriteLine("                        CLOUD-SSD SYSTEM DASHBOARD                             ");
-        Console.WriteLine(new string('=', 78));
-
-        // 1. Process Status
-        var proc = Process.GetProcessesByName("Cloud-SSD").FirstOrDefault()
-                   ?? Process.GetProcessesByName("CloudPlayX").FirstOrDefault();
-        if (proc != null)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($" [Process]   RUNNING (PID: {proc.Id}, Memory: {ByteSize.Format(proc.WorkingSet64)})");
-            Console.ResetColor();
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(" [Process]   STOPPED (run 'cloudssd start' to launch background engine)");
-            Console.ResetColor();
-        }
-
-        var settings = new JsonSettingsStore(paths.SettingsFile).Load();
-
-        // 2. Virtual Drives
-        Console.WriteLine("\n [Virtual Drives]");
-        var virtualDrives = DriveInfo.GetDrives()
-            .Where(d => d.IsReady && (d.DriveFormat.Contains("rclone", StringComparison.OrdinalIgnoreCase) ||
-                                      d.Name.StartsWith("Z", StringComparison.OrdinalIgnoreCase) ||
-                                      d.Name.StartsWith("Y", StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-
-        if (virtualDrives.Count > 0)
-        {
-            foreach (var d in virtualDrives)
-            {
-                var letter = d.Name.TrimEnd('\\');
-                var def = settings.Mounts.FirstOrDefault(m => string.Equals(m.DriveLetter, letter, StringComparison.OrdinalIgnoreCase));
-                var name = def?.DisplayName ?? d.VolumeLabel;
-                if (string.IsNullOrWhiteSpace(name)) name = "Virtual Cloud Drive";
-
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.Write($"   * {d.Name} ");
-                Console.ResetColor();
-                Console.WriteLine($"[{name}]  {ByteSize.Format(d.TotalFreeSpace)} Free of {ByteSize.Format(d.TotalSize)}  ({d.DriveFormat})");
-            }
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine("   No virtual drives mounted currently.");
-            Console.ResetColor();
-        }
-
-        // 3. Cache Health
-        Console.WriteLine("\n [Local SSD Cache]");
-        try
-        {
-            var cDrive = new DriveInfo("C");
-            Console.WriteLine($"   * Host Drive C: {ByteSize.Format(cDrive.TotalFreeSpace)} Free of {ByteSize.Format(cDrive.TotalSize)} (Min reserve: {ByteSize.Format(settings.Cache.MinFreeSpaceBytes)})");
-            Console.WriteLine($"   * Cache Budget: {ByteSize.Format(settings.Cache.BudgetBytes)} (Path: {paths.CacheRootFor(settings)})");
-        }
-        catch { }
-
-        // 4. Accounts
-        Console.WriteLine("\n [Google Drive Accounts]");
-        if (settings.AccountEmails.Count > 0)
-        {
-            foreach (var kvp in settings.AccountEmails)
-            {
-                Console.WriteLine($"   * {kvp.Key,-12} -> {kvp.Value}");
-            }
-        }
-        else
-        {
-            Console.WriteLine("   * Accounts configured in rclone configuration");
-        }
-
-        // 5. Mobile Bridge
-        Console.WriteLine("\n [Mobile Bridge]");
-        Console.WriteLine($"   * Local Port: {settings.MobileBridge.Port} (Status: {(proc != null ? "Active" : "Offline")})");
-        if (settings.MobileBridge.PairedDevices.Count > 0)
-        {
-            foreach (var dev in settings.MobileBridge.PairedDevices)
-            {
-                var st = dev.IsBlocked ? "BLOCKED" : "PAIRED";
-                var lastSeenStr = dev.LastSeen != default ? dev.LastSeen.ToLocalTime().ToString("g") : "Never";
-                Console.WriteLine($"   * {dev.Name} ({dev.IpAddress ?? "unknown IP"}) [{st}] - Last seen: {lastSeenStr}");
-            }
-        }
-
-        Console.WriteLine(new string('=', 78) + "\n");
+        err.WriteLine(Ansi.Yellow($"{name} needs {args}.") + " " + hint);
+        return 64;
     }
 
-    private static int OpenDrive(string? letter)
+    /// <summary>Mounts one drive in this window until Ctrl+C.</summary>
+    private static async Task<int> MountAsync(string[] args, AppPaths paths, TextWriter o)
     {
-        var target = letter?.Trim().ToUpperInvariant() ?? "Z:";
-        if (!target.EndsWith(":")) target += ":";
-        target += "\\";
-
-        if (!Directory.Exists(target))
+        await using var host = AppHost.Create(paths);
+        if (!host.TryAcquireInstanceLock())
         {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"Notice: Drive {target} is not currently detected in Windows File System.");
-            Console.ResetColor();
-            return 1;
-        }
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"Opening {target} in Windows File Explorer...");
-        Console.ResetColor();
-        Process.Start(new ProcessStartInfo("explorer.exe", target) { UseShellExecute = true });
-        return 0;
-    }
-
-    private static int StartApp()
-    {
-        var proc = Process.GetProcessesByName("Cloud-SSD").FirstOrDefault()
-                   ?? Process.GetProcessesByName("CloudPlayX").FirstOrDefault();
-        if (proc != null)
-        {
-            Console.WriteLine($"Cloud-SSD is already running (PID: {proc.Id}).");
+            o.WriteLine(Ansi.Yellow("The Cloud-SSD app is running, and it already looks after the drives."));
+            o.WriteLine("See them with /status, or open one with /open.");
             return 0;
         }
-
-        var appPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Cloud-SSD", "Cloud-SSD.exe");
-        if (!File.Exists(appPath))
-        {
-            Console.Error.WriteLine($"Application executable not found at: {appPath}");
-            return 1;
-        }
-
-        Console.WriteLine("Launching Cloud-SSD in background...");
-        Process.Start(new ProcessStartInfo(appPath) { UseShellExecute = true });
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Cloud-SSD started successfully.");
-        Console.ResetColor();
+        await host.InitializeAsync(restoreMounts: false);
+        var def = host.Settings.Mounts.FirstOrDefault(m => m.Id == args[1] || m.DisplayName == args[1])
+                  ?? throw new ArgumentException($"No drive '{args[1]}'. See /drives for the ids.");
+        if (Opt(args, "--letter") is { } l) def.DriveLetter = l;
+        var s = await host.MountAsync(def);
+        o.WriteLine($"Mounted {def.RemoteSpec} at {s.DriveLetter}:. Press Ctrl+C to unmount.");
+        await WaitForCtrlC();
+        await host.ShutdownAsync(keepMounts: false);
+        o.WriteLine("Unmounted.");
         return 0;
     }
 
-    private static int StopApp()
+    private static async Task<int> SimCloudAsync(string[] args, TextWriter o)
     {
-        var list = Process.GetProcessesByName("Cloud-SSD").Concat(Process.GetProcessesByName("CloudPlayX")).ToList();
-        if (list.Count == 0)
+        var root = Opt(args, "--root") ?? throw new ArgumentException("--root <dir> is needed: the folder to serve.");
+        var port = int.TryParse(Opt(args, "--port"), out var p) ? p : 8080;
+        await using var server = new SimCloudServer(root, port)
         {
-            Console.WriteLine("Cloud-SSD is not running.");
-            return 0;
-        }
-
-        foreach (var p in list)
-        {
-            try
-            {
-                Console.WriteLine($"Closing Cloud-SSD (PID: {p.Id})...");
-                p.CloseMainWindow();
-                if (!p.WaitForExit(3000))
-                {
-                    p.Kill();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Could not stop process {p.Id}: {ex.Message}");
-            }
-        }
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Cloud-SSD stopped.");
-        Console.ResetColor();
+            BandwidthMbps = double.TryParse(Opt(args, "--mbps"), out var mb) ? mb : 0,
+            Latency = TimeSpan.FromMilliseconds(double.TryParse(Opt(args, "--latency-ms"), out var lat) ? lat : 0)
+        };
+        o.WriteLine($"Serving {server.Root} at {server.Url} ({server.BandwidthMbps:0} Mbps, {server.Latency.TotalMilliseconds:0} ms). Ctrl+C to stop.");
+        await WaitForCtrlC();
+        o.WriteLine($"Requests {server.Requests}, bytes sent {ByteSize.Format(server.BytesSent)}");
         return 0;
     }
 
-    private static void PrintDevices(AppPaths paths)
+    /// <summary>Waits for one Ctrl+C. The handler is removed afterwards, so running mount twice in the shell works.</summary>
+    private static async Task WaitForCtrlC()
     {
-        var settings = new JsonSettingsStore(paths.SettingsFile).Load();
-        Console.WriteLine("\n[Connected & Paired Android Devices]");
-        if (settings.MobileBridge.PairedDevices.Count == 0)
-        {
-            Console.WriteLine("No mobile devices currently paired.");
-            return;
-        }
-
-        foreach (var dev in settings.MobileBridge.PairedDevices)
-        {
-            Console.WriteLine($"Device:      {dev.Name}");
-            Console.WriteLine($"ID:          {dev.Id}");
-            Console.WriteLine($"IP Address:  {dev.IpAddress ?? "unknown"}");
-            Console.WriteLine($"Paired At:   {dev.PairedAt.ToLocalTime():g}");
-            Console.WriteLine($"Last Seen:   {(dev.LastSeen != default ? dev.LastSeen.ToLocalTime().ToString("g") : "Never")}");
-            Console.WriteLine($"When-Off:    PC={dev.WhenOffPc}, Device={dev.WhenOffDevice}");
-            Console.WriteLine($"Transferred: To: {ByteSize.Format(dev.BytesToDevice)} | From: {ByteSize.Format(dev.BytesFromDevice)}");
-            Console.WriteLine($"Status:      {(dev.IsBlocked ? "BLOCKED" : "ACTIVE")}");
-            Console.WriteLine(new string('-', 50));
-        }
-    }
-
-    private static void PrintCache(AppPaths paths)
-    {
-        var settings = new JsonSettingsStore(paths.SettingsFile).Load();
-        var cacheRoot = paths.CacheRootFor(settings);
-        Console.WriteLine("\n[Local SSD Cache Configuration]");
-        Console.WriteLine($"Cache Root:            {cacheRoot}");
-        Console.WriteLine($"Budget:                {ByteSize.Format(settings.Cache.BudgetBytes)}");
-        Console.WriteLine($"Minimum Free Reserve:  {ByteSize.Format(settings.Cache.MinFreeSpaceBytes)}");
-        Console.WriteLine($"Max Age:               {settings.Cache.MaxAge}");
-        Console.WriteLine($"Write-back Delay:      {settings.Cache.WriteBack}");
-
+        var done = new TaskCompletionSource();
+        ConsoleCancelEventHandler handler = (_, e) => { e.Cancel = true; done.TrySetResult(); };
+        Console.CancelKeyPress += handler;
         try
         {
-            var drive = new DriveInfo(Path.GetPathRoot(cacheRoot) ?? "C:");
-            Console.WriteLine($"Drive ({drive.Name}):         {ByteSize.Format(drive.TotalFreeSpace)} Free of {ByteSize.Format(drive.TotalSize)}");
+            await done.Task;
         }
-        catch { }
+        finally
+        {
+            Console.CancelKeyPress -= handler;
+        }
     }
 
-    private static int CleanTempAndCache(AppPaths paths)
-    {
-        Console.WriteLine("Running safe cleanup of old temporary files...");
-        try
-        {
-            var res = TempCleanup.Clean(TempCleanup.UserTempDirectory, DateTime.UtcNow);
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Clean complete: Removed {res.Files} temporary files ({ByteSize.Format(res.Bytes)} freed).");
-            Console.ResetColor();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Notice: {ex.Message}");
-        }
-        return 0;
-    }
-
-    private static void PrintMirror(AppPaths paths)
-    {
-        var settings = new JsonSettingsStore(paths.SettingsFile).Load();
-        Console.WriteLine("\n[Cloud Mirror & Offload Status]");
-        Console.WriteLine($"Account:       {settings.Mirror.Account}");
-        Console.WriteLine($"State:         {(settings.Mirror.Paused ? "PAUSED" : "ACTIVE")}");
-        Console.WriteLine($"Include System:{settings.Mirror.IncludeSystem}");
-        Console.WriteLine($"Keep Trash:    {settings.Mirror.KeepTrashDays} days");
-        Console.WriteLine($"Smart Offload: {(settings.SmartOffload.Enabled ? "ENABLED" : "DISABLED")}");
-        Console.WriteLine($"Last Offload:  {(settings.SmartOffload.LastOffloadTime.HasValue ? settings.SmartOffload.LastOffloadTime.Value.ToLocalTime().ToString("g") : "Never")}");
-        Console.WriteLine($"Offloaded:     {ByteSize.Format(settings.SmartOffload.TotalBytesOffloaded)}");
-    }
-
-    private static string[] SplitCommandLine(string input)
-    {
-        var list = new List<string>();
-        var inQuotes = false;
-        var current = new StringBuilder();
-
-        foreach (var c in input)
-        {
-            if (c == '"')
-            {
-                inQuotes = !inQuotes;
-            }
-            else if (char.IsWhiteSpace(c) && !inQuotes)
-            {
-                if (current.Length > 0)
-                {
-                    list.Add(current.ToString());
-                    current.Clear();
-                }
-            }
-            else
-            {
-                current.Append(c);
-            }
-        }
-
-        if (current.Length > 0)
-        {
-            list.Add(current.ToString());
-        }
-
-        return list.ToArray();
-    }
-
-    private static string? Opt(string[] args, string name)
+    internal static string? Opt(string[] args, string name)
     {
         var i = Array.IndexOf(args, name);
         return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
+    }
+
+    /// <summary>The arguments without "name value" (so "cpx --home D:\x status" runs "status").</summary>
+    internal static string[] WithoutOption(string[] args, string name)
+    {
+        var i = Array.IndexOf(args, name);
+        if (i < 0) return args;
+        var list = args.ToList();
+        list.RemoveRange(i, Math.Min(2, list.Count - i));
+        return list.ToArray();
     }
 }

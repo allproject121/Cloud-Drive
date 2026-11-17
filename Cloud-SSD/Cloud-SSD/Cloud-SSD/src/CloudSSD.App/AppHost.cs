@@ -44,6 +44,7 @@ public sealed class AppHost : IAsyncDisposable
         MobileBridge = new LocalMobileBridgeService(this, LoggerFactory.CreateLogger<LocalMobileBridgeService>());
         Offloader = new SmartStorageOffloaderService(this, LoggerFactory.CreateLogger<SmartStorageOffloaderService>());
         Mirror = new Mirror.DeviceMirrorService(this, LoggerFactory.CreateLogger<Mirror.DeviceMirrorService>());
+        Hybrid = new Hybrid.HybridDriveService(this, LoggerFactory.CreateLogger<Hybrid.HybridDriveService>());
         Space = new SpaceService(this);
         Engine = new StreamingEngine(Settings.Streaming, Settings.Network, Profiles,
             new MountReadExecutor(id => Mounts.Get(id) is { State: MountState.Mounted } s ? s.Root : null, id => Mounts.Get(id)?.Attribution),
@@ -56,9 +57,15 @@ public sealed class AppHost : IAsyncDisposable
 
         Archives = new ArchiveWarmer(
             id => Mounts.Get(id) is { State: MountState.Mounted } s ? s.Root : null, id => Mounts.Get(id)?.Attribution,
-            // Never while a game runs (its reads come first) or while the cache disk is short of space.
-            () => _diskPressure || CurrentLaunch is { State: LaunchState.Running }, LoggerFactory.CreateLogger<ArchiveWarmer>());
+            // Never while a game runs (its reads come first) or while the cache disk is short of space - and not
+            // while the provider is refusing requests: fetching ahead for a folder of 20 archives is 40 requests,
+            // each refusal makes rclone sleep longer (up to 16 s), and the file the user just double-clicked waits
+            // behind all of them (measured: a file took 85 s only to open while this was fetching for its folder).
+            () => _diskPressure || CurrentLaunch is { State: LaunchState.Running } || Mounts.RateLimitedWithin(ArchiveWarmer.QuietAfterRateLimit),
+            LoggerFactory.CreateLogger<ArchiveWarmer>());
         Mounts.DirectoryListed += Archives.OnDirectoryListed;
+        ExplorerFolders = new ExplorerFolderWatcher(OnExplorerFolder, LoggerFactory.CreateLogger<ExplorerFolderWatcher>());
+        Speed = new SpeedGuard(this, LoggerFactory.CreateLogger<SpeedGuard>());
         Mounts.ReadObserved += Engine.OnAccess;
         Mounts.LookupObserved += (mount, path, off, present, pre) => Engine.OnLookup(mount, path, off, present, pre);
         Mounts.StatusChanged += s =>
@@ -101,6 +108,54 @@ public sealed class AppHost : IAsyncDisposable
     public MetricsCollector Metrics { get; }
     public PinKeeper Pins { get; }
     public ArchiveWarmer Archives { get; }
+    /// <summary>Which folders File Explorer shows right now (so their files are fetched ahead); started by the desktop app only.</summary>
+    public ExplorerFolderWatcher ExplorerFolders { get; }
+    /// <summary>The speed check: measures at start, every few hours and on request that the drive is still fast, and says so when it is not.</summary>
+    public SpeedGuard Speed { get; }
+
+    /// <summary>
+    /// A folder that is open in File Explorer: when it is on a cloud drive (directly, or through a link of the fast
+    /// drive), its files are fetched ahead. Folders on this PC's own disks need nothing.
+    /// </summary>
+    private void OnExplorerFolder(string path)
+    {
+        if (CloudPlaceOf(path) is { } place) Archives.OnDirectoryListed(place.MountId, place.Dir);
+    }
+
+    /// <summary>Which cloud drive and which folder in it a Windows path is; null when it is not on a cloud drive.</summary>
+    public (string MountId, string Dir)? CloudPlaceOf(string path)
+    {
+        foreach (var hop in new[] { path, ThroughFastDrive(path) })
+        {
+            if (hop is null) continue;
+            foreach (var s in Mounts.Sessions)
+                if (s.State == MountState.Mounted && hop.StartsWith(s.Root, StringComparison.OrdinalIgnoreCase))
+                    return (s.Id, hop[s.Root.Length..].Replace('\\', '/').Trim('/'));
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// A path inside the fast drive ("Z:\Photos\Trip", or the folder behind the letter) whose first folder is a link
+    /// to the cloud drive, rewritten to where the link points ("X:\Photos\Trip"). Null for anything else.
+    /// </summary>
+    private string? ThroughFastDrive(string path)
+    {
+        var st = Hybrid.Status;
+        if (!st.Enabled) return null;
+        var roots = new[] { st.Letter + "\\", st.Root.TrimEnd('\\') + "\\" };
+        var root = roots.FirstOrDefault(r => r.Length > 1 && path.StartsWith(r, StringComparison.OrdinalIgnoreCase));
+        if (root is null) return null;
+        var parts = path[root.Length..].Split('\\', 2, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return null;
+        try
+        {
+            var first = new DirectoryInfo(Path.Combine(st.Root, parts[0]));
+            if (first.LinkTarget is not { } target) return null;
+            return parts.Length == 1 ? target : Path.Combine(target, parts[1]);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+    }
     public LocalMobileBridgeService MobileBridge { get; }
 
     private Remote.RemotePcManager? _remotePcs;
@@ -118,6 +173,8 @@ public sealed class AppHost : IAsyncDisposable
     public SmartStorageOffloaderService Offloader { get; }
     /// <summary>"Files when it is off": the copy of this PC's own files in the cloud (runs only while a device and this PC both said yes).</summary>
     public Mirror.DeviceMirrorService Mirror { get; }
+    /// <summary>The "fast drive": the drive letter is a folder on this PC, uploaded behind (off unless switched on in Cloud Drives).</summary>
+    public Hybrid.HybridDriveService Hybrid { get; }
     /// <summary>Space &amp; RAM: where the disks' space and the RAM go, live; started by the desktop app (not by the command line).</summary>
     public SpaceService Space { get; }
     /// <summary>RAM auto mode and game mode. Kept here, not in a page, so the Dashboard can show what they last did.</summary>
@@ -181,8 +238,13 @@ public sealed class AppHost : IAsyncDisposable
         {
             foreach (var s in await Mounts.AdoptExistingAsync(ct))
                 CacheIndex.Register(s.Id, s.CacheDir, s.Definition.RemotePath);
+            // The fast drive takes its letter first, so a cloud drive looking for a free letter does not sit on it.
+            if (restoreMounts) Hybrid.ClaimLetter();
             if (restoreMounts) await RestoreMountsAsync(ct);
         }
+        if (restoreMounts) Hybrid.Start();
+        if (restoreMounts) ExplorerFolders.Start();
+        if (restoreMounts) Speed.Start();
         if (Settings.MobileBridge.Enabled) MobileBridge.Start();
         Metrics.Start();
         StateChanged?.Invoke();
@@ -215,7 +277,13 @@ public sealed class AppHost : IAsyncDisposable
         if (Rclone is null) return;
         try
         {
-            var listed = await RcloneConfig.ListRemotesAsync(Rclone, ct);
+            // "Connected once, connected for good": an accounts file that went missing, empty or unreadable (several
+            // rclone processes write it without a lock) is put back from the last good copy before anything reads it.
+            RcloneConfig.RestoreIfLost();
+            IReadOnlyList<RemoteEntry> listed;
+            try { listed = await RcloneConfig.ListRemotesAsync(Rclone, ct); }
+            catch (InvalidOperationException) when (RcloneConfig.RestoreUnreadable()) { listed = await RcloneConfig.ListRemotesAsync(Rclone, ct); }
+            await RcloneConfig.RememberGoodAsync(Rclone, listed, ct);
             var dump = await RcloneConfig.DumpAsync(Rclone, ct);
             // rclone refuses a union of one account, so with a single account the "All Accounts" remote is an alias of
             // that account (see CombinedRemoteSpec). Everywhere else it is treated as what it stands for: a combined
@@ -229,8 +297,32 @@ public sealed class AppHost : IAsyncDisposable
                 .ToDictionary(u => u.Name, u => RcloneConfigService.UpstreamRemotes(u.Upstreams));
             // Forget accounts that were disconnected; newly connected ones appear after RefreshAccountsAsync.
             Accounts = Accounts.Where(a => Remotes.Any(r => r.Name == a.Key)).ToDictionary(a => a.Key, a => a.Value);
+            // Drives right after the PC starts: an account whose root folder id is not saved yet (a newly connected
+            // one) gets it saved once, in the background; see RcloneConfigService.SaveRootFolderIdsAsync.
+            if (RcloneConfigService.DriveRemotesWithoutRootId(dump).Count > 0) SaveRootFolderIdsInBackground();
         }
         catch (Exception e) { _log.LogWarning("Listing rclone remotes failed: {Error}", e.Message); }
+    }
+
+    private int _rootIdsBusy;
+    private DateTime _rootIdsTriedAt = DateTime.MinValue;
+
+    /// <summary>
+    /// Never waited for, one run at a time, and at most every ten minutes: under the shared Google key each lookup
+    /// can be held back by Google, and asking again and again would only use up the same quota the drives need.
+    /// </summary>
+    private void SaveRootFolderIdsInBackground()
+    {
+        if (Rclone is not { } rclone) return;
+        if (DateTime.UtcNow - _rootIdsTriedAt < TimeSpan.FromMinutes(10)) return;
+        if (Interlocked.Exchange(ref _rootIdsBusy, 1) == 1) return;
+        _rootIdsTriedAt = DateTime.UtcNow;
+        _ = Task.Run(async () =>
+        {
+            try { await RcloneConfig.SaveRootFolderIdsAsync(rclone); }
+            catch (Exception e) { _log.LogDebug("Saving root folder ids failed: {Error}", e.Message); }
+            finally { Interlocked.Exchange(ref _rootIdsBusy, 0); }
+        });
     }
 
     /// <summary>
@@ -694,7 +786,10 @@ public sealed class AppHost : IAsyncDisposable
         if (_remotePcs != null) await _remotePcs.DisposeAsync();
         _diskTimer?.Dispose();
         Mirror.Dispose();
+        Hybrid.Dispose();
         Space.Dispose();
+        Speed.Dispose();
+        ExplorerFolders.Dispose();
         Archives.Dispose();
         Pins.Dispose();
         Metrics.Dispose();

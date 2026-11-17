@@ -16,4 +16,7 @@
     <ProjectReference Include="..\CloudSSD.SimCloud\CloudSSD.SimCloud.csproj" />
     <ProjectReference Include="..\CloudSSD.App\CloudSSD.App.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="CloudSSD.Tests" />
+  </ItemGroup>
 </Project>

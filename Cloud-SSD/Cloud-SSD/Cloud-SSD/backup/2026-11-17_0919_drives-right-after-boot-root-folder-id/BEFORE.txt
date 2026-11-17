@@ -1,0 +1,9 @@
+﻿Work: drives-right-after-boot-root-folder-id
+Agent: Claude Code
+TaskId: TASK-CLAUDE-FASTSTART
+Source as it was before the work started: 645 files, 13.2 MB.
+Taken: 2026-11-17 09:20
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-17_0919_drives-right-after-boot-root-folder-id"
+and write complete\README.md.

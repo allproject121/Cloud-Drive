@@ -486,8 +486,11 @@
         <div class="perm-row-text"><div>More the PC may do</div><div class="perm-row-sub">Phone storage and RAM numbers, removing things, ringing this phone</div></div>${SVG.chevron}</div>` : '';
     if (peer || more) html += permGroup('What the PC may do on this phone', peer + more, 'You decide this here, and can stop it any time.');
     // 2b. Files when it is off: its own yes, needed here AND on the PC.
+    //     Also here: the PC's main folders kept on this phone itself (needs no cloud and no yes for cloud copies).
     const whenOff = whenOffRow();
-    if (whenOff) html += permGroup('Files when it is off', whenOff, 'It works only when this phone and the PC both say yes. You can stop it any time.');
+    const mainRow = mainFoldersRow();
+    if (whenOff || mainRow) html += permGroup('Files when it is off', mainRow + whenOff,
+      whenOff ? 'Copies in the cloud work only when this phone and the PC both say yes. You can stop it any time.' : 'Kept folders are copies on this phone. They update whenever the PC is on.');
     // 3. Android.
     if (isApp) html += permGroup('Android permissions', androidPermRows(), '');
     setText('perm-sub', link.pcName ? 'This phone and ' + link.pcName : 'This phone');
@@ -553,6 +556,88 @@
     syncWhenOff();
     if (isOpen('perm-sheet')) renderPermissions();
     toast(DATA.whenOffText(DATA.whenOffState(r.data), link.pcName));
+  }
+
+  // ---- the PC's main folders kept on this phone (no cloud, no Google key: a copy here, opened while the PC is off) ----
+  const mainKeep = { rows: [], seq: 0 };
+  function mainKept() {
+    const main = pcHome.data && pcHome.pc === link.pcId && Array.isArray(pcHome.data.main) ? pcHome.data.main : [];
+    ensureKept();
+    return main.filter(f => f.path && kept.pins.some(p => p.id === DATA.diskId(f.path))).length;
+  }
+  /** Its line in Permissions → "Files when it is off". Only with the app, a PC that is here and can serve its disks. */
+  function mainFoldersRow() {
+    if (!DATA || !DATA.diskId || !canKeep() || link.state !== 'online' || !pcHas('pc-main-folders') || !pcHas('fs-disk-roots')) return '';
+    const n = mainKept();
+    return `<div class="perm-row ${n ? 'on' : ''}">
+        <div class="perm-row-text"><div>Keep the PC's main folders on this phone</div><div class="perm-row-sub">${esc(n ? n + ' kept on this phone. They open here while the PC is off.' : 'Desktop, Documents, Pictures and more open here while the PC is off. No internet is needed.')}</div></div>
+        <button class="m3-tonal-btn" data-act="main-keep">Choose…</button>
+      </div>`;
+  }
+  async function openMainKeep() {
+    if (link.state !== 'online') { toast('Needs ' + (link.pcName || 'the PC') + ' · it is offline'); return; }
+    const seq = ++mainKeep.seq;
+    const r = await api('/api/pc/home', { timeout: 15000 }).catch(() => null);
+    if (seq !== mainKeep.seq) return;
+    if (!r || !r.ok || !r.data) { toast(r ? apiError(r, 'Could not ask the PC') : 'PC did not answer'); return; }
+    pcHome.data = r.data; pcHome.at = Date.now(); pcHome.pc = link.pcId;
+    const main = Array.isArray(r.data.main) ? r.data.main : [];
+    if (!main.some(f => f.shared && f.path)) {
+      toast(main.length ? 'Turn on "PC disks" in Cloud-SSD on the PC first (Phone → Permissions)' : 'The PC did not name its main folders');
+      return;
+    }
+    mainKeep.rows = main.filter(f => f.shared && f.path).map(f => ({ name: f.name, kind: f.kind, path: f.path, id: DATA.diskId(f.path), usage: null }));
+    renderMainKeep(true);
+    for (const row of mainKeep.rows) {
+      api('/api/fs/usage', { params: { path: row.id }, timeout: 60000 }).then(u => {
+        if (seq !== mainKeep.seq) return;
+        row.usage = u.ok && u.data ? u.data : { failed: apiError(u, 'Could not count it') };
+        if (isOpen('choice-sheet')) renderMainKeep(false);
+      }).catch(() => { if (seq === mainKeep.seq) { row.usage = { failed: 'PC did not answer' }; if (isOpen('choice-sheet')) renderMainKeep(false); } });
+    }
+  }
+  function renderMainKeep(open) {
+    ensureKept();
+    const free = phone.totals && phone.totals.storageFree > 0 ? phone.totals.storageFree : 0;
+    const list = mainKeep.rows.map(row => {
+      const own = kept.pins.find(p => p.id === row.id);
+      const u = row.usage;
+      const big = DATA.keepTooBig ? DATA.keepTooBig(u, free) : '';
+      const size = !u ? 'Counting…' : u.failed ? u.failed : (u.truncated ? 'More than ' : '') + fmtBytes(u.bytes) + ' · ' + u.files + (u.files === 1 ? ' file' : ' files');
+      return {
+        row, own, big, icon: QA_ICONS[row.kind] || SVG.folder, title: row.name,
+        sub: own ? 'Kept on this phone · ' + DATA.pinStatus(own, Date.now()) + ' · tap to remove' : big ? size + ' · ' + big : size,
+        fn: () => {
+          if (own) { unkeep(own).then(() => { if (isOpen('perm-sheet')) renderPermissions(); }); return; }
+          if (big) { toast(big); return; }
+          keep(row.id, { name: row.name, isFolder: true });
+          if (isOpen('perm-sheet')) renderPermissions();
+        }
+      };
+    });
+    const todo = list.filter(a => !a.own && !a.big && a.row.usage && !a.row.usage.failed);
+    const total = todo.reduce((n, a) => n + (a.row.usage.bytes || 0), 0);
+    const counting = mainKeep.rows.some(row => !row.usage);
+    const all = todo.length > 1 && !counting ? [{
+      icon: SVG.pin, title: 'Keep all ' + todo.length + ' folders',
+      sub: fmtBytes(total) + ' on this phone' + (free ? ' · ' + fmtBytes(free) + ' free' : ''),
+      fn: () => {
+        if (free && total > free - 500 * 1024 * 1024) { toast('Not enough room on this phone for all of them. Keep them one by one.'); return; }
+        todo.forEach(a => native.offlinePin(currentDeviceId(), a.row.id, a.row.name, true));
+        refreshKept();
+        toast(todo.length + ' folders will be kept on this phone');
+        rerenderSsd();
+        if (isOpen('perm-sheet')) renderPermissions();
+      }
+    }] : [];
+    const rows = all.concat(list);
+    if (open) { choiceSheet('Keep on this phone', rows); return; }
+    choices = rows;
+    $('choice-list').innerHTML = rows.map((a, i) => `
+      <div class="m3-sheet-row" data-act="choice-pick" data-i="${i}">
+        ${a.icon || ''}
+        <div class="m3-sheet-row-text"><div>${esc(a.title)}</div>${a.sub ? `<div class="m3-sheet-row-sub">${esc(a.sub)}</div>` : ''}</div>
+      </div>`).join('');
   }
 
   /** The other direction, in the same sheet: what the PC may see on this phone (this phone decides). */
@@ -2049,11 +2134,33 @@
     kept.used = st.used || 0;
   }
   function ensureKept() { if (canKeep() && kept.pc !== currentDeviceId()) refreshKept(); }
-  /** The drive id of a PC item ("cloudssd:Photos/a.jpg"), or null for what cannot be kept (PC disks). */
+  /**
+   * The drive id of a PC item ("cloudssd:Photos/a.jpg"; on the PC's own disk "disk-c:Users/me/Documents/a.pdf"),
+   * or null for what cannot be kept.
+   */
   function keepIdOf(f) {
     if (!f || f.src === 'phone') return null;
     if (isCloudId(f.path)) return f.path;
-    return window.CloudSsdFs ? window.CloudSsdFs.idOf(f.path) : null;
+    return (window.CloudSsdFs ? window.CloudSsdFs.idOf(f.path) : null) || diskIdOf(f.path);
+  }
+  /**
+   * A place on one of the PC's own disks as a drive id, when the PC serves its disks that way (read-only): such a
+   * folder can be kept on this phone, never changed from it. null for a cloud drive, the "From phone" folder, an older PC.
+   */
+  function diskIdOf(path) {
+    if (!DATA || !DATA.diskId || !pcHas('fs-disk-roots')) return null;
+    const pl = placeOf(path);
+    return pl && pl.disk ? DATA.diskId(path) : null;
+  }
+  /** The page's path of a kept item ("Z:\Photos", "C:\Users\me\Documents"), or '' when its drive is not known here. */
+  function pathOfKeepId(id) {
+    id = String(id || '');
+    if (DATA && DATA.isDiskId && DATA.isDiskId(id)) return DATA.diskPath(id);
+    const colon = id.indexOf(':');
+    const pl = colon > 0 ? ssdPlaces().find(p => p.id === id.slice(0, colon) && !p.drive) : null;
+    if (!pl) return '';
+    const rest = id.slice(colon + 1).split('/').filter(Boolean).join('\\');
+    return rest ? pl.root.replace(/\\+$/, '') + '\\' + rest : pl.root;
   }
   function keptPin(id) { ensureKept(); return id && canKeep() ? DATA.pinFor(kept.pins, id) : null; }
   /** The id of a kept copy of this file that may be used now: any copy while the PC is away, else the same version. */
@@ -2093,7 +2200,8 @@
   function syncActions(item) {
     if (!item.isFolder || !isApp || typeof native.folderSyncAdd !== 'function') return [];
     const id = keepIdOf(Object.assign({ src: 'cloud' }, item));
-    if (!id) return [];
+    // A sync writes to the PC folder too, and the PC's own disks are read-only from the phone.
+    if (!id || (DATA.isDiskId && DATA.isDiskId(id))) return [];
     const has = folderSyncs().find(p => p.pcFolder === id && p.pcId === currentDeviceId());
     if (has) return [{ icon: SVG.share, title: 'Synced with ' + has.phoneLabel, sub: syncStatus(has), fn: () => openSettings() }];
     return [{
@@ -2144,8 +2252,8 @@
     setText('offline-sub', kept.pins.length ? `${fmtBytes(kept.used)} on this phone` : 'Nothing kept yet');
     $('offline-list').innerHTML = kept.pins.length ? kept.pins.map((p, i) => `
       <div class="offline-row ${p.state === 'error' ? 'is-error' : ''}">
-        <div class="offline-row-icon">${p.dir ? SVG.folder : iconFor(p.name || '')}</div>
-        <div class="offline-row-text"><div class="offline-row-name">${esc(p.name || p.id)}</div><div class="offline-row-sub">${esc(DATA.pinStatus(p, now))}</div></div>
+        <div class="offline-row-icon" data-act="offline-open" data-i="${i}">${p.dir ? SVG.folder : iconFor(p.name || '')}</div>
+        <div class="offline-row-text" data-act="offline-open" data-i="${i}"><div class="offline-row-name" data-no-i18n>${esc(p.name || p.id)}</div><div class="offline-row-sub">${esc(DATA.pinStatus(p, now))}</div></div>
         <button class="m3-tonal-btn offline-row-btn" data-act="offline-remove" data-i="${i}">Remove</button>
       </div>`).join('')
       : '<div class="offline-empty">Open a folder of the PC, tap ⋮ on a folder or a file and choose “Keep offline”. It then opens on this phone even when the PC is off.</div>';
@@ -2622,7 +2730,8 @@
     const places = (st.drives || []).map(d => ({ root: d.driveLetter + '\\', label: `${d.driveLetter} ${d.displayName}`, cloud: true, mounted: d.isMounted, id: d.id }));
     // A current PC also serves this folder as the "received" drive, so it can be managed and kept offline like one.
     if (st.uploadDirectory) places.push({ root: st.uploadDirectory, label: 'From phone', cloud: false, mounted: true, id: pcHas('fs-local-roots') ? 'received' : undefined });
-    for (const d of ssd.localDrives) places.push({ root: d.root, label: `${d.driveLetter} PC disk`, cloud: false, mounted: true });
+    // The PC's own disks: browsed by Windows path; `disk` marks them so a folder can be kept on this phone (keepIdOf).
+    for (const d of ssd.localDrives) places.push({ root: d.root, label: `${d.driveLetter} PC disk`, cloud: false, mounted: true, disk: true });
     return places;
   }
   function placeOf(path) {
@@ -3236,12 +3345,17 @@
   /** A kept folder never opened here: its list as made from the copies on this phone (while the PC is away). */
   function keptList(path) {
     if (!canKeep() || !window.CloudSsdFs) return null;
-    const id = window.CloudSsdFs.idOf(path);
-    const pin = id && keptPin(id);
+    const id = keepIdOf({ path });
     const pl = placeOf(path);
-    if (!pin || (!pl && !isCloudId(path))) return null;
+    if (!id || (!pl && !isCloudId(path))) return null;
+    // Kept itself (or inside a kept folder); else a folder on the way down to kept ones: it shows only that way.
+    const pin = keptPin(id);
+    const below = pin || !DATA.pinsBelow ? [] : DATA.pinsBelow(kept.pins, id);
+    if (!pin && !below.length) return null;
     const toPath = (cid) => isCloudId(path) ? cid : pl.root.replace(/\\+$/, '') + '\\' + cid.slice(cid.indexOf(':') + 1).split('/').join('\\');
-    return Object.assign(DATA.keptListing(kept.files, id, toPath), { savedAt: pin.synced || 0 });
+    const list = DATA.keptListing(kept.files, id, toPath);
+    if (!pin && !list.folders.length && !list.files.length) return null;
+    return Object.assign(list, { savedAt: pin ? pin.synced || 0 : Math.max(0, ...below.map(p => p.synced || 0)) });
   }
   /** A folder on Google Drive, read by the app (PC off). */
   async function loadDriveFolder(path) {
@@ -3291,7 +3405,7 @@
     // On a cloud drive a folder can be renamed, moved and deleted (fs.js), so it gets a "more" button.
     const manage = !!window.CloudSsdFs && window.CloudSsdFs.canManage(ssd.path);
     // Kept on this phone: a folder can be kept (or let go) even while the PC is away.
-    const keepHere = canKeep() && !!window.CloudSsdFs && !!window.CloudSsdFs.idOf(ssd.path);
+    const keepHere = canKeep() && !!window.CloudSsdFs && !!keepIdOf({ path: ssd.path });
     const keptBadge = (item, isFolder) => {
       if (!keepHere) return '';
       const id = keepIdOf(Object.assign({ src: 'cloud' }, item));
@@ -3332,7 +3446,8 @@
     if (k !== 'images' && k !== 'videos') return '';
     if (isCloudId(f.path)) return cloudSource() === 'drive' ? 'http://cloudssd.cloud/thumb?id=' + encodeURIComponent(f.path) : '';
     if (!pcHas('fs-thumb') || !window.CloudSsdFs) return '';
-    const id = window.CloudSsdFs.idOf(f.path);
+    // Also for photos on the PC's own disk, which the PC serves as a read-only drive ("disk-c:…").
+    const id = window.CloudSsdFs.idOf(f.path) || diskIdOf(f.path);
     if (!id) return '';
     // In the app the picture comes through the app, which keeps it: it also shows while the PC is away, and the
     // page's image addresses never carry the key.
@@ -4194,12 +4309,25 @@
     'perm-ask': async (el) => { closeSheet('perm-sheet'); if (await askAccess([el.dataset.c])) openPermissions(); },
     'open-tethering': () => { try { native.openTetherSettings(); } catch (e) { toast('Open Settings → Hotspot & tethering → USB tethering'); } },
     'offline-remove': (el) => { const p = kept.pins[+el.dataset.i]; if (p) unkeep(p); },
+    // A kept folder opens in the Cloud SSD tab (a kept file: the folder it is in), with or without the PC.
+    'offline-open': (el) => {
+      const p = kept.pins[+el.dataset.i];
+      let path = p ? pathOfKeepId(p.id) : '';
+      if (path && !p.dir) path = path.slice(0, path.lastIndexOf('\\')) || path;
+      if (/^[A-Za-z]:$/.test(path)) path += '\\';
+      if (!path) { toast('Open it from the Cloud SSD tab'); return; }
+      closeSheet('offline-sheet');
+      ssd.level = 'device';
+      ssd.path = path;
+      if (activeTab !== 'ssd') switchTab('ssd', true); else openSsdTab();
+    },
     'peer-scope': (el) => { peer.scope = el.dataset.s; renderPeerScope(); },
     'peer-write': (el) => { peer.write = !!el.checked; },
     'peer-deny': () => peerAnswer(-1),
     'peer-hour': () => peerAnswer(60),
     'peer-always': () => peerAnswer(0),
     'whenoff-set': (el) => setWhenOff(el.dataset.on === '1'),
+    'main-keep': () => openMainKeep(),
     'peer-stop': () => { try { native.peerRevoke(currentDeviceId()); } catch (e) { } toast((link.pcName || 'The PC') + ' can no longer see this phone'); openPermissions(); },
     'peer-open': () => { closeSheet('perm-sheet'); showPeerAsk({ pc: currentDeviceId(), name: link.pcName }); },
     'inbox-accept': (el) => { const o = inbox.offers[+el.dataset.i]; if (o) acceptOffer(o); },

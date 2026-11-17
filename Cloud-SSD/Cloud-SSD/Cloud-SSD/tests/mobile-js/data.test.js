@@ -297,6 +297,47 @@ test('offline: a kept folder never opened here is listed from its copies', () =>
   assert.equal(root.files.length, 0);
 });
 
+test('offline: a place on the PC\'s own disk is named as a read-only drive id, and back', () => {
+  assert.equal(data.diskId('C:\\Users\\me\\Documents'), 'disk-c:Users/me/Documents');
+  assert.equal(data.diskId('D:\\'), 'disk-d:');
+  assert.equal(data.diskId('c:'), 'disk-c:');
+  assert.equal(data.diskId('C:\\Users\\me\\Documents\\'), 'disk-c:Users/me/Documents');   // a trailing slash changes nothing
+  assert.equal(data.diskId('cloudssd:Photos'), null);                                      // already a drive id
+  assert.equal(data.diskId('/storage/emulated/0/DCIM'), null);                             // a phone path
+  assert.equal(data.diskId(''), null);
+  assert.ok(data.isDiskId('disk-c:Users'));
+  assert.ok(!data.isDiskId('cloudssd:Users') && !data.isDiskId('received:a') && !data.isDiskId('disk-cc:a'));
+  assert.equal(data.diskPath('disk-c:Users/me/Documents'), 'C:\\Users\\me\\Documents');
+  assert.equal(data.diskPath('disk-c:'), 'C:\\');
+  assert.equal(data.diskPath('cloudssd:Photos'), null);
+  for (const p of ['C:\\', 'C:\\Users', 'E:\\a b\\c.d\\e']) assert.equal(data.diskPath(data.diskId(p)), p);
+});
+
+test('offline: the way down to kept folders of a PC disk shows while the PC is off', () => {
+  const pins = [{ id: 'disk-c:Users/me/Documents', synced: 5 }, { id: 'disk-c:Users/me/Pictures', synced: 9 }, { id: 'cloudssd:Photos', synced: 1 }];
+  assert.deepEqual(data.pinsBelow(pins, 'disk-c:').map(p => p.id), ['disk-c:Users/me/Documents', 'disk-c:Users/me/Pictures']);
+  assert.deepEqual(data.pinsBelow(pins, 'disk-c:Users/me').map(p => p.id), ['disk-c:Users/me/Documents', 'disk-c:Users/me/Pictures']);
+  assert.deepEqual(data.pinsBelow(pins, 'disk-c:Users/me/Documents'), []);                  // the pin itself is not "below"
+  assert.deepEqual(data.pinsBelow(pins, 'disk-c:Users/meg'), []);                           // a longer name beside it
+  // Its list is made from the copies: only the folders that lead to something kept.
+  const files = { 'disk-c:Users/me/Documents/a.pdf': [10, 1000], 'disk-c:Users/me/Pictures/2024/b.jpg': [5, 0] };
+  const toPath = (id) => data.diskPath(id);
+  assert.deepEqual(data.keptListing(files, 'disk-c:', toPath), { folders: [{ name: 'Users', path: 'C:\\Users' }], files: [] });
+  assert.deepEqual(data.keptListing(files, 'disk-c:Users/me', toPath).folders.map(f => f.path), ['C:\\Users\\me\\Documents', 'C:\\Users\\me\\Pictures']);
+  assert.deepEqual(data.keptListing(files, 'disk-c:Users/me/Documents', toPath).files, [{ name: 'a.pdf', path: 'C:\\Users\\me\\Documents\\a.pdf', size: 10, modified: 1000 }]);
+});
+
+test('offline: a folder too big to keep says why before anything is fetched', () => {
+  const GB = 1024 * 1024 * 1024;
+  assert.equal(data.keepTooBig({ files: 40, bytes: 200 * 1024 * 1024 }, 70 * GB), '');
+  assert.equal(data.keepTooBig({ files: 5000, bytes: 1 }, 70 * GB), '');
+  assert.match(data.keepTooBig({ files: 5001, bytes: 1 }, 70 * GB), /^Too many files \(5001\)/);
+  assert.equal(data.keepTooBig({ files: 10, bytes: 2 * GB }, 2 * GB), 'Not enough room on this phone');   // 500 MB always stays free
+  assert.equal(data.keepTooBig({ files: 10, bytes: 2 * GB }, 0), '');                                      // room not known: the app checks
+  assert.equal(data.keepTooBig(null, GB), '');
+  assert.equal(data.keepTooBig({ failed: 'PC did not answer' }, GB), '');
+});
+
 test('links: words for how the phone reached the PC, and which addresses are on a link the phone has', () => {
   assert.equal(data.linkLabel('usb'), 'USB cable');
   assert.equal(data.linkLabel('phone-hotspot'), "this phone's hotspot");

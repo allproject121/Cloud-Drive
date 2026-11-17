@@ -1,0 +1,31 @@
+﻿Work finished: 2026-11-17 02:28
+
+NEW files (1):
+  mobile-android\src\main\java\com\cloudssd\mobile\WhenOffStore.java
+
+CHANGED files (20):
+  mobile-android\src\main\assets\app.js
+  mobile-android\src\main\assets\data.js
+  mobile-android\src\main\assets\i18n-words.js
+  mobile-android\src\main\java\com\cloudssd\mobile\DriveBackend.java
+  mobile-android\src\main\java\com\cloudssd\mobile\GoogleAuth.java
+  mobile-android\src\main\java\com\cloudssd\mobile\MainActivity.java
+  mobile-android\src\main\java\com\cloudssd\mobile\OfflinePins.java
+  src\CloudSSD.App\LocalMobileBridgeService.Files.cs
+  src\CloudSSD.App\LocalMobileBridgeService.QuickAccess.cs
+  src\CloudSSD.App\LocalMobileBridgeService.Security.cs
+  src\CloudSSD.App\LocalMobileBridgeService.WhenOff.cs
+  src\CloudSSD.Desktop\wwwroot\mobile\app.js
+  src\CloudSSD.Desktop\wwwroot\mobile\data.js
+  src\CloudSSD.Desktop\wwwroot\mobile\i18n-words.js
+  src\CloudSSD.Mount\RcloneConfigService.cs
+  tests\CloudSSD.Tests\MobileBridgeSecurityTests.cs
+  tests\CloudSSD.Tests\QuickAccessTests.cs
+  tests\CloudSSD.Tests\WhenOffTests.cs
+  tests\mobile-js\data.test.js
+  tools\live-test\pc-close.ps1
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

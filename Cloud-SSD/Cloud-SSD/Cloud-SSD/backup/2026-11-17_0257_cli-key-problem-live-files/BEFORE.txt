@@ -1,0 +1,9 @@
+﻿Work: cli-key-problem-live-files
+Agent: Claude Code
+TaskId: TASK-CLAUDE-CLI-TUI-3
+Source as it was before the work started: 638 files, 13.1 MB.
+Taken: 2026-11-17 02:57
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-17_0257_cli-key-problem-live-files"
+and write complete\README.md.

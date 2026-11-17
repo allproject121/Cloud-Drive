@@ -480,6 +480,37 @@
   /** The pin that keeps this id (itself or a folder above it), or null. */
   function pinFor(pins, id) { return (pins || []).find(p => covers(p.id, id)) || null; }
 
+  /** The kept items that lie inside this id (a folder above them), so the way down to them can be shown. */
+  function pinsBelow(pins, id) { return (pins || []).filter(p => p.id !== id && covers(id, p.id)); }
+
+  /**
+   * A place on one of the PC's own disks as a drive id: "C:\Users\me\Documents" → "disk-c:Users/me/Documents".
+   * The PC serves such a drive read-only, so a folder of it can be kept on this phone. null for anything else.
+   */
+  function diskId(path) {
+    const m = /^([A-Za-z]):(?:[\\/](.*))?$/.exec(String(path || ''));
+    return m ? 'disk-' + m[1].toLowerCase() + ':' + (m[2] || '').split(/[\\/]+/).filter(Boolean).join('/') : null;
+  }
+  function isDiskId(id) { return /^disk-[a-z]:/i.test(String(id || '')); }
+  /** And back: "disk-c:Users/me/Documents" → "C:\Users\me\Documents" ("disk-c:" → "C:\"). null for another id. */
+  function diskPath(id) {
+    const m = /^disk-([a-z]):(.*)$/i.exec(String(id || ''));
+    return m ? m[1].toUpperCase() + ':\\' + m[2].split('/').filter(Boolean).join('\\') : null;
+  }
+
+  /** As in the app (OfflinePins): one kept folder holds at most this many files, and this much always stays free. */
+  const KEEP_MAX_FILES = 5000, KEEP_RESERVE = 500 * 1024 * 1024;
+  /**
+   * Why a folder cannot be kept on this phone as it is, or '' when it can. usage = {files, bytes} as the PC counted
+   * it; freeBytes = room on this phone (0 = not known: the app still checks before it fetches).
+   */
+  function keepTooBig(usage, freeBytes) {
+    if (!usage || usage.failed) return '';
+    if (usage.files > KEEP_MAX_FILES) return 'Too many files (' + usage.files + '): keep a smaller folder inside it';
+    if (freeBytes > 0 && usage.bytes > freeBytes - KEEP_RESERVE) return 'Not enough room on this phone';
+    return '';
+  }
+
   function msOf(t) { return typeof t === 'number' ? t : (Date.parse(t || '') || 0); }
 
   /** The kept copy ([size, modified]) is this version of the file: same size, and same time when both are known. */
@@ -766,7 +797,7 @@
     helloProof,
     diffNew, isNew, pickEvictions, fmtLastUpdate, matchName, listKey, trimRecord, migrateDirCache,
     createListStore, createSnapshots, createRegistry,
-    covers, pinFor, sameCopy, fmtSize, pinStatus, keptListing,
+    covers, pinFor, pinsBelow, diskId, isDiskId, diskPath, keepTooBig, sameCopy, fmtSize, pinStatus, keptListing,
     linkLabel, sameSubnet, accessName, grantText, safeFolder, peerText,
     friendlyPath, syncStatus, wakeHint,
     TRANSFER_KINDS, transferKind, groupTransfers, shareSavePath, offerSummary, taskLink, upsertTask, whenOffState, whenOffText, whenOffReady, whenOffReadyText, copyNote

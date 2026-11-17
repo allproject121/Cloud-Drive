@@ -319,13 +319,24 @@ final class OfflinePins {
         setState(pc, p.id, "syncing", null);
         // 1. What is in it now.
         List<DocInfo> files = new ArrayList<>();
+        boolean skipped = false;
         if (p.dir) {
             ArrayDeque<Object[]> queue = new ArrayDeque<>();
             queue.add(new Object[]{p.id, 0});
             while (!queue.isEmpty()) {
                 Object[] next = queue.poll();
                 int depth = (Integer) next[1];
-                for (DocInfo d : b.list((String) next[0])) {
+                List<DocInfo> kids;
+                try {
+                    kids = b.list((String) next[0]);
+                } catch (BackendException e) {
+                    // A folder inside it that Windows lets nobody read (on the PC's own disk), or that went away
+                    // meanwhile: it is left out and the rest is kept. The kept folder itself must answer.
+                    if (depth == 0 || (e.status != 403 && e.status != 404)) throw e;
+                    skipped = true;
+                    continue;
+                }
+                for (DocInfo d : kids) {
                     if (d.dir) {
                         if (depth + 1 < MAX_DEPTH) queue.add(new Object[]{d.id, depth + 1});
                     } else if (!d.exported && d.size >= 0) {
@@ -373,8 +384,8 @@ final class OfflinePins {
             progress(pc, p.id, files.size(), total, doneFiles, doneBytes, false);
         }
 
-        // 4. Files gone from the PC go here too.
-        if (p.dir) {
+        // 4. Files gone from the PC go here too (not after a folder inside could not be read: its copies stay).
+        if (p.dir && !skipped) {
             Set<String> keep = new HashSet<>();
             for (DocInfo d : files) keep.add(d.id);
             List<String> gone = new ArrayList<>();

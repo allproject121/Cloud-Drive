@@ -1,0 +1,18 @@
+﻿Work finished: 2026-11-17 13:57
+
+NEW files (4):
+  src\CloudSSD.App\Hybrid\DosDevice.cs
+  src\CloudSSD.App\Hybrid\HybridDriveService.cs
+  src\CloudSSD.App\Hybrid\HybridLayout.cs
+  tests\CloudSSD.Tests\HybridDriveTests.cs
+
+CHANGED files (4):
+  src\CloudSSD.App\AppHost.cs
+  src\CloudSSD.Core\Settings.cs
+  src\CloudSSD.Desktop\ViewModels\CloudDrivesViewModel.cs
+  src\CloudSSD.Desktop\Views\CloudDrivesView.xaml
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

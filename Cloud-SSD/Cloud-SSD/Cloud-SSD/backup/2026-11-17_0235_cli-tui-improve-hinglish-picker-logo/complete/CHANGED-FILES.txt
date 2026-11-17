@@ -1,0 +1,20 @@
+﻿Work finished: 2026-11-17 02:47
+
+NEW files (1):
+  src\CloudSSD.Cli\Logo.cs
+
+CHANGED files (9):
+  docs\CHALU_KAAM.md
+  docs\CLAUDE.md
+  README.md
+  src\CloudSSD.Cli\Ansi.cs
+  src\CloudSSD.Cli\Commands.cs
+  src\CloudSSD.Cli\Program.cs
+  src\CloudSSD.Cli\Shell.cs
+  src\CloudSSD.Cli\Views.cs
+  tests\CloudSSD.Tests\CliTuiTests.cs
+
+REMOVED files (0):
+
+The finished version of every new and changed file is in complete\files\ (same path as in the project).
+To go back to how it was: copy the same paths from before\ over the project, and delete the NEW files.

@@ -36,6 +36,34 @@
                 </StackPanel>
             </Border>
 
+            <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="Fast drive" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,8"
+                               Text="On: new files and folders are written to this PC first (as fast as the disk) and uploaded to the cloud behind. Installing a program is seconds instead of minutes. The folders already in the cloud stay where they are." />
+                    <TextBlock Text="{Binding HybridText}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding HybridItems}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Visibility="{Binding HybridItems.Length, Converter={StaticResource Vis}}" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="{Binding HybridButton}" Style="{StaticResource Primary}" Command="{Binding ToggleHybridCommand}" />
+                        <Button Content="Open the fast drive" Command="{Binding OpenHybridCommand}" Margin="12,0,0,0"
+                                Visibility="{Binding HybridOn, Converter={StaticResource Vis}}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="Speed check" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SpeedHead}" TextWrapping="Wrap" Margin="0,4,0,6" />
+                    <TextBlock Text="{Binding SpeedText}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Visibility="{Binding SpeedText.Length, Converter={StaticResource Vis}}" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Check the speed now" Command="{Binding CheckSpeedCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <TextBlock Text="Connected Cloud Drives" Style="{StaticResource H2}" />
             <TextBlock Text="No cloud drives yet. Connect an account: “Each Account” and “All Accounts” then appear by themselves." Style="{StaticResource Caption}" Margin="0,0,0,12"
                        Visibility="{Binding Drives.Count, Converter={StaticResource NotVis}}" />

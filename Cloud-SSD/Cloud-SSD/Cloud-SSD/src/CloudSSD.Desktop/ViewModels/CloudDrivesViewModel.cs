@@ -29,6 +29,92 @@ public sealed partial class CloudDrivesViewModel : PageViewModel
 {
     public CloudDrivesViewModel(AppHost host) : base(host, "Cloud Drives", "") { }
 
+    // ---- Fast drive (hybrid): the drive letter is a folder on this PC, uploaded behind ----
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HybridButton))] private bool _hybridOn;
+    [ObservableProperty] private string _hybridText = "";
+    [ObservableProperty] private string _hybridItems = "";
+    public string HybridButton => HybridOn ? "Switch the fast drive off" : "Switch the fast drive on";
+    private bool _hybridWatched;
+
+    private void UpdateHybrid()
+    {
+        // The fast drive reports from its own timer (links made, an upload started or ended); listen once.
+        if (!_hybridWatched)
+        {
+            _hybridWatched = true;
+            Host.Hybrid.Changed += () => Ui(UpdateHybrid);
+            Host.Speed.Changed += () => Ui(UpdateSpeed);
+            // A regular check found something that was fine before: say so where the person sees it (corner note + bell).
+            Host.Speed.ProblemFound += r => Notifier.Show("Speed check", r.Summary, "page:Cloud Drives", "warn");
+        }
+        UpdateSpeed();
+        var s = Host.Settings.Hybrid;
+        var st = Host.Hybrid.Status;
+        HybridOn = s.Enabled;
+        HybridText = s.Enabled ? st.Message : "Off: everything you write goes straight to the cloud drive (slow for installs: every new folder asks Google).";
+        HybridItems = !s.Enabled || st.Items.Count == 0 ? "" :
+            "On this PC: " + string.Join(" · ", st.Items.Take(8).Select(i => i.Name + (i.State switch
+            {
+                "uploaded" => " (in the cloud too)", "uploading" => " (uploading…)", "failed" => " (upload failed, trying again)", _ => " (waiting to upload)"
+            }))) + (st.Items.Count > 8 ? $" · and {st.Items.Count - 8} more" : "");
+    }
+
+    // ---- Speed check: is the drive still as fast as it was made? ----
+    [ObservableProperty] private string _speedText = "";
+    [ObservableProperty] private string _speedHead = "Not checked yet since the app started. It checks by itself a little after the start and every 3 hours.";
+
+    private void UpdateSpeed()
+    {
+        if (Host.Speed.Last is not { } r) return;
+        SpeedHead = (r.HasProblem ? "Something is slow" : "Fast") + $" — checked at {r.At:HH:mm}. The app checks by itself every 3 hours and tells you when this changes.";
+        SpeedText = string.Join("\n", r.Checks.Select(c => (c.State switch { "ok" => "✔ ", "warn" => "!  ", _ => "✖ " }) + c.Text));
+    }
+
+    [RelayCommand]
+    private async Task CheckSpeed()
+    {
+        SpeedHead = "Checking…";
+        await RunAsync(async () => { await Host.Speed.RunAsync(); });
+        UpdateSpeed();
+    }
+
+    [RelayCommand]
+    private async Task ToggleHybrid()
+    {
+        var s = Host.Settings.Hybrid;
+        if (s.Enabled)
+        {
+            var ok = Host.Hybrid.Disable(out var message);
+            Say(message, ok ? "ok" : "warn");
+            UpdateHybrid();
+            return;
+        }
+        var letter = string.IsNullOrWhiteSpace(s.Letter) ? "Z" : s.Letter.Trim()[..1].ToUpperInvariant();
+        if (!Confirm($"Switch the fast drive on?\n\n" +
+                     $"{letter}: becomes a folder on this PC ({s.RootOrDefault}). New files and folders are written there at the disk's own speed " +
+                     "and uploaded to the cloud behind. The folders already in the cloud show up in it as before.\n\n" +
+                     $"• {letter}: then shows this PC's free space, not the cloud's.\n" +
+                     "• What you make stays on this PC as well (it uses disk space here).\n" +
+                     $"• The cloud drive itself moves to {s.BackingLetter}: and reconnects once. Close programs that run from it first.",
+                "Fast drive")) return;
+        await RunAsync(async () =>
+        {
+            await Host.Hybrid.EnableAsync();
+            if (Host.Hybrid.CloudDriveHoldsLetter && await Host.Hybrid.MoveCloudDriveAsync() is { } why) Say(why, "warn");
+            else Say(Host.Hybrid.Status.Message, "ok");
+        });
+        OnStateChanged();
+    }
+
+    [RelayCommand]
+    private void OpenHybrid()
+    {
+        var root = Host.Settings.Hybrid.RootOrDefault;
+        var st = Host.Hybrid.Status;
+        var path = st.Enabled && st.LetterReady ? st.Letter + "\\" : root;
+        if (Directory.Exists(path)) Process.Start(new ProcessStartInfo("explorer.exe", path) { UseShellExecute = true });
+    }
+
     public ObservableCollection<AccountRow> Accounts { get; } = new();
     public ObservableCollection<DriveItem> Drives { get; } = new();
     public ObservableCollection<ProviderRow> ProviderRows { get; } = new(ProviderRegistry.All.Select(p => new ProviderRow(
@@ -91,6 +177,7 @@ public sealed partial class CloudDrivesViewModel : PageViewModel
         var shared = Host.SharedClientRemotes;
         Accounts.ReplaceWith(AccountText.Rows(Host));
         FastBrowsing = !Host.Settings.Cache.VfsCacheMode.Equals("writes", StringComparison.OrdinalIgnoreCase);
+        UpdateHybrid();
         SharedKeyNotice = shared.Count == 0 ? "" :
             $"{shared.Count} Google account(s) ({string.Join(", ", shared.Select(Host.AccountLabel))}) still sign in through rclone's shared Google login. rclone is retiring it during 2026; " +
             "when Google stops accepting it, these drives stop working. Switch them to your own Google key — your files and drive letters stay the same.";

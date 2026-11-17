@@ -117,7 +117,15 @@ public sealed partial class LocalMobileBridgeService
         return "folder";
     }
 
-    /// <summary>/api/pc/home: {pinned: [{name, path, kind}], hidden, pcDisks}: hidden = pinned folders the phone may not read.</summary>
+    /// <summary>Tests give the person's main folders (Desktop, Documents…) here.</summary>
+    internal Func<IReadOnlyList<QuickAccessFolder>>? MainFoldersOverride;
+
+    /// <summary>
+    /// /api/pc/home: {pinned: [{name, path, kind}], hidden, pcDisks, main: [{name, kind, shared, path?}]}.
+    /// hidden = pinned folders the phone may not read. main = the person's own folders (Desktop, Downloads, Documents,
+    /// Pictures, Music, Videos) whatever is pinned, so a phone can keep them on itself in one go and open them while
+    /// this PC is off; the path is told only for a folder the phone may read.
+    /// </summary>
     private object PcHome()
     {
         var pinned = new List<object>();
@@ -128,6 +136,13 @@ public sealed partial class LocalMobileBridgeService
             if (path is null || refusal != null) { hidden++; continue; }
             pinned.Add(new { name = f.Name, path = CleanPath(path), kind = QuickAccessKind(path) });
         }
-        return new { pinned, hidden, pcDisks = _host.Settings.MobileBridge.AllowPcDisks };
+        var main = new List<object>();
+        foreach (var f in MainFoldersOverride?.Invoke() ?? KnownFolders())
+        {
+            var (path, refusal) = ResolveShared(f.Path);
+            bool shared = path != null && refusal == null;
+            main.Add(new { name = f.Name, kind = QuickAccessKind(f.Path), shared, path = shared ? CleanPath(path!) : null });
+        }
+        return new { pinned, hidden, pcDisks = _host.Settings.MobileBridge.AllowPcDisks, main };
     }
 }

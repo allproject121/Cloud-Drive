@@ -48,6 +48,8 @@ public sealed class MountSession
     public long AuthErrors;
     public long NetworkErrors;
     public DateTime? LastNetworkError;
+    /// <summary>When the provider last answered "slow down" (Google: 403 quota / rate limit), in local time as rclone logged it.</summary>
+    public DateTime? LastRateLimit;
     public DateTime LastActivity = DateTime.Now;
 
     internal Process? Process;
@@ -105,9 +107,35 @@ public sealed class RcloneMountService : IAsyncDisposable
     /// <summary>(mountId, folder relative to the drive root) each time a program lists a folder of a drive.</summary>
     public event Action<string, string>? DirectoryListed;
 
-    /// <summary>Restart policy: at most this many automatic restarts within <see cref="RestartWindow"/>.</summary>
+    /// <summary>
+    /// Restart policy: up to this many quick restarts (2, 4, 8 … 60 s apart) within <see cref="RestartWindow"/>; after
+    /// that the drive is still tried again, only slowly (<see cref="SlowRestartDelay"/>). It never gives up.
+    /// </summary>
     public int MaxRestarts { get; set; } = 5;
     public TimeSpan RestartWindow { get; set; } = TimeSpan.FromMinutes(10);
+    /// <summary>Pause between tries once the quick restarts are used up.</summary>
+    public TimeSpan SlowRestartDelay { get; set; } = TimeSpan.FromMinutes(2);
+
+    /// <summary>
+    /// How long to wait before the next automatic restart of a drive. A drive the user connected stays connected
+    /// until the user disconnects it: the first tries come quickly, later ones slowly, and there is no last try.
+    /// Before, the fifth failure within ten minutes ended it ("Automatic restart disabled … Remount manually"), so a
+    /// PC that started without internet (Wi-Fi joins a minute after sign-in) or met a long Google quota block kept
+    /// no drive until someone opened the app and connected it by hand.
+    /// </summary>
+    public static TimeSpan NextRestartDelay(int recentRestarts, int maxRestarts, TimeSpan slowDelay) =>
+        recentRestarts >= maxRestarts ? slowDelay : TimeSpan.FromSeconds(Math.Min(60, 2 * Math.Pow(2, Math.Max(0, recentRestarts))));
+
+    /// <summary>
+    /// True when the cloud provider told any drive to slow down within the last <paramref name="window"/>. Background
+    /// work that only saves time later (fetching archives ahead) must wait then: every extra request makes rclone
+    /// sleep longer before the next one, and the request the user is waiting for queues behind it.
+    /// </summary>
+    public bool RateLimitedWithin(TimeSpan window)
+    {
+        var since = DateTime.Now - window;
+        lock (_sessions) return _sessions.Values.Any(s => s.LastRateLimit is { } t && t >= since);
+    }
 
     /// <summary>
     /// How long the drive letter may take to appear after rclone was started. The Google Drive API can
@@ -341,7 +369,7 @@ public sealed class RcloneMountService : IAsyncDisposable
         {
             case ProviderEventKind.Error: Interlocked.Increment(ref s.ProviderErrors); break;
             case ProviderEventKind.Retry: Interlocked.Increment(ref s.Retries); break;
-            case ProviderEventKind.RateLimited: Interlocked.Increment(ref s.RateLimitEvents); Interlocked.Increment(ref s.Retries); break;
+            case ProviderEventKind.RateLimited: Interlocked.Increment(ref s.RateLimitEvents); Interlocked.Increment(ref s.Retries); s.LastRateLimit = e.Timestamp; break;
             case ProviderEventKind.AuthError: Interlocked.Increment(ref s.AuthErrors); Interlocked.Increment(ref s.ProviderErrors); break;
             case ProviderEventKind.NetworkError: Interlocked.Increment(ref s.NetworkErrors); Interlocked.Increment(ref s.ProviderErrors); s.LastNetworkError = e.Timestamp; break;
         }
@@ -380,12 +408,12 @@ public sealed class RcloneMountService : IAsyncDisposable
         if (!MayRestart(s)) return;
         var now = DateTime.UtcNow;
         s.RestartTimes.RemoveAll(t => now - t > RestartWindow);
-        if (s.RestartTimes.Count >= MaxRestarts || _rclone is null)
+        if (_rclone is null)
         {
-            Publish(s, $"Automatic restart disabled after {s.RestartTimes.Count} crashes in {RestartWindow.TotalMinutes:0} min. Remount manually after checking Diagnostics.");
+            Publish(s, "rclone is missing, so the drive cannot be connected again by itself.");
             return;
         }
-        var delay = TimeSpan.FromSeconds(Math.Min(60, 2 * Math.Pow(2, s.RestartTimes.Count)));
+        var delay = NextRestartDelay(s.RestartTimes.Count, MaxRestarts, SlowRestartDelay);
         s.RestartTimes.Add(now);
         s.RestartCount++;
         Publish(s, $"Restarting mount in {delay.TotalSeconds:0} s (attempt {s.RestartCount})…");

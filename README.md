@@ -375,54 +375,157 @@ After pairing, the phone has its own 128-bit token; the PC stores only the token
 
 ## 💻 Interactive Terminal CLI (`cloudssd` & `cpx`)
 
-Cloud-SSD provides an interactive, terminal-native Command Line Interface (CLI) accessible directly from Windows Command Prompt (CMD), PowerShell, Windows Terminal, and developer agent sessions (Claude Code / Codex).
+Cloud-SSD has a terminal shell laid out like **Claude Code** and **Codex**: a welcome box with a gradient
+**CLOUD-SSD** logo and live vitals, a framed input line, a command list that opens when you type `/`, answers shown as
+`● Heading` with `└` under it, a spinner while a command works, earlier commands on `↑` `↓` (kept between runs), and a
+**Yes / No question** before anything that closes or deletes. You can also **just say it in English or Hinglish**
+(`z drive kholo`, `phone dikhao`). It works in Windows Terminal, PowerShell and the classic `cmd.exe` window (colour codes
+are switched on by the program itself).
 
-### 🚀 Interactive REPL Mode
-Open any terminal and simply type:
+### 🚀 Open the shell
 ```cmd
 cloudssd
 ```
-*(or use the short alias `cpx`)*
-
-You will be greeted with live vitals, disk sizes, cache status, and an interactive prompt:
+*(or the short name `cpx`)*
 
 ```text
-============================================================
-   Cloud-SSD Terminal CLI  ·  v0.9.0
-   Turn your Google Drive into a real drive letter (Y:/Z:)
-============================================================
-  • Process: PID 20532 (Running)
-  • Storage: Y:\ 14.95 TiB  ·  Z:\ 14.95 TiB
-  • Cache:   122 GiB available
-  • Phone:   Android Device (PAIRED · Online)
-============================================================
+╭────────────────────────────────────────────────────────────────────────────╮
+│ >_ Cloud-SSD  v0.9.0                                                       │
+│                                                                            │
+│ Your Google Drive as a real drive letter on this PC.                       │
+│                                                                            │
+│ app     ● running · PID 13768                                              │
+│ drives  Y:  Z:                                                             │
+│ phone   My phone · seen 2 min ago                                        │
+│ data    C:\Users\<you>\AppData\Local\Cloud-SSD                             │
+╰────────────────────────────────────────────────────────────────────────────╯
 
-cloudssd > status
+ Tips for getting started:
+ 1. Type / to see every command, ↑ ↓ to pick, Enter to run
+ 2. /status shows everything at once · /open opens your drive
+ 3. Plain words work too: status, open y, phone
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ > /st                                                                                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+› /status                  Everything at a glance: app, drives, cache, accounts, phone
+  /start                   Start the Cloud-SSD app
+  /stop                    Close the Cloud-SSD app
+  ↑↓ choose · tab fill in · enter run · esc close
 ```
 
-### 📋 CLI Commands
+After Enter:
 
-| Command | Short | Description |
+```text
+> /status
+
+● Status
+  └  PC app     ● running · PID 13768 · 220.6 MiB memory
+     Drives     Y:  Each Account     14.93 TiB free of 15.00 TiB
+                Z:  All Accounts     14.93 TiB free of 15.00 TiB
+     Cache      60.00 GiB budget · C: has 136.39 GiB free
+     Accounts   you@gmail.com  (gdrive)
+     Phone      My phone · seen 2 min ago
+```
+
+### 🗣️ Or just say it (English or Hinglish)
+
+No need to remember the commands. The shell shows what it understood (`→ /cache`) and runs it:
+
+| You type | It runs |
+|---|---|
+| `z drive kholo` · `y drive open karo` | `/open Z:` · `/open Y:` |
+| `drive kholo` | asks *Which drive should open?* (Y: / Z:) |
+| `phone dikhao` · `फोन दिखाओ` | `/phone` |
+| `kitni jagah bachi hai` | `/cache` |
+| `google account dikhao` | `/accounts` |
+| `kya haal hai` | `/status` |
+| `kya dikkat hai` · `drive slow hai` | `/problem` |
+| `speed dikhao` | `/live` |
+| `google key lagao` | `/key` |
+| `photo.jpg dhundho` · `z drive mein report dhundho` | `/find photo.jpg` · `/find report in Z:` |
+| `photo.jpg phone ko bhejo` | `/send photo.jpg` |
+| `z drive jodo` · `z drive hatao` | `/connect Z:` · `/disconnect Z:` (disconnect asks Yes / No) |
+| `app band karo` · `safai karo` | `/stop` · `/clean` (after a Yes / No question) |
+
+It is simple word matching, not AI, so it is instant and predictable. From the command line
+(`cloudssd drive kholo`) it works the same, except that sentences never close or delete there: type `cloudssd stop`.
+
+### ✅ Yes / No before closing or deleting
+
+```text
+╭──────────────────────────────────────────────────────────────────╮
+│ Close the Cloud-SSD app?                                         │
+│ The drives keep working. The phone cannot reach this PC until /start. │
+│                                                                  │
+│   1. Yes, close it                                               │
+│ › 2. No, keep it running                                         │
+╰──────────────────────────────────────────────────────────────────╯
+  ↑↓ or 1-2 choose · enter ok · esc cancel
+```
+**No** is chosen to start with, so an Enter pressed by mistake changes nothing. Asked before `/stop` (when the app runs)
+and `/clean`.
+
+### 🔌 How the terminal talks to the running app
+
+`/connect`, `/disconnect` and `/send` are done by the PC app (it owns the drives and the phone link). The terminal asks it
+over `127.0.0.1` with a **terminal key**: a random key the app writes at every start into `cli.key` in its data folder,
+protected with Windows DPAPI so only your Windows user can read it. The key is accepted from this PC only, and opens
+nothing but the drive list, connect / disconnect and send (everything else answers 403). `/live` reads each drive's own
+rclone statistics the same way the app's speed graph does; it changes nothing.
+
+### ⌨️ Keys
+
+| Key | What it does |
+|---|---|
+| `/` | Opens the command list; keep typing to filter it (`/st` → status, start, stop) |
+| `↑` `↓` | Move in the list, or bring back earlier commands |
+| `Tab` | Fill in the chosen command (and a space when it needs something after it) |
+| `Enter` | Run it |
+| `Esc` | Close the list, or empty the line. While a command runs: stop waiting. In a question: cancel |
+| `1` `2` | Answer a question by its number |
+| `Ctrl+L` | Clean the screen |
+| `Ctrl+C` | Empty the line; twice on an empty line: leave |
+
+A mistyped word gets a hint: `stauts` → *Did you mean /status?*
+
+### 📋 Commands
+
+| Command | Also | What it shows / does |
 |---|---|---|
-| `status` | `s` | Complete live vitals for PC app, drives, accounts, and phone bridge |
-| `phone` | `p` | View connected mobile device details, battery level, and link speed |
-| `mounts` | `m` | List all mounted virtual drive letters (`Y:`, `Z:`) and filesystem backends |
-| `open <letter>` | `o` | Launch Windows File Explorer directly into the specified drive (e.g. `open Z:`) |
-| `remotes` | `r` | List connected Google Drive accounts and storage allocations |
-| `cache` | `c` | Inspect SSD cache usage, budget, and read/write bandwidth |
-| `clean` | | Purge unpinned temporary cache files to immediately free local SSD space |
-| `mirror` | | Check background mirror & offload sync status between PC and cloud |
-| `start` / `stop` | | Start or safely dismount Cloud-SSD service and drives |
-| `deps` | | Check status of prerequisites (WinFsp, rclone, and Android bridge) |
-| `help` | `?` | Display list of supported commands |
-| `exit` | `q` | Exit the CLI session |
+| `/status` | `s` | PC app (running, PID, memory), cloud drives with free space, cache budget, accounts, phone last seen |
+| `/open [letter]` | `o` | Opens a drive in File Explorer. After `/open ` the list shows your drives; with no letter it asks which one |
+| `/problem` | `problems` | What is wrong right now and what to do, in simple Hinglish: reads the app log (never prints a log line) and checks app, drives, shared Google key, free space |
+| `/live` | `watch`, `speed` | Live screen, every second: download speed, busy transfers, uploads and cache of each drive. Esc stops |
+| `/key` | | Your own Google key, step by step (the real fix for slow drives): which accounts still use the shared key, the 5 steps, opens the browser, waits for the key file, then points to the app button |
+| `/drives` | `mounts`, `m` | Every drive set up in Cloud-SSD: letter, on/off, remote, id |
+| `/connect [letter]` | | Connects a cloud drive again (needs the running app) |
+| `/disconnect [letter]` | `eject` | Disconnects a cloud drive; asks Yes / No first (needs the running app) |
+| `/accounts` | `remotes`, `r` | Connected Google accounts, and the joined views behind `Y:` / `Z:` |
+| `/phone` | `devices`, `p` | Paired phones: last seen, address, "files when off" yes/no, data moved |
+| `/ls <folder>` | `dir` | What is inside a folder: `/ls z`, `/ls Z:Games`, `/ls downloads` |
+| `/find <name> [in <folder>]` | `search` | Finds files by name (`photo`, `*.zip`) on the "All Accounts" drive; first 50, Esc stops |
+| `/copy <from> <to>` | `cp` | Copies a file or folder with a progress bar. Never overwrites; a stopped copy leaves no half file |
+| `/send <file> [to <phone>]` | | Offers a file or folder on this PC to your phone (accept it in the phone app; needs the running app) |
+| `/cache` | `c` | Cache folder, budget, space kept free for Windows, disk free space with a bar |
+| `/clean` | | Deletes temporary files older than 7 days (never your own files; asks Yes / No first) |
+| `/mirror` | `sync` | Cloud copy of this PC: paused or copying, account, which folders |
+| `/start` / `/stop` | | Starts / closes the Cloud-SSD app (closing asks Yes / No first) |
+| `/deps` | `doctor` | Checks WinFsp, rclone and free space, with the fix for anything missing |
+| `/scan <folder>` | | Will a game folder run from the cloud |
+| `/pe <file.exe>` | | What a program needs to start (DLLs) |
+| `/help` | `?` | All commands and keys |
+| `/exit` | `quit`, `q` | Leave the shell |
 
-You can also run one-shot commands from any script or prompt:
+### ⚡ One command, then back (scripts)
 ```cmd
 cloudssd status
 cloudssd phone
 cloudssd open Z:
+cloudssd --help
 ```
+When the output goes into a pipe or a file (`cloudssd status > status.txt`) it is plain ASCII text without colours.
+`NO_COLOR=1` switches colours off but keeps the frame. Piped input works too: `echo status | cloudssd`.
 
 ---
 

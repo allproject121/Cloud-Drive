@@ -1,0 +1,9 @@
+﻿Work: claude-drive-speed-restart
+Agent: Claude Code
+TaskId: TASK-CLAUDE-SPEED
+Source as it was before the work started: 632 files, 13 MB.
+Taken: 2026-11-17 01:58
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-17_0158_claude-drive-speed-restart"
+and write complete\README.md.

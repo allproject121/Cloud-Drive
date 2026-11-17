@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\src\CloudSSD.Providers\CloudSSD.Providers.csproj" />
     <ProjectReference Include="..\..\src\CloudSSD.SimCloud\CloudSSD.SimCloud.csproj" />
     <ProjectReference Include="..\..\src\CloudSSD.Desktop\CloudSSD.Desktop.csproj" />
+    <ProjectReference Include="..\..\src\CloudSSD.Cli\CloudSSD.Cli.csproj" />
   </ItemGroup>
 </Project>
 

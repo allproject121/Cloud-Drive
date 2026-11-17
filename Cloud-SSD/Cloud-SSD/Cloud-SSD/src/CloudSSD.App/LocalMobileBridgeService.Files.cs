@@ -86,7 +86,9 @@ public sealed partial class LocalMobileBridgeService
         {
             foreach (var d in DriveInfo.GetDrives())
             {
-                if (d.DriveType != DriveType.Fixed || !d.IsReady || cloud.Contains(d.Name)) continue;
+                // A cloud drive is left out BEFORE it is asked anything: IsReady goes to the drive itself, and a cloud
+                // mount that is busy (waiting on Google) can hold that question for many seconds on every request.
+                if (d.DriveType != DriveType.Fixed || cloud.Contains(d.Name) || !d.IsReady) continue;
                 var letter = d.Name[..1];
                 roots.Add(new CloudRoot(DiskRootPrefix + letter.ToLowerInvariant(), d.Name, true, false, null, letter.ToUpperInvariant() + ": PC disk"));
             }

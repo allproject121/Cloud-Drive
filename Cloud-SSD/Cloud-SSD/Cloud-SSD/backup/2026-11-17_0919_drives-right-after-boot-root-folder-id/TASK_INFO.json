@@ -1,0 +1,9 @@
+﻿{
+    "name":  "drives-right-after-boot-root-folder-id",
+    "agent":  "Claude Code",
+    "taskId":  "TASK-CLAUDE-FASTSTART",
+    "prompt":  "laptop power off/on ke baad storage Files mein turant dikhe, app launch par nirbhar na ho, poora automatic",
+    "startTime":  "2026-11-17T09:20:07.2156185+05:30",
+    "backupDir":  "2026-11-17_0919_drives-right-after-boot-root-folder-id",
+    "fileCount":  645
+}

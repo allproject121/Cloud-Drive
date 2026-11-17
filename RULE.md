@@ -182,3 +182,41 @@ powershell -ExecutionPolicy Bypass -File tools\backup\backup.ps1 restore -Folder
 16. **Never report an incomplete task as complete.**
 17. **Never hide a backup failure or continue editing if a backup fails.**
 18. **Never sacrifice existing project data or delete documentation.**
+
+---
+
+## 10. Speed Lock (the user's rule, 17 Nov 2026)
+
+The user reported "it is fixed, then it is slow again by itself" several times, and asked for the speed to be **locked**
+("isko lock ya kuch kar sakte hai, baad me late open hona shuru kar dega"). So speed is a requirement like a passing test:
+**a change that makes any number below worse is not shipped**, whatever else it improves.
+
+### 10.1 What makes the drive fast (do not switch off, replace or "simplify" without measuring)
+| Piece | Where | What it gives |
+|---|---|---|
+| The user's own Google key (all accounts) | PC app → Cloud Drives; `cpx key` | Google no longer refuses requests (403). Never move an account back to rclone's shared key. |
+| Fast drive (hybrid) | `src/CloudSSD.App/Hybrid/*`, `Settings.Hybrid.Enabled = true` on the user's PC | New files and folders are written to the PC first, uploaded behind. |
+| Preparing opened folders | `src/CloudSSD.App/ArchiveWarmer.cs`, `ExplorerFolderWatcher.cs` | The files of a folder open in File Explorer are fetched ahead. |
+| Mount flags | `src/CloudSSD.Mount/MountPlanning.cs` (`--vfs-cache-mode full`, chunk size 4Mi, limit `off`, `--dir-cache-time 72h`, `--vfs-refresh`, `--links`) | Each was measured; the reasons are in the comments. |
+| Speed check | `src/CloudSSD.App/SpeedGuard.cs` | Measures at start, every 3 hours and on request; raises a note when something that was fine is not. Do not weaken its limits to make a problem "pass". |
+
+### 10.2 The numbers (the user's PC, 9–10 MB/s line, measured 17 Nov 2026)
+| Action | Before | Locked value |
+|---|---|---|
+| Install-like write, 853 files / 143 folders / 970 MB | 42 min (shared key), 13 min (own key, straight to the cloud drive) | **about 5 s** on the fast drive |
+| First open of a file in a folder that is open in File Explorer | 1.7 – 15 s | **under 0.3 s** once the folder is prepared (a few seconds after it is opened) |
+| Second open of a file | 5 ms | 5 – 40 ms |
+| Opening a folder | 0.7 s first time | under 1 s first time, about 10 ms after |
+| "Each Account" drive after the app starts | 40 – 84 s | about 5 s |
+| Google refusals (403) | 1,290 in 26 min | 0 |
+
+### 10.3 Before and after touching any of the pieces in 10.1
+1. Read the last report: `%LOCALAPPDATA%\Cloud-SSD\speed-check.json` (or PC app → Cloud Drives → "Check the speed now").
+2. After your change is installed, run the same check again and, when the change touches reading or writing, also
+   `.work\speed\fast-live-test.ps1 -Fast <letter> -Cloud <letter>`, `.work\speed\warm-live-test.ps1 -Cloud <letter> -Fast <letter>`
+   and `.work\speed\first-open.ps1 -Cloud <letter>`. Put both sets of numbers into your task log.
+3. A check that says "problem", or a number worse than 10.2, means: undo the change (restore from your backup's `before/`) and say so.
+   Judge by the measured times and by request counts, not by "it felt fine".
+4. Never disconnect a cloud drive while a program runs from it or while uploads are unfinished (17 Nov 2026: both the
+   program and rclone got stuck in Windows until a restart, and the drive came back on another letter).
+5. Never restart the PC, and never switch the fast drive off, without the user's yes.

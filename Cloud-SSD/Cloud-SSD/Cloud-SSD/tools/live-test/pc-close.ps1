@@ -12,18 +12,50 @@ Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $p = Get-Process Cloud-SSD -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
 if (-not $p) { 'not running'; exit 0 }
 
-if (-not $p.CloseMainWindow()) {
+# A minimized app shows its "Close Cloud Drive" box minimized too (the box is owned by the main window), and UI
+# Automation does not list it then: this helper waited its 90 s and gave up while the box sat there unseen. Bring the
+# window back first; this also shows a box left open by an earlier try.
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class CloudSsdShow {
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int cmd);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+'@
+if ([CloudSsdShow]::IsIconic($p.MainWindowHandle)) {
+    [void][CloudSsdShow]::ShowWindow($p.MainWindowHandle, 9)
+    [void][CloudSsdShow]::SetForegroundWindow($p.MainWindowHandle)
+    Start-Sleep -Milliseconds 700
+    'restored the minimized window'
+}
+# A disabled main window means its close box is already open (an earlier try): do not ask it to close a second time.
+$boxOpen = -not [CloudSsdShow]::IsWindowEnabled($p.MainWindowHandle)
+if ($boxOpen) { 'the close box is already open' }
+
+if (-not $boxOpen -and -not $p.CloseMainWindow()) {
+    # Own RECT (left, top, right, bottom): System.Drawing.Rectangle is x/y/width/height and is not referenced by
+    # Add-Type on Windows PowerShell 5.1, so this block never compiled and the X was never clicked.
     Add-Type @'
 using System;
-using System.Drawing;
 using System.Runtime.InteropServices;
 public static class CloudSsdClose {
+    [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, IntPtr e);
-    [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out Rectangle lpRect);
+    [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int cmd);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
     public const uint LEFTDOWN = 0x0002, LEFTUP = 0x0004;
     public static bool ClickX(IntPtr h) {
-        Rectangle r;
+        // A minimized window has no X to click: bring it back and to the front first.
+        if (IsIconic(h)) ShowWindow(h, 9);
+        SetForegroundWindow(h);
+        System.Threading.Thread.Sleep(500);
+        RECT r;
         if (!GetWindowRect(h, out r)) return false;
         int x = r.Right - 24, y = r.Top + 24;
         SetCursorPos(x, y);

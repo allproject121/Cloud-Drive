@@ -114,14 +114,18 @@ public static class MountFlagBuilder
         // the refresh, while the same folder listed fine straight from the remote. A wrong listing is much worse
         // than a slow mount, so the refresh stays. The read speed comes from the chunk size instead.
         Flag("vfs-refresh");
-        // The chunk size limit must EQUAL the chunk size, so rclone never doubles the chunk while reading.
-        // rclone grows the chunk on every read (4 MiB, 8 MiB, 16 MiB ... up to the limit), and a growing chunk
-        // turns one small probe into a huge one: with a 256 MiB limit, reading the END of a 460 MB archive
-        // (all Windows needs to list it) took 38.4 s, while with the limit at 4 MiB the same read took 4.3 s -
-        // nine times faster, with the same ~0.8 MB of data coming down either way.
-        // With the limit at the chunk size, "full" cache mode becomes safe: it keeps only the ranges that were
-        // really read (sparse files), so re-opening the same archive is instant instead of another slow download.
-        Flag("vfs-read-chunk-size-limit", ByteSize.ToRclone(chunkSize));
+        // The chunk GROWS while a file is read from start to end ("off" = no upper limit): 4, 8, 16, 32 MiB …
+        // What counts on Google Drive is the NUMBER of requests, not their size: every request can be answered with
+        // "403 quota exceeded" (rclone's shared key: about every second one), and after each such answer rclone
+        // sleeps up to 16 s before the next request of that account. With the limit equal to the chunk size (the
+        // setting before 17 Nov 2026) a file needed one request per 4 MiB - 14 for a 54 MB file, 125 for a 500 MB
+        // installer. Measured on the real drive: that 54 MB file took 259 s (0.21 MB/s on a 9.25 MB/s line, 32
+        // quota answers). Growing chunks need 4 requests for 54 MB and 7 for 500 MB.
+        // A small read stays small either way: a chunk only grows when the SAME stream is read on past its end, so
+        // the probe Windows makes at the end of an archive is still one 4 MiB request. (The earlier "limit 256 MiB
+        // -> 38 s, limit 4 MiB -> 4 s" comparison had the same amount of data coming down both times: the 34 s
+        // were quota sleeps that happened to fall into one run, not the chunk size.)
+        Flag("vfs-read-chunk-size-limit", "off");
         Flag("no-checksum");
         // Without --links rclone refuses symlinks: every mount ended with "symlinks not supported without
         // the --links flag: /" and the drive root stayed a symlink, so the mount needed far longer than

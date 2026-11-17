@@ -1,0 +1,9 @@
+﻿Work: hybrid-z-local-first-drive
+Agent: Antigravity
+TaskId: 
+Source as it was before the work started: 646 files, 13.2 MB.
+Taken: 2026-11-17 12:03
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-17_1203_hybrid-z-local-first-drive"
+and write complete\README.md.

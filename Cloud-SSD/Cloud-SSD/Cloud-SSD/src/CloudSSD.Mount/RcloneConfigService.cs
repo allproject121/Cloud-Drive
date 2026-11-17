@@ -17,6 +17,58 @@ public sealed record RemoteItem(string Name, string Path, bool IsDir, long Size,
 public sealed record CloudAccountInfo(string Remote, string? Email, string? DisplayName, long? UsedBytes, long? TotalBytes, long? FreeBytes, bool Reachable);
 
 /// <summary>
+/// File rules for the kept copy of the accounts file (see <see cref="RcloneConfigService.RestoreIfLost"/>): when the
+/// file counts as lost, and how the copy is put back without ever deleting what was there.
+/// </summary>
+public static class ConfigGuard
+{
+    /// <summary>Missing, empty or only white space. A file that cannot be looked at right now is not called lost.</summary>
+    public static bool IsLost(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            if (!info.Exists || info.Length == 0) return true;
+            return info.Length < 256 && ReadShared(path).All(b => b is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n' or 0);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+    }
+
+    /// <summary>Reads a file another process may be writing (rclone renews logins in it).</summary>
+    public static byte[] ReadShared(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var bytes = new byte[fs.Length];
+        fs.ReadExactly(bytes);
+        return bytes;
+    }
+
+    /// <summary>
+    /// Copies <paramref name="goodCopy"/> over <paramref name="path"/>. With <paramref name="onlyIfLost"/> only when
+    /// the file is missing or empty; otherwise also over a file that has content (kept aside as "….lost-time", never
+    /// deleted). Nothing happens when there is no usable copy or both are already the same.
+    /// </summary>
+    public static bool Restore(string path, string goodCopy, bool onlyIfLost)
+    {
+        try
+        {
+            var lost = IsLost(path);
+            if (onlyIfLost && !lost) return false;
+            if (IsLost(goodCopy)) return false;
+            var good = ReadShared(goodCopy);
+            if (!lost)
+            {
+                if (good.AsSpan().SequenceEqual(ReadShared(path))) return false;
+                File.Copy(path, path + ".lost-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture), overwrite: true);
+            }
+            File.WriteAllBytes(path, good);
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+    }
+}
+
+/// <summary>
 /// Owns Cloud-SSD's private rclone config file (%LOCALAPPDATA%\CloudPlayX\rclone.conf). When encryption is enabled
 /// the file is encrypted by rclone itself with a random password that is stored DPAPI-protected and handed to rclone
 /// only through the RCLONE_CONFIG_PASS environment variable.
@@ -223,10 +275,137 @@ public sealed class RcloneConfigService
 
     private static string Str(JsonObject o, string key) => o[key] is JsonValue v && v.TryGetValue<string>(out var s) ? s.Trim() : "";
 
+    // ---- Drives right after the PC starts: the root folder id of every Google account, saved once ----------------
+    //
+    // Before rclone can mount a Google Drive account it must know the id of the account's top folder. When the id is
+    // not in the config it asks Google for it at EVERY start, once per account, and nothing is mounted until all have
+    // answered. Under rclone's shared Google key those calls are rate limited: on 17 Nov 2026, after a power-on, the
+    // app started 18 s after sign-in but Z: appeared 84 s later; the log shows nothing but those three calls waiting
+    // on "403 rate limit", and then rclone's own hint: "'root_folder_id = …' - save this in the config to speed up
+    // startup". The id of "My Drive" never changes for an account, so it is saved once and the next start mounts
+    // without a single call to Google.
+
+    /// <summary>
+    /// Signed-in Google Drive accounts whose root folder id is not saved yet. Shared drives ("team_drive") have their
+    /// own id and are left alone.
+    /// </summary>
+    public static IReadOnlyList<string> DriveRemotesWithoutRootId(JsonObject dump) =>
+        dump.Where(kv => kv.Value is JsonObject o && Str(o, "type") == "drive" && Str(o, "root_folder_id") == "" && Str(o, "team_drive") == ""
+                         && (Str(o, "token") != "" || Str(o, "service_account_file") != "" || Str(o, "service_account_credentials") != ""))
+            .Select(kv => kv.Key).ToList();
+
+    private static readonly System.Text.RegularExpressions.Regex RootIdHint =
+        new(@"'root_folder_id = ([A-Za-z0-9_-]{5,})'", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>The id in rclone's hint "'root_folder_id = 0A…' - save this in the config to speed up startup", or null.</summary>
+    public static string? ParseRootFolderId(string rcloneDebugOutput) =>
+        RootIdHint.Match(rcloneDebugOutput) is { Success: true } m ? m.Groups[1].Value : null;
+
+    /// <summary>
+    /// Saves the root folder id of every account that has none yet. One account at a time (each needs one answer from
+    /// Google, which can take a while under the shared key); an account that does not answer is simply tried again the
+    /// next time. Returns the accounts that were saved now.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> SaveRootFolderIdsAsync(RcloneInfo rclone, CancellationToken ct = default)
+    {
+        var saved = new List<string>();
+        if (!File.Exists(ConfigPath)) return saved;
+        foreach (var remote in DriveRemotesWithoutRootId(await DumpAsync(rclone, ct)))
+        {
+            ct.ThrowIfCancellationRequested();
+            // Opening the account's top folder makes rclone look the id up and print the hint (debug output goes to stderr).
+            var probe = await CreateRunner(rclone).RunAsync(["lsjson", "--stat", remote + ":", "-vv"], TimeSpan.FromMinutes(3), ct);
+            var id = ParseRootFolderId(probe.StdErr);
+            if (id is null)
+            {
+                _log.LogDebug("No root folder id for {Remote} yet (Google did not answer in time); it is tried again later", remote);
+                continue;
+            }
+            var r = await CreateRunner(rclone).RunAsync(["config", "update", remote, "root_folder_id", id, "--non-interactive"], TimeSpan.FromSeconds(30), ct);
+            if (!r.Success)
+            {
+                _log.LogWarning("Could not save the root folder id of {Remote}: {Error}", remote, Redactor.Redact(r.StdErr.Trim()));
+                continue;
+            }
+            saved.Add(remote);
+            _log.LogInformation("Saved the root folder id of {Remote}: its drive now mounts without asking Google first", remote);
+        }
+        return saved;
+    }
+
     public async Task DeleteRemoteAsync(RcloneInfo rclone, string name, CancellationToken ct = default)
     {
+        // The user is disconnecting something on purpose: the kept copy must not bring it back. A new copy is
+        // taken the next time the accounts are listed.
+        ForgetGood();
         var r = await CreateRunner(rclone).RunAsync(["config", "delete", name], TimeSpan.FromSeconds(30), ct);
         if (!r.Success) throw new InvalidOperationException(Redactor.Redact(r.StdErr));
+    }
+
+    // ---- "Connected once, connected for good": a kept copy of the logins --------------------------------------
+    //
+    // Every connected account lives in this one file, and several rclone processes (one per drive, plus the
+    // helper) write it whenever a login is renewed, with no lock between them. On 13 Nov 2026 the file was found
+    // EMPTY for a moment right after the PC woke up (rclone's own leftover "rclone.conf.old…" of that second has
+    // 0 bytes). Had the app started in that moment, every account would have looked disconnected and the user
+    // would have had to sign in to all of them again. So the app keeps the last copy it knows to be good and puts
+    // it back when the file is gone, empty or unreadable. Accounts end only when the user disconnects them.
+
+    /// <summary>The last copy of the config that was read successfully (same encryption as the config itself).</summary>
+    public string GoodCopyPath => ConfigPath + ".good";
+
+    /// <summary>Puts the kept copy back when the config is missing or empty. True when it did.</summary>
+    public bool RestoreIfLost()
+    {
+        var restored = ConfigGuard.Restore(ConfigPath, GoodCopyPath, onlyIfLost: true);
+        if (restored) _log.LogWarning("The accounts file was missing or empty; the last good copy was put back, so every account stays connected");
+        return restored;
+    }
+
+    /// <summary>Puts the kept copy back over a config rclone could not read. True when it did (then try again).</summary>
+    public bool RestoreUnreadable()
+    {
+        var restored = ConfigGuard.Restore(ConfigPath, GoodCopyPath, onlyIfLost: false);
+        if (restored) _log.LogWarning("The accounts file could not be read; the last good copy was put back (the unreadable one is kept next to it as rclone.conf.lost-…)");
+        return restored;
+    }
+
+    /// <summary>
+    /// Keeps a copy of the config after it was just read successfully with at least one account. The copy is checked
+    /// by rclone itself before it replaces the previous one (the file may have been caught while being written).
+    /// </summary>
+    public async Task RememberGoodAsync(RcloneInfo rclone, IReadOnlyList<RemoteEntry> listed, CancellationToken ct = default)
+    {
+        if (listed.Count == 0 || ConfigGuard.IsLost(ConfigPath)) return;
+        var tmp = GoodCopyPath + ".tmp";
+        try
+        {
+            var bytes = ConfigGuard.ReadShared(ConfigPath);
+            if (File.Exists(GoodCopyPath) && bytes.AsSpan().SequenceEqual(ConfigGuard.ReadShared(GoodCopyPath))) return;
+            await File.WriteAllBytesAsync(tmp, bytes, ct);
+            var env = new Dictionary<string, string?>(BaseEnvironment()) { ["RCLONE_CONFIG"] = tmp };
+            var r = await new RcloneRunner(rclone.Path, env).RunAsync(["listremotes"], TimeSpan.FromSeconds(30), ct);
+            var names = r.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(l => l.TrimEnd(':')).ToHashSet(StringComparer.Ordinal);
+            if (!r.Success || !listed.All(e => names.Contains(e.Name)))
+            {
+                File.Delete(tmp);
+                return;
+            }
+            File.Move(tmp, GoodCopyPath, overwrite: true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            _log.LogDebug("Keeping a copy of the accounts file failed: {Error}", e.Message);
+            try { File.Delete(tmp); } catch (Exception x) when (x is IOException or UnauthorizedAccessException) { }
+        }
+    }
+
+    /// <summary>Drops the kept copy (before the user disconnects an account, so it cannot come back).</summary>
+    public void ForgetGood()
+    {
+        foreach (var f in new[] { GoodCopyPath, GoodCopyPath + ".tmp" })
+            try { File.Delete(f); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 
     /// <summary>

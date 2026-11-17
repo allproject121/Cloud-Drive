@@ -1,0 +1,9 @@
+﻿Work: cli-tui-improve-hinglish-picker-logo
+Agent: Claude Code
+TaskId: TASK-CLAUDE-CLI-TUI-2
+Source as it was before the work started: 636 files, 13 MB.
+Taken: 2026-11-17 02:36
+
+The folder "before" is never changed. When the work is ready, run:
+  tools\backup\backup.ps1 complete -Folder "2026-11-17_0235_cli-tui-improve-hinglish-picker-logo"
+and write complete\README.md.

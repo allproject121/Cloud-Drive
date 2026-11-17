@@ -1,0 +1,9 @@
+﻿{
+    "name":  "claude-drive-speed-restart",
+    "agent":  "Claude Code",
+    "taskId":  "TASK-CLAUDE-SPEED",
+    "prompt":  "restart ke baad drive permanent rahe; zip aur app install slow hai, dhoondho aur fix karo",
+    "startTime":  "2026-11-17T01:58:19.0527609+05:30",
+    "backupDir":  "2026-11-17_0158_claude-drive-speed-restart",
+    "fileCount":  632
+}

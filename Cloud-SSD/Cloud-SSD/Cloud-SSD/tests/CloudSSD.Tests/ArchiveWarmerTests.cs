@@ -39,7 +39,51 @@ public class ArchiveWarmerTests
     }
 
     [Fact]
-    public async Task Listing_a_folder_fetches_each_archive_once_and_ignores_other_files()
+    public void Any_file_is_fetched_whole_when_small_and_start_plus_end_when_big()
+    {
+        Assert.Empty(ArchiveWarmer.RangesFor("notes.txt", 0));
+        Assert.Equal([(0L, 50_000)], ArchiveWarmer.RangesFor("photo.jpg", 50_000));
+        long big = ArchiveWarmer.SmallFileLimit + 10 * ByteSize.MiB;
+        Assert.Equal([(0L, ArchiveWarmer.FileHeadBytes), (big - ArchiveWarmer.FileTailBytes, ArchiveWarmer.FileTailBytes)], ArchiveWarmer.RangesFor("film.mp4", big));
+        // An archive keeps its own rule: its file list sits at the end and is bigger.
+        Assert.Equal(ArchiveWarmer.Ranges(big), ArchiveWarmer.RangesFor("Game.ZIP", big));
+    }
+
+    [Fact]
+    public void The_smallest_files_of_a_folder_go_first_and_a_folder_has_a_limit()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "cpx_choose_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            File.WriteAllBytes(Path.Combine(dir, "b.bin"), new byte[3000]);
+            File.WriteAllBytes(Path.Combine(dir, "a.bin"), new byte[1000]);
+            File.WriteAllBytes(Path.Combine(dir, "empty.txt"), []);
+            File.WriteAllBytes(Path.Combine(dir, "desktop.ini"), new byte[100]);
+            for (var i = 0; i < ArchiveWarmer.MaxPerDirectory + 5; i++) File.WriteAllBytes(Path.Combine(dir, $"many{i:000}.dat"), new byte[5000 + i]);
+
+            var chosen = ArchiveWarmer.Choose(new DirectoryInfo(dir).EnumerateFiles());
+
+            Assert.Equal(ArchiveWarmer.MaxPerDirectory, chosen.Count);
+            Assert.Equal(["a.bin", "b.bin"], chosen.Take(2).Select(f => f.Name));
+            Assert.DoesNotContain(chosen, f => f.Name is "empty.txt" or "desktop.ini");
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void A_File_Explorer_window_address_becomes_a_folder_path_and_special_places_are_ignored()
+    {
+        Assert.Equal(@"G:\My Photos\Trip", ExplorerFolderWatcher.PathOf("file:///G:/My%20Photos/Trip"));
+        Assert.Equal(@"W:\", ExplorerFolderWatcher.PathOf("file:///W:/"));
+        Assert.Null(ExplorerFolderWatcher.PathOf(""));                                  // "This PC", Control Panel…
+        Assert.Null(ExplorerFolderWatcher.PathOf(null));
+        Assert.Null(ExplorerFolderWatcher.PathOf("https://example.com/"));
+        Assert.Null(ExplorerFolderWatcher.PathOf("file://server/share/folder"));        // a network share: not one of our drives
+    }
+
+    [Fact]
+    public async Task Opening_a_folder_fetches_each_file_once_small_ones_whole_big_ones_start_and_end()
     {
         var root = Path.Combine(Path.GetTempPath(), "cpx_warm_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "Zips"));
@@ -55,7 +99,7 @@ public class ArchiveWarmerTests
             using var warmer = new ArchiveWarmer(_ => root, _ => null, () => false, NullLogger.Instance);
             warmer.Warmed += (path, bytes) =>
             {
-                lock (warmed) { warmed[path] = warmed.GetValueOrDefault(path) + bytes; if (warmed.Count == 2) done.TrySetResult(); }
+                lock (warmed) { warmed[path] = warmed.GetValueOrDefault(path) + bytes; if (warmed.Count == 3) done.TrySetResult(); }
             };
             warmer.OnDirectoryListed("m", "Zips");
             warmer.OnDirectoryListed("m", "Zips"); // File Explorer lists a folder many times; only the first counts
@@ -66,7 +110,8 @@ public class ArchiveWarmerTests
             {
                 Assert.Equal(70_000, warmed["Zips/small.zip"]);
                 Assert.Equal(ArchiveWarmer.TailBytes + ArchiveWarmer.HeadBytes, warmed["Zips/big.7z"]);
-                Assert.Equal(2, warmed.Count);
+                Assert.Equal(50_000, warmed["Zips/video.mp4"]);   // not an archive, small: fetched whole
+                Assert.Equal(3, warmed.Count);
             }
         }
         finally

@@ -1,0 +1,9 @@
+﻿{
+    "name":  "claude-drive-permanent",
+    "agent":  "Claude Code",
+    "taskId":  "TASK-CLAUDE-PERMANENT",
+    "prompt":  "file aata hai mujhe wo permanent chahiye jab tak app hai tab tak mujhe storage mile",
+    "startTime":  "2026-11-17T02:47:55.5467471+05:30",
+    "backupDir":  "2026-11-17_0247_claude-drive-permanent",
+    "fileCount":  637
+}

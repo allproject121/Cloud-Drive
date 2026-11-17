@@ -14,7 +14,10 @@ public sealed class AppSettings
     public Dictionary<string, string> AccountEmails { get; set; } = new();
     public string? RclonePathOverride { get; set; }
     public bool RestoreMountsOnStartup { get; set; } = true;
-    public bool KeepMountsAfterExit { get; set; } = false;
+    // True: closing the window leaves the drives connected ("Yes" is the answer already chosen in the question the
+    // app asks). A drive the user connected stays until the user disconnects it; with false, pressing Enter on that
+    // question took Z: and Y: away until the app was started again.
+    public bool KeepMountsAfterExit { get; set; } = true;
     public bool EncryptRcloneConfig { get; set; } = true;
     public bool FirstRunCompleted { get; set; }
     /// <summary>The person said "not now" when the app offered to install WinFsp at start: it is not offered at start again (connecting a drive still asks).</summary>
@@ -24,6 +27,34 @@ public sealed class AppSettings
     public SmartOffloadSettings SmartOffload { get; set; } = new();
     public MemorySettings Memory { get; set; } = new();
     public MirrorSettings Mirror { get; set; } = new();
+    public HybridDriveSettings Hybrid { get; set; } = new();
+}
+
+/// <summary>
+/// "Fast drive" (hybrid): the drive letter people use is a folder on this PC. New files and folders are written there
+/// at the disk's own speed and uploaded behind; the folders that are already in the cloud show up in it as links to
+/// the cloud drive, which moves to another letter. Measured on 17 Nov 2026 with an 853-file install: 4 s this way,
+/// 13 min written straight to the cloud drive (every new folder there is a request to Google), 71 s through an
+/// rclone mount of a plain local folder.
+/// </summary>
+public sealed class HybridDriveSettings
+{
+    public bool Enabled { get; set; }
+    /// <summary>The letter the fast drive shows up as.</summary>
+    public string Letter { get; set; } = "Z";
+    /// <summary>The letter the cloud drive behind it uses while the fast drive is on.</summary>
+    public string BackingLetter { get; set; } = "X";
+    /// <summary>The folder on this PC behind the letter. Empty = "Cloud-SSD\All Accounts" in the user's folder.</summary>
+    public string? Root { get; set; }
+    /// <summary>The cloud drive the fast drive sits in front of.</summary>
+    public string MountId { get; set; } = "cloudssd";
+    /// <summary>A new or changed folder is uploaded once nothing in it changed for this long.</summary>
+    public int QuietSeconds { get; set; } = 20;
+
+    [System.Text.Json.Serialization.JsonIgnore]   // worked out, not a setting: it must not be written into settings.json
+    public string RootOrDefault => string.IsNullOrWhiteSpace(Root)
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Cloud-SSD", "All Accounts")
+        : Root;
 }
 
 /// <summary>

@@ -166,6 +166,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
             _cts = new CancellationTokenSource();
             _listener = new TcpListener(IPAddress.Any, Port);
             _listener.Start();
+            // Only the process that really got the port writes the terminal key (LocalMobileBridgeService.Cli.cs).
+            IssueCliKey();
             _acceptTask = Task.Run(AcceptLoopAsync);
             StartPresence();
             _log.LogInformation("Cloud-SSD Mobile Bridge listening on 0.0.0.0:{Port} (Access at {Url})", Port, LocalUrl);
@@ -384,6 +386,20 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         // A signed file link stands in for the token on /api/stream and /api/download, for that one file only.
         var caller = Authenticate(token, clientIp, route)
             ?? (queryParams.ContainsKey("sig") ? VerifySignedUrl(path, queryParams, clientIp, route) : null);
+
+        // The terminal on this PC (cloudssd / cpx): its own key, from 127.0.0.1 only, and only for the few routes below
+        // (LocalMobileBridgeService.Cli.cs). The PC-wide switches further down still apply to it.
+        CliCall.Value = false;
+        if (caller is null && IsCliCall(token, clientIp))
+        {
+            if (!CliRouteAllowed(path))
+            {
+                await SendJsonAsync(stream, 403, "Forbidden", new { error = "The terminal key does not open this." }, ct);
+                return;
+            }
+            CliCall.Value = true;
+            caller = new Caller(null, false, clientIp, route);
+        }
         CurrentCaller.Value = caller;
 
         if (path.Equals("/api/pair", StringComparison.OrdinalIgnoreCase) && method == "POST")
@@ -422,6 +438,8 @@ public sealed partial class LocalMobileBridgeService : IAsyncDisposable
         // Blocking or removing the device stops whatever it is downloading, uploading or streaming right away.
         using var kick = caller.Device is { } dev ? CancellationTokenSource.CreateLinkedTokenSource(ct, Presence.KickToken(dev.Id)) : null;
         if (kick != null) ct = kick.Token;
+
+        if (await TryHandleCliRouteAsync(method, path, queryParams, stream, ct)) return;
 
         // Asking for access needs only the pairing.
         if (await TryHandleAccessRouteAsync(method, path, queryParams, caller, stream, ct)) return;
